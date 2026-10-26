@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "knack"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2",
+    "ast-grep-cli==0.51.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ufmt",
+    "pyright",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["knack"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["knack", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
