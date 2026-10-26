@@ -1,0 +1,7 @@
+CLAUDE.md
+.claude/
+.knack/*.log
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
