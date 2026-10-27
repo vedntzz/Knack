@@ -20,10 +20,10 @@ class IndexedFunction(BaseModel):
 
 
 def extract_functions(source: str, file: Path) -> list[IndexedFunction]:
-    return list(_functions_under(_parse(source, file), "", file))
+    return list(_functions_under(parse_module(source, file), "", file))
 
 
-def _parse(source: str, file: Path) -> ast.Module:
+def parse_module(source: str, file: Path) -> ast.Module:
     # ValueError covers null bytes on Python 3.11.
     try:
         return ast.parse(source, filename=str(file))
