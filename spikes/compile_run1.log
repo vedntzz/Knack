@@ -1,0 +1,21 @@
+=== ATTEMPT 1 ===
+rule: string "state"/"start_date" inside SortParam($$$DagModel$$$), stopBy: end
+BAD pre-fix code: expected flag, got 0 matches [no matches]
+BAD held-out violation A: expected flag, got 0 matches [no matches]
+BAD held-out violation B: expected flag, got 0 matches [no matches]
+BAD held-out violation C: expected flag, got 0 matches [no matches]
+OK  merged fix: expected allow, got 0 matches [no matches]
+OK  held-out clean A: expected allow, got 0 matches [no matches]
+OK  held-out clean B: expected allow, got 0 matches [no matches]
+
+=== ATTEMPT 2 ===
+rule: kind string + regex ^['"](state|start_date)['"]$, inside call having SortParam and DagModel (stopBy: end)
+OK  pre-fix code: expected flag, got 2 matches ["state" (line 23), "start_date" (line 23)]
+OK  held-out violation A: expected flag, got 2 matches ["state" (line 24), "start_date" (line 25)]
+OK  held-out violation B: expected flag, got 2 matches ["state" (line 19), "start_date" (line 19)]
+OK  held-out violation C: expected flag, got 4 matches ["state" (line 25), "start_date" (line 25), "state" (line 28), "start_date" (line 29)]
+OK  merged fix: expected allow, got 0 matches [no matches]
+OK  held-out clean A: expected allow, got 0 matches [no matches]
+OK  held-out clean B: expected allow, got 0 matches [no matches]
+
+COMPILE GATE: PASS on attempt 2
