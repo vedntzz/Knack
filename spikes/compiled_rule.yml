@@ -1,20 +1,15 @@
 id: compiled-rule
 language: python
 severity: error
-message: Do not expose `state`/`start_date` as DAG sort options; use `last_run_*` spelling.
+message: Removes state/start_date DAG sort names; keep only last_run_* spelling, do not alias state/start_date onto DagRun.state/start_date.
 rule:
   all:
-    - kind: string
-      regex: "^['\"](state|start_date)['\"]$"
-    - inside:
-        all:
-          - kind: call
-          - has:
-              kind: identifier
-              regex: ^SortParam$
-              stopBy: end
-          - has:
-              kind: identifier
-              regex: ^DagModel$
-              stopBy: end
+    - pattern: SortParam($$$)
+    - has:
         stopBy: end
+        pattern: DagModel
+    - has:
+        stopBy: end
+        all:
+          - kind: string
+          - regex: "^[\"'](state|start_date)[\"']$"
