@@ -1,0 +1,75 @@
+{
+  "top_logprobs": 0,
+  "temperature": 1.0,
+  "top_p": 1.0,
+  "service_tier": "auto",
+  "model": "muse-spark-1.3",
+  "reasoning": {
+    "effort": "high",
+    "summary": "auto"
+  },
+  "background": false,
+  "tools": [],
+  "tool_choice": "auto",
+  "truncation": "disabled",
+  "id": "resp_6ae0df7fd6b7d94040514c17",
+  "object": "response",
+  "status": "completed",
+  "created_at": 1793122163.0,
+  "completed_at": 1793122175.0,
+  "error": null,
+  "incomplete_details": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "rs_6ae0df7fd6b7d94040514c17:rs_01a17e68db4c7039883a727fc7215893",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "Extracting engineering decisions and rejected alternatives from PR text under verbatim quote constraints."
+        },
+        {
+          "type": "summary_text",
+          "text": "Recording the removal decision, rejected aliasing alternative, and rationale with verbatim quote and author."
+        },
+        {
+          "type": "summary_text",
+          "text": "Recording the verbatim quote while omitting the rejected aliasing alternative and rationale."
+        },
+        {
+          "type": "summary_text",
+          "text": "Recording the author and rationale for the removal decision while omitting the rejected aliasing option."
+        }
+      ],
+      "status": "completed"
+    },
+    {
+      "type": "message",
+      "id": "msg_01a17e69065c76e39ff4cac1b92afac9",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"decisions\": [{\"decision\": \"Removes the two names from both endpoints.\", \"why\": \"The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.\", \"decided_by\": \"Pushkal-Gupta\", \"rejected_alternatives\": [{\"alternative\": \"aliasing them onto `DagRun.state` and `DagRun.start_date`\", \"why_rejected\": \"The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.\", \"quote\": \"I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.\"}]}]}",
+          "annotations": [],
+          "logprobs": []
+        }
+      ],
+      "status": "completed"
+    }
+  ],
+  "instructions": null,
+  "usage": {
+    "input_tokens": 1004,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 2690,
+    "output_tokens_details": {
+      "reasoning_tokens": 2455
+    },
+    "total_tokens": 3694
+  },
+  "parallel_tool_calls": true,
+  "store": true
+}
