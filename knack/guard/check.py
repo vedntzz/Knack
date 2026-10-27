@@ -20,7 +20,7 @@ def check_file(
 
 
 def fail_open(error: Exception, log_path: Path, started: float) -> Verdict:
-    _log_error_quietly(log_path, error)
+    log_error_quietly(log_path, error)
     return _guard_error_verdict(error, started)
 
 
@@ -40,7 +40,7 @@ def _guard_error_verdict(error: Exception, started: float) -> Verdict:
     return Verdict(allowed=True, reason=reason, latency_ms=_elapsed_ms(started))
 
 
-def _log_error_quietly(log_path: Path, error: Exception) -> None:
+def log_error_quietly(log_path: Path, error: Exception) -> None:
     # Logging is best effort; a failed write must not break fail-open.
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
