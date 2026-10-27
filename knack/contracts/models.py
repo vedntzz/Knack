@@ -80,3 +80,34 @@ class Verdict(BaseModel):
             return
         if not self.rule_id or not self.root_ids:
             raise ValueError("deny verdict requires rule_id and root_ids")
+
+
+RISK_RANK = {"high": 0, "medium": 1, "low": 2}
+
+
+class WalkResponse(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ticket: str = Field(min_length=1)
+    leaves: list[Leaf]
+    roots: list[Root]
+
+    @model_validator(mode="after")
+    def check_cross_field_rules(self) -> Self:
+        self.require_risk_ranked_leaves()
+        self.require_known_root_ids()
+        return self
+
+    def require_risk_ranked_leaves(self) -> None:
+        # Leaves must run high, then medium, then low.
+        ranks = [RISK_RANK[leaf.risk] for leaf in self.leaves]
+        if ranks != sorted(ranks):
+            raise ValueError("leaves must be ordered high, medium, low")
+
+    def require_known_root_ids(self) -> None:
+        # Every leaf root_id must point at a root in this response.
+        known = {root.id for root in self.roots}
+        for leaf in self.leaves:
+            missing = set(leaf.root_ids) - known
+            if missing:
+                raise ValueError(f"leaf cites unknown root_ids: {sorted(missing)}")
