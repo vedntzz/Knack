@@ -1,6 +1,14 @@
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    model_validator,
+    NonNegativeFloat,
+    PositiveInt,
+)
 
 DecisionStatus = Literal["Confirmed", "Inferred", "Unknown"]
 
@@ -50,3 +58,25 @@ class Leaf(BaseModel):
         # High risk must trace back to at least one root.
         if self.risk == "high" and not self.root_ids:
             raise ValueError("high-risk leaf requires root_ids")
+
+
+class Verdict(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    allowed: bool
+    reason: str = Field(min_length=1)
+    rule_id: str | None = Field(default=None, min_length=1)
+    root_ids: list[str] = []
+    latency_ms: NonNegativeFloat
+
+    @model_validator(mode="after")
+    def check_cross_field_rules(self) -> Self:
+        self.require_proof_when_blocking()
+        return self
+
+    def require_proof_when_blocking(self) -> None:
+        # A block must cite the rule and at least one root.
+        if self.allowed:
+            return
+        if not self.rule_id or not self.root_ids:
+            raise ValueError("deny verdict requires rule_id and root_ids")
