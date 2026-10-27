@@ -1,0 +1,41 @@
+# Source decision: apache/airflow PR #75025 (Apache-2.0), "Remove two Dag list sort options that never worked".
+id: no-alias-sort-keys
+language: python
+severity: error
+message: >-
+  Bare DagRun column name $KEY exposed as a Dag list sort key. PR #75025 removed
+  "state" and "start_date"; DagRun columns are sorted only as last_run_*.
+note: >-
+  #44345 moved these behind last_run_state / last_run_start_date in to_replace but left
+  the bare names allowed, so sorting by them raised AttributeError on DagModel.
+rule:
+  kind: string
+  regex: ^["'](state|start_date)["']$
+  pattern: $KEY
+  # Only SortParam calls that alias onto DagRun columns; DagRun's own routes stay legal.
+  inside:
+    stopBy: end
+    kind: call
+    all:
+      - has:
+          field: function
+          regex: ^SortParam$
+      - has:
+          stopBy: end
+          pattern: DagRun.$COL
+  any:
+    # Form 1: the bare name is still in the allowed list (pre-fix).
+    - inside:
+        stopBy: neighbor
+        kind: list
+        inside:
+          stopBy: neighbor
+          kind: argument_list
+    # Form 2: the bare name is re-aliased onto a DagRun column in to_replace.
+    - inside:
+        stopBy: neighbor
+        kind: pair
+        field: key
+        has:
+          field: value
+          pattern: DagRun.$VALUE
