@@ -1,4 +1,4 @@
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -11,6 +11,7 @@ from pydantic import (
 )
 
 DecisionStatus = Literal["Confirmed", "Inferred", "Unknown"]
+NonEmptyStr = Annotated[str, Field(min_length=1)]
 
 
 class Root(BaseModel):
@@ -111,3 +112,26 @@ class WalkResponse(BaseModel):
             missing = set(leaf.root_ids) - known
             if missing:
                 raise ValueError(f"leaf cites unknown root_ids: {sorted(missing)}")
+
+
+class CompiledRule(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    rule_id: str = Field(min_length=1)
+    root_id: str = Field(min_length=1)
+    pattern: str = Field(min_length=1)
+    must_fail: list[NonEmptyStr] = []
+    must_pass: list[NonEmptyStr] = []
+    proven: bool = False
+
+    @model_validator(mode="after")
+    def check_cross_field_rules(self) -> Self:
+        self.require_evidence_when_proven()
+        return self
+
+    def require_evidence_when_proven(self) -> None:
+        # A proven rule must show code it blocks and code it allows.
+        if not self.proven:
+            return
+        if not self.must_fail or not self.must_pass:
+            raise ValueError("proven rule requires must_fail and must_pass")
