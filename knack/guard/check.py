@@ -16,8 +16,12 @@ def check_file(
         return _scan_and_build(file_path, rule_path, rule_id, root, started)
     except Exception as error:
         # Fail open: a bug in the guard must never block an edit.
-        _log_error_quietly(log_path, error)
-        return _guard_error_verdict(error, started)
+        return fail_open(error, log_path, started)
+
+
+def fail_open(error: Exception, log_path: Path, started: float) -> Verdict:
+    _log_error_quietly(log_path, error)
+    return _guard_error_verdict(error, started)
 
 
 def _scan_and_build(
