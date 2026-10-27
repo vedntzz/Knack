@@ -52,6 +52,13 @@ def deny_reason(result: dict[str, Any] | None) -> str:
     return str(output["permissionDecisionReason"])
 
 
+def hook_stdout_json(done: subprocess.CompletedProcess[bytes]) -> dict[str, Any]:
+    # Empty stdout means the hook failed open; surface its stderr, not a JSONDecodeError.
+    stderr = done.stderr.decode(errors="replace")
+    assert done.stdout, f"hook failed open (exit {done.returncode}); stderr:\n{stderr}"
+    return json.loads(done.stdout)
+
+
 def raise_error(error: Exception) -> Any:
     # Builds a stand-in that raises the given error when called.
     def raiser(*args: Any, **kwargs: Any) -> Any:
@@ -128,7 +135,7 @@ def test_deny_via_subprocess_emits_valid_json() -> None:
     event = violating_write_event("new_dags.py", REPO_ROOT)
     done = run_pretool(json.dumps(event))
     assert done.returncode == 0
-    reason = deny_reason(json.loads(done.stdout))
+    reason = deny_reason(hook_stdout_json(done))
     assert SOURCE_URL in reason
 
 
@@ -136,13 +143,13 @@ def test_hook_run_from_other_directory_still_denies(tmp_path: Path) -> None:
     event = violating_write_event("new_dags.py", REPO_ROOT)
     done = run_pretool(json.dumps(event), cwd=tmp_path)
     assert done.returncode == 0
-    assert SOURCE_URL in deny_reason(json.loads(done.stdout))
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
 
 
 def test_registry_resolves_from_repo_root_when_event_cwd_is_subdir() -> None:
     event = violating_write_event("new_dags.py", REPO_ROOT / "tests")
     done = run_pretool(json.dumps(event))
-    assert SOURCE_URL in deny_reason(json.loads(done.stdout))
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
 
 
 def test_missing_guard_json_fails_open_with_stderr_report(tmp_path: Path) -> None:
@@ -219,7 +226,7 @@ def test_hook_command_passes_stdin_through_sh_from_subdir() -> None:
         timeout=60,
         cwd=REPO_ROOT / "tests",
     )
-    assert SOURCE_URL in deny_reason(json.loads(done.stdout))
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
 
 
 def test_hook_command_outside_git_repo_exits_zero_silently(tmp_path: Path) -> None:

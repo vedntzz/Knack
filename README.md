@@ -8,6 +8,15 @@ Muse Spark reads a repository's PR history and extracts the decisions the team m
 Knack compiles those decisions into rules and verifies each rule against that same history before trusting it.
 A deterministic guard then blocks any agent edit that breaks a rule, citing who decided, why, and the verbatim source.
 
+## Setup
+
+```sh
+uv venv && uv pip install --python .venv/bin/python -e ".[dev]"
+```
+
+The Muse Code hook in `.muse/hooks.json` runs `.venv/bin/python` from the repo root,
+so the virtual environment must live at `.venv` in the repository root.
+
 ## Status
 
 Current results:
