@@ -1,0 +1,15 @@
+Muse Code hook runner test, Oct 27, 2026 (muse plugins hook test)
+
+Raw runner output:
+    hook-test   knack-hooktest:pretool  status=blocked
+Runner exit code: 0
+
+Setup: `muse plugins hook test` only runs installed plugin hooks, so a temporary
+plugin (knack-hooktest, PreToolUse) wrapped the project's exact command:
+    cd <repo> && .venv/bin/python -m knack.hooks.pretool || true
+Fixture envelope: {"event": "PreToolUse", "stdin": <payload>, "cwd": <repo>}
+Payload: tests/hooks/fixtures/write_event.json (real captured Muse Code shape) with
+tool_input.content = tests/guard/fixtures/replay/run3_public_dags.py and
+tool_input.path = scratch_dags.py.
+Knack was never invoked directly; only the runner executed the hook.
+Temp plugin and scaffolding removed afterwards.
