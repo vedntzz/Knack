@@ -1,0 +1,39 @@
+diff --git a/airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py b/airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py
+index 7059b9992b..75b36ecdfc 100644
+--- a/airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py
++++ b/airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py
+@@ -131,7 +131,12 @@ def get_dags(
+             SortParam(
+                 ["dag_id", "dag_display_name", "next_dagrun", "state", "start_date"],
+                 DagModel,
+-                {"last_run_state": DagRun.state, "last_run_start_date": DagRun.start_date},
++                {
++                    "state": DagRun.state,
++                    "start_date": DagRun.start_date,
++                    "last_run_state": DagRun.state,
++                    "last_run_start_date": DagRun.start_date,
++                },
+             ).dynamic_depends()
+         ),
+     ],
+diff --git a/airflow-core/tests/unit/api_fastapi/core_api/routes/public/test_dags.py b/airflow-core/tests/unit/api_fastapi/core_api/routes/public/test_dags.py
+index 3b6c6d283e..44cb853b1e 100644
+--- a/airflow-core/tests/unit/api_fastapi/core_api/routes/public/test_dags.py
++++ b/airflow-core/tests/unit/api_fastapi/core_api/routes/public/test_dags.py
+@@ -744,6 +744,16 @@ class TestGetDags(TestDagEndpoint):
+                 3,
+                 [DAG3_ID, DAG1_ID, DAG2_ID],
+             ),
++            (
++                {"order_by": "state", "exclude_stale": False},
++                3,
++                [DAG2_ID, DAG1_ID, DAG3_ID],
++            ),
++            (
++                {"order_by": "-start_date", "exclude_stale": False},
++                3,
++                [DAG3_ID, DAG1_ID, DAG2_ID],
++            ),
+             (
+                 {"order_by": ["next_dagrun", "-dag_display_name"], "exclude_stale": False},
+                 3,

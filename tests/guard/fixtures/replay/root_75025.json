@@ -1,0 +1,12 @@
+{
+  "id": "root-75025",
+  "title": "Remove two Dag list sort options that never worked",
+  "decision": "Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.",
+  "why": "The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.",
+  "decided_by": "Pushkal Gupta (author); approved and merged by bbovenzi",
+  "source_url": "https://github.com/apache/airflow/pull/75025",
+  "quote": "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.",
+  "status": "Confirmed",
+  "rejected_alternative": "Alias state and start_date onto DagRun.state and DagRun.start_date.",
+  "seeded": false
+}
