@@ -1,0 +1,7 @@
+[
+  {"rule": "../rules/airflow/74150.yml", "root_ids": ["airflow-74150-1"]},
+  {"rule": "../rules/airflow/75025.yml", "root_ids": ["airflow-75025-1"]},
+  {"rule": "../rules/airflow/75271.yml", "root_ids": ["airflow-75271-1", "airflow-75271-2"]},
+  {"rule": "../rules/airflow/75734.yml", "root_ids": ["airflow-75734-1"]},
+  {"rule": "../rules/airflow/75774.yml", "root_ids": ["airflow-75774-1", "airflow-75774-2"]}
+]
