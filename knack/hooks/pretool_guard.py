@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import time
 from pathlib import Path
@@ -12,6 +13,7 @@ WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
 GUARD_JSON = ".knack/guard.json"
 ERROR_LOG = ".knack/guard_errors.log"
+REGISTRY_ENV = "KNACK_REGISTRY"
 
 
 def decide(event: JsonDict, registry: list[JsonDict], root: Path) -> JsonDict | None:
@@ -140,7 +142,24 @@ def _load_registry(root: Path) -> list[JsonDict]:
     return json.loads((root / GUARD_JSON).read_text(encoding="utf-8"))
 
 
+def _env_registry_root(registry: Path) -> Path:
+    # $X/.knack/guard.json resolves like a repo at $X; any other file, its own dir.
+    if registry.parent.name == ".knack":
+        return registry.parent.parent
+    return registry.parent
+
+
+def _registry_and_root(event: JsonDict) -> tuple[list[JsonDict], Path]:
+    # KNACK_REGISTRY, when set and non-empty, replaces the walk for guard.json.
+    override = os.environ.get(REGISTRY_ENV)
+    if not override:
+        root = find_repo_root(event_cwd(event))
+        return _load_registry(root), root
+    registry = Path(override).expanduser().resolve()
+    return json.loads(registry.read_text(encoding="utf-8")), _env_registry_root(registry)
+
+
 def run_hook(stdin_text: str) -> JsonDict | None:
     event = json.loads(stdin_text)
-    root = find_repo_root(event_cwd(event))
-    return decide(event, _load_registry(root), root)
+    registry, root = _registry_and_root(event)
+    return decide(event, registry, root)

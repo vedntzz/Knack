@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -240,3 +241,70 @@ def test_hook_command_outside_git_repo_exits_zero_silently(tmp_path: Path) -> No
         cwd=tmp_path,
     )
     assert (done.returncode, done.stdout) == (0, b"")
+
+
+def write_registry(directory: Path) -> Path:
+    # A registry outside any repo, with absolute rule and root paths.
+    registry = directory / ".knack" / "guard.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps(make_registry()), encoding="utf-8")
+    return registry
+
+
+def run_pretool_with_registry(
+    stdin_text: str, registry: str, cwd: Path
+) -> subprocess.CompletedProcess[bytes]:
+    # Runs the hook with KNACK_REGISTRY pointing at the given file.
+    args = [sys.executable, "-m", "knack.hooks.pretool"]
+    env = {**os.environ, "KNACK_REGISTRY": registry}
+    payload = stdin_text.encode()
+    return subprocess.run(
+        args, input=payload, capture_output=True, timeout=60, cwd=cwd, env=env
+    )
+
+
+def test_env_registry_denies_outside_any_repo(tmp_path: Path) -> None:
+    registry = write_registry(tmp_path / "home")
+    event = violating_write_event("new_dags.py", tmp_path)
+    done = run_pretool_with_registry(json.dumps(event), str(registry), tmp_path)
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
+
+
+def test_env_registry_overrides_repo_guard_json(tmp_path: Path) -> None:
+    registry = tmp_path / "empty.json"
+    registry.write_text("[]", encoding="utf-8")
+    event = violating_write_event("new_dags.py", REPO_ROOT)
+    done = run_pretool_with_registry(json.dumps(event), str(registry), REPO_ROOT)
+    assert (done.returncode, done.stdout) == (0, b"")
+
+
+def test_env_registry_missing_file_fails_open_with_stderr(tmp_path: Path) -> None:
+    missing = str(tmp_path / "nope.json")
+    event = violating_write_event("new_dags.py", REPO_ROOT)
+    done = run_pretool_with_registry(json.dumps(event), missing, REPO_ROOT)
+    assert (done.returncode, done.stdout) == (0, b"")
+    assert missing.encode() in done.stderr
+
+
+def test_env_registry_relative_paths_resolve_from_its_home(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    registry = write_registry(home)
+    entry = {"rule": str(RULE), "root": "roots/r.json"}
+    registry.write_text(json.dumps([entry]), encoding="utf-8")
+    (home / "roots").mkdir()
+    (home / "roots" / "r.json").write_text(ROOT_JSON.read_text(), encoding="utf-8")
+    event = violating_write_event("new_dags.py", tmp_path)
+    done = run_pretool_with_registry(json.dumps(event), str(registry), tmp_path)
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
+
+
+def test_unset_env_keeps_repo_walk(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("KNACK_REGISTRY", raising=False)
+    event = violating_write_event("new_dags.py", REPO_ROOT / "tests")
+    assert SOURCE_URL in deny_reason(pretool_guard.run_hook(json.dumps(event)))
+
+
+def test_empty_env_keeps_repo_walk(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("KNACK_REGISTRY", "")
+    event = violating_write_event("new_dags.py", REPO_ROOT / "tests")
+    assert SOURCE_URL in deny_reason(pretool_guard.run_hook(json.dumps(event)))
