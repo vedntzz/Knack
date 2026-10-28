@@ -1,0 +1,1158 @@
+[
+  {
+    "number": 75774,
+    "title": "Fix MSGraphSensor timeout being reset on every re-defer",
+    "author": "stegololz",
+    "merged_at": "2026-10-28T16:53:52Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "44f87164b7ac8729d67fa4823bb2df91dbcb9192",
+    "changed_files": [
+      {
+        "filename": "providers/microsoft/azure/src/airflow/providers/microsoft/azure/sensors/msgraph.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/microsoft/azure/tests/unit/microsoft/azure/sensors/test_msgraph.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75871,
+    "title": "Make refresh_token optional in Keycloak login and token services",
+    "author": "basantjamwal",
+    "merged_at": "2026-10-28T15:46:38Z",
+    "base_sha": "863440537b73c8773392a1a2a57d93d78a9c6cbf",
+    "head_sha": "968d67c60c5fd450ccf7d9c2d121cd36acd6a059",
+    "changed_files": [
+      {
+        "filename": "providers/keycloak/src/airflow/providers/keycloak/auth_manager/routes/login.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/keycloak/src/airflow/providers/keycloak/auth_manager/services/token.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/keycloak/tests/unit/keycloak/auth_manager/routes/test_login.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/keycloak/tests/unit/keycloak/auth_manager/services/test_token.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 74150,
+    "title": "Add async aget_conn and acreate_agent to PydanticAIHook",
+    "author": "dabla",
+    "merged_at": "2026-10-28T15:19:34Z",
+    "base_sha": "2f5c1c4b26b3936a51277aff3d2be78020a4a01b",
+    "head_sha": "b757231fd77f4444ce741cfbc001a2972d305844",
+    "changed_files": [
+      {
+        "filename": "providers/common/ai/docs/hooks/pydantic_ai.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/src/airflow/providers/common/ai/hooks/pydantic_ai.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/tests/unit/common/ai/hooks/test_pydantic_ai.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 74026,
+    "title": "Let Claude Agent SDK agent loops use common.ai toolsets through a new AirflowTools adapter",
+    "author": "Lee-W",
+    "merged_at": "2026-10-28T14:34:26Z",
+    "base_sha": "402ab11a4b08fa4027e5b88dbf9022d69809a4b3",
+    "head_sha": "0aa5b4bfa83b349229f0408b44ed20ac59dd0be6",
+    "changed_files": [
+      {
+        "filename": "providers/common/ai/docs/features.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/docs/frameworks/claude_agent_sdk.rst",
+        "status": "added"
+      },
+      {
+        "filename": "providers/common/ai/docs/frameworks/index.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/docs/index.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/docs/observability.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/docs/stability.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/docs/toolsets/index.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/src/airflow/providers/common/ai/example_dags/example_claude_agent_sdk.py",
+        "status": "added"
+      },
+      {
+        "filename": "providers/common/ai/src/airflow/providers/common/ai/tools/__init__.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/src/airflow/providers/common/ai/tools/claude_agent_sdk.py",
+        "status": "added"
+      },
+      {
+        "filename": "providers/common/ai/src/airflow/providers/common/ai/utils/tool_metrics.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/ai/tests/unit/common/ai/tools/test_claude_agent_sdk.py",
+        "status": "added"
+      },
+      {
+        "filename": "shared/observability/src/airflow_shared/observability/metrics/metrics_template.yaml",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75855,
+    "title": "Remove unused selective checks exclusion helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-28T13:25:15Z",
+    "base_sha": "62934e405ed20f10edaddb3a5dc19abd0050beda",
+    "head_sha": "d3944bcdb8fde60e636416a315064a4e72e2a17b",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75271,
+    "title": "Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None",
+    "author": "dabla",
+    "merged_at": "2026-10-28T13:11:16Z",
+    "base_sha": "70a781622611f09ec34f0bbc34c4f05c59ad4c67",
+    "head_sha": "91da700f20f5cad271869fb681953f6d877c75f2",
+    "changed_files": [
+      {
+        "filename": "providers/common/compat/src/airflow/providers/common/compat/_resumable_job_mixin.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/common/compat/tests/unit/common/compat/test__resumable_job_mixin.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75854,
+    "title": "Remove unused Breeze snippet helpers",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-28T12:58:00Z",
+    "base_sha": "62934e405ed20f10edaddb3a5dc19abd0050beda",
+    "head_sha": "8b39fdb864be63dd670cd95cebe8402dbce9dc26",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/publish_docs_helpers.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75411,
+    "title": "Keep extra cookies set by a route in JWTRefreshMiddleware",
+    "author": "pierrejeambrun",
+    "merged_at": "2026-10-28T12:53:10Z",
+    "base_sha": "e5d8cbbe67931dd13a027ed3386ddcc1877800cd",
+    "head_sha": "9a03e0cd31c6db0f6d0a0f770adea92082331f27",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/api_fastapi/auth/middlewares/refresh_token.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/api_fastapi/auth/middlewares/test_refresh_token.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75846,
+    "title": "[v3-4-test] Avoid loading timetables for dags in Execution API endpoints (#75765)",
+    "author": "github-actions[bot]",
+    "merged_at": "2026-10-28T08:30:04Z",
+    "base_sha": "1ec002129d6051733c704bef27f35b82a7b1c5e6",
+    "head_sha": "7c9d6396ef7f608a143c8261df4e4fa0e5c83027",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/jobs/scheduler_job_runner.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/serialization/definitions/dag.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/serialization/serialized_objects.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/models/test_dag.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/serialization/test_dag_serialization.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75840,
+    "title": "[v3-4-test] Show why external contributors' workflow runs wait for approval (#75832)",
+    "author": "github-actions[bot]",
+    "merged_at": "2026-10-28T08:29:36Z",
+    "base_sha": "1ec002129d6051733c704bef27f35b82a7b1c5e6",
+    "head_sha": "803138b971dd35db65d77fa2243b75948e9db94e",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/auto-approve-workflow-runs.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/mark-workflow-runs-approved.yml",
+        "status": "added"
+      },
+      {
+        "filename": "contributing-docs/05_pull_requests.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "contributing-docs/25_maintainer_pr_triage.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/08_ci_tasks.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/ci/05_workflows.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/ci/08_fork_ci_for_external_contributors.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci.svg",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci_approve-workflow-runs.svg",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci_approve-workflow-runs.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/commands/ci_commands.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/workflow_run_approval.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_workflow_run_approval.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75765,
+    "title": "Avoid loading timetables for dags in Execution API endpoints",
+    "author": "ashb",
+    "merged_at": "2026-10-28T08:02:49Z",
+    "base_sha": "5df209d1835a3dd9a14e6b08c07e1b36740beee4",
+    "head_sha": "c8daa636b231ad04dab531c3d4db0a34ff95af9d",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/jobs/scheduler_job_runner.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/serialization/definitions/dag.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/serialization/serialized_objects.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/models/test_dag.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/serialization/test_dag_serialization.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75268,
+    "title": "Skip spotless and the Java SDK Dag schema sync on unrelated PRs",
+    "author": "FrankYang0529",
+    "merged_at": "2026-10-28T08:02:41Z",
+    "base_sha": "09d0ea1c97acb7b31cd108d9de944ed1c71a884a",
+    "head_sha": "74d3ef4c1b094e88a8c474cbbad015709ca7b556",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/doc/ci/04_selective_checks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/selective_checks.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75773,
+    "title": "Accept datetime in InletEventsAccessor.after() and before()",
+    "author": "uranusjr",
+    "merged_at": "2026-10-28T07:27:31Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "1b9863df262d5d538f741c289eed96ba0def2006",
+    "changed_files": [
+      {
+        "filename": "airflow-core/docs/authoring-and-scheduling/assets.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/src/airflow/sdk/execution_time/context.py",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/tests/task_sdk/execution_time/test_context.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75771,
+    "title": "Stop importing airflow.utils.email in the SendGrid emailer",
+    "author": "shivaam",
+    "merged_at": "2026-10-28T06:58:48Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "50d969f2b6bfb7c362ef4d2a2320e64cae055c85",
+    "changed_files": [
+      {
+        "filename": "providers/sendgrid/src/airflow/providers/sendgrid/utils/emailer.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/sendgrid/tests/unit/sendgrid/utils/test_emailer.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75832,
+    "title": "Show why external contributors' workflow runs wait for approval",
+    "author": "potiuk",
+    "merged_at": "2026-10-28T04:27:27Z",
+    "base_sha": "09d0ea1c97acb7b31cd108d9de944ed1c71a884a",
+    "head_sha": "99f21cec12527c76811936bc72cf900f6c4089dd",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/auto-approve-workflow-runs.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/mark-workflow-runs-approved.yml",
+        "status": "added"
+      },
+      {
+        "filename": "contributing-docs/05_pull_requests.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "contributing-docs/25_maintainer_pr_triage.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/08_ci_tasks.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/ci/05_workflows.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/ci/08_fork_ci_for_external_contributors.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci.svg",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci_approve-workflow-runs.svg",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/images/output_ci_approve-workflow-runs.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/commands/ci_commands.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/workflow_run_approval.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_workflow_run_approval.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75262,
+    "title": "Stop running OpenLineage e2e compat tests when full tests are derived",
+    "author": "FrankYang0529",
+    "merged_at": "2026-10-28T02:35:42Z",
+    "base_sha": "b19bc48f96f0ae81b5a1b424be5b6efc8dacf55a",
+    "head_sha": "df73418d5bd4a5bcd9188c2f0782043e281072e9",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/doc/ci/04_selective_checks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/selective_checks.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75822,
+    "title": "Widen the Spot pool for RunsOn runners: more families, capacity-optimized, size ranges",
+    "author": "potiuk",
+    "merged_at": "2026-10-27T21:43:28Z",
+    "base_sha": "a9a04a52f5ecb9a3a2ce5e1a778dd6d474d8a4cf",
+    "head_sha": "85c293efe7b961f1dfb6f4b6bc2ae88eb395af85",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/additional-ci-image-checks.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/additional-prod-image-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/basic-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/ci-amd.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/ci-arm.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/ci-image-build.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/ci-image-checks.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/finalize-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/generate-constraints.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/helm-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/integration-system-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/k8s-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/kustomize-overlays-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/prod-image-build.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/push-image-cache.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/special-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/test-providers.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/ui-e2e-tests.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/doc/ci/04_selective_checks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/global_constants.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75789,
+    "title": "Remove unused Cloud SQL settings version helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:07:35Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "2b23947e4d35a22e4cbba4d05b3793f17c88d419",
+    "changed_files": [
+      {
+        "filename": "providers/google/src/airflow/providers/google/cloud/operators/cloud_sql.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75787,
+    "title": "Remove unused Spark pod try number helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:07:29Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "9905adafe1359dfd7ca96492a188488eda9c6ba2",
+    "changed_files": [
+      {
+        "filename": "providers/cncf/kubernetes/src/airflow/providers/cncf/kubernetes/operators/spark_kubernetes.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75786,
+    "title": "Remove unused Postgres cursor name generator",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:07:01Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "cd2c1ac088f35fe88b861e70bafe10cd82bff7de",
+    "changed_files": [
+      {
+        "filename": "providers/postgres/src/airflow/providers/postgres/hooks/postgres.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75785,
+    "title": "Remove unused Teradata operation classifier",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:06:44Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "c7d5af24fa4b1b196a1993995eab8084e6bb7dd2",
+    "changed_files": [
+      {
+        "filename": "providers/teradata/src/airflow/providers/teradata/operators/teradata_compute_cluster.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75783,
+    "title": "Remove unused shared provider discovery definitions",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:06:24Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "4a47cbcc8f48b73cf65a58db42de97f614121fbf",
+    "changed_files": [
+      {
+        "filename": "shared/providers_discovery/src/airflow_shared/providers_discovery/providers_discovery.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75767,
+    "title": "Remove unused ExecuteTaskActivity model",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:06:09Z",
+    "base_sha": "ead86184fb5d75ae8226b8a3c13365ede3cb1675",
+    "head_sha": "ffb7019a7571aca766147a010963e59b45414a82",
+    "changed_files": [
+      {
+        "filename": "task-sdk/src/airflow/sdk/api/datamodels/activities.py",
+        "status": "removed"
+      }
+    ]
+  },
+  {
+    "number": 75776,
+    "title": "Remove unused Dag processor path converter",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:05:23Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "19955d5334cbd1435efa9fd45a7bedccf3fb9e7d",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/dag_processing/manager.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75777,
+    "title": "Remove unused task deferral logging bridge",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:04:50Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "a80178fe1dbe1371981166b8bf7b069e0b3c5647",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/utils/log/file_task_handler.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75778,
+    "title": "Remove unused active asset query helpers",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:04:29Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "919b3bccc88d6c8bcd5b81ba840c1d6ad1ef700b",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/models/asset.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75779,
+    "title": "Remove unused CLI Dag file location loader",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:04:00Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "9c1cb57614084604558992e91d90b1402fa9d544",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/utils/cli.py",
+        "status": "modified"
+      },
+      {
+        "filename": "generated/known_airflow_exceptions.txt",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75780,
+    "title": "Remove unused log filename template renderer",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:03:33Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "a3dcb4e8901dd173e3e5698c899261956f6b128c",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/utils/helpers.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75781,
+    "title": "Remove unused datetime to nanoseconds converter",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:02:53Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "d324956877d0a5f015317318776015dc8702a7cb",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/utils/dates.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75782,
+    "title": "Remove unused SQLAlchemy dialect keyword wrapper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T21:02:33Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "3d7c181bbd409f6ba642756195b1599b4db166a3",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/utils/sqlalchemy.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75766,
+    "title": "Remove unused SDK variable result converter",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T20:58:03Z",
+    "base_sha": "ead86184fb5d75ae8226b8a3c13365ede3cb1675",
+    "head_sha": "f334152a26fc300e1dc985e0d8cc61ff1a475984",
+    "changed_files": [
+      {
+        "filename": "task-sdk/src/airflow/sdk/execution_time/context.py",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/tests/task_sdk/execution_time/test_context.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75790,
+    "title": "Remove unused Dataproc job template helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T20:56:52Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "9e3efd45ae64dbcca947805613849fcc43e9cdd2",
+    "changed_files": [
+      {
+        "filename": "generated/known_airflow_exceptions.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/google/src/airflow/providers/google/cloud/operators/dataproc.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75788,
+    "title": "Remove unused Cloud SQL OS bitness helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T20:56:25Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "a250226ffaefc0ab14c7b524a89ed15228569a89",
+    "changed_files": [
+      {
+        "filename": "providers/google/src/airflow/providers/google/cloud/hooks/cloud_sql.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75784,
+    "title": "Remove unused Dataflow job state checker",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T20:54:34Z",
+    "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+    "head_sha": "4389bfeb659d7d118006b03b554de475cf5382ba",
+    "changed_files": [
+      {
+        "filename": "generated/known_airflow_exceptions.txt",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/google/src/airflow/providers/google/cloud/hooks/dataflow.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75792,
+    "title": "[v3-4-test] Run automatic backport PRs on RunsOn runners (#75749)",
+    "author": "github-actions[bot]",
+    "merged_at": "2026-10-27T20:53:34Z",
+    "base_sha": "9764cdb34a79a068d3ae02badbf21d543f31305e",
+    "head_sha": "d25a70ec20bc2b830a365b8c8a0214bb348577c8",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/doc/ci/04_selective_checks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/selective_checks.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75457,
+    "title": "Clarify which Snowflake connectors need the session_parameters copy",
+    "author": "akarazhev",
+    "merged_at": "2026-10-27T20:18:04Z",
+    "base_sha": "52237589d0fbfd32117de4cd512eee44a74a46d1",
+    "head_sha": "c513221cb17bdeb2508aaa66391bb8d69f5e26a9",
+    "changed_files": [
+      {
+        "filename": "providers/snowflake/src/airflow/providers/snowflake/hooks/snowflake.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75768,
+    "title": "Remove unused airflowctl lowercase argument helper",
+    "author": "hussein-awala",
+    "merged_at": "2026-10-27T18:32:48Z",
+    "base_sha": "6cac8fcddc1575f4841c6991b2ba1003a260fa93",
+    "head_sha": "9c1dc836107b998872c31675e0297bf15e08283e",
+    "changed_files": [
+      {
+        "filename": "airflow-ctl/src/airflowctl/ctl/cli_config.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75572,
+    "title": "Return None from relative_path_from_logger for logs outside base_log_folder",
+    "author": "shahar1",
+    "merged_at": "2026-10-27T17:52:48Z",
+    "base_sha": "f6c19bd12931f39a437384ebd4389bb69e33f58f",
+    "head_sha": "04c432f54a94dded8ebf4201cb8327e6190c30ec",
+    "changed_files": [
+      {
+        "filename": "task-sdk/src/airflow/sdk/log.py",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/tests/task_sdk/test_log.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75730,
+    "title": "Page SqlToS3Operator like GenericTransfer",
+    "author": "dabla",
+    "merged_at": "2026-10-27T17:45:11Z",
+    "base_sha": "750f849cc2372ee42dc6910541d4b6a866102ac9",
+    "head_sha": "f678dc9a7122b9468140b3c79b3c40670c7860a2",
+    "changed_files": [
+      {
+        "filename": "providers/amazon/docs/transfer/sql_to_s3.rst",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/src/airflow/providers/amazon/aws/transfers/sql_to_s3.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/tests/system/amazon/aws/example_sql_to_s3.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/tests/unit/amazon/aws/transfers/test_sql_to_s3.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75596,
+    "title": "Stop Google Cloud Logging handler from starting a thread on close",
+    "author": "shahar1",
+    "merged_at": "2026-10-27T17:42:51Z",
+    "base_sha": "f5329a6c8043c10cd5f3e06c436df6295144fc20",
+    "head_sha": "52db85ebc5709e14618c94e2f9d06ffca3c34d35",
+    "changed_files": [
+      {
+        "filename": "providers/google/src/airflow/providers/google/cloud/log/cloud_logging_task_handler.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/google/tests/unit/google/cloud/log/test_cloud_logging_task_handler.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75713,
+    "title": "Keep breeze verify working when dry-run is on",
+    "author": "shahar1",
+    "merged_at": "2026-10-27T17:41:16Z",
+    "base_sha": "04afd601aeeece4dc4dcff4b34a14f94e9ad1fc6",
+    "head_sha": "afc2a5c4be23e19ca1cf42e216712faf7f39367c",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/src/airflow_breeze/commands/verify_commands.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_verify_commands.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75749,
+    "title": "Run automatic backport PRs on RunsOn runners",
+    "author": "shahar1",
+    "merged_at": "2026-10-27T14:53:26Z",
+    "base_sha": "ead86184fb5d75ae8226b8a3c13365ede3cb1675",
+    "head_sha": "12e993b182fe3d2a6c24baa291649338d466d488",
+    "changed_files": [
+      {
+        "filename": "dev/breeze/doc/ci/04_selective_checks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/src/airflow_breeze/utils/selective_checks.py",
+        "status": "modified"
+      },
+      {
+        "filename": "dev/breeze/tests/test_selective_checks.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75698,
+    "title": "Report AwsEksExecutor as the caller in its AWS user agent",
+    "author": "seanghaeli",
+    "merged_at": "2026-10-27T14:42:39Z",
+    "base_sha": "b19bc48f96f0ae81b5a1b424be5b6efc8dacf55a",
+    "head_sha": "dd4f54f4b3cbd80cb44725738d1cd1a018378b4a",
+    "changed_files": [
+      {
+        "filename": "providers/amazon/src/airflow/providers/amazon/aws/executors/eks/_client_factory.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/tests/unit/amazon/aws/executors/eks/test__client_factory.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/tests/unit/amazon/aws/executors/eks/test_eks_executor.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75744,
+    "title": "Fix 'lineage' export in airflow.sdk",
+    "author": "uranusjr",
+    "merged_at": "2026-10-27T14:15:19Z",
+    "base_sha": "aee26d49b6bdf9713e46e012cd3d7516f2cc7d1e",
+    "head_sha": "59ff48dcac7ed861cd4bebe671473dd841906273",
+    "changed_files": [
+      {
+        "filename": "airflow-core/tests/unit/partition_mappers/test_init.py",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/src/airflow/sdk/__init__.py",
+        "status": "modified"
+      },
+      {
+        "filename": "task-sdk/tests/task_sdk/docs/test_public_api.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75711,
+    "title": "Stop importing airflow.utils.email in the Amazon SES hook",
+    "author": "shivaam",
+    "merged_at": "2026-10-27T14:06:44Z",
+    "base_sha": "04afd601aeeece4dc4dcff4b34a14f94e9ad1fc6",
+    "head_sha": "4ac45663b1a97a697c521722450be7b90103b9fd",
+    "changed_files": [
+      {
+        "filename": "providers/amazon/src/airflow/providers/amazon/aws/hooks/ses.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/amazon/tests/unit/amazon/aws/hooks/test_ses.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 68853,
+    "title": "Handle None response from airflowctl connections create-defaults",
+    "author": "Prab-27",
+    "merged_at": "2026-10-27T14:05:19Z",
+    "base_sha": "ead86184fb5d75ae8226b8a3c13365ede3cb1675",
+    "head_sha": "c24a3875646580df494775578799527a7da10bea",
+    "changed_files": [
+      {
+        "filename": "airflow-ctl/src/airflowctl/ctl/cli_config.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/tests/airflow_ctl/ctl/test_cli_config.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75754,
+    "title": "[airflow-ctl/v0-1-test] Stop airflowctl from failing on fields added by newer API servers (#75610)",
+    "author": "Andrushika",
+    "merged_at": "2026-10-27T13:54:51Z",
+    "base_sha": "e62787dfcfc5cbd8dc0a0e502f572b87b6feb6ec",
+    "head_sha": "6e49af932487bd09b7aa4d279e20cf2c0c888453",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/api_fastapi/core_api/datamodels/assets.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/api_fastapi/core_api/datamodels/config.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/api_fastapi/core_api/openapi/v2-rest-api-generated.yaml",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/src/airflow/ui/openapi-gen/requests/schemas.gen.ts",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/src/airflowctl/api/datamodels/generated.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/tests/airflow_ctl/api/test_operations.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75734,
+    "title": "Emit resumable_job metrics from KubernetesPodOperator",
+    "author": "amoghrajesh",
+    "merged_at": "2026-10-27T11:08:14Z",
+    "base_sha": "c79293ea4b998370e034284c159931e4edc40bdf",
+    "head_sha": "42d036774b5098180d238b21e9c90b2e227ccff7",
+    "changed_files": [
+      {
+        "filename": "providers/cncf/kubernetes/src/airflow/providers/cncf/kubernetes/operators/pod.py",
+        "status": "modified"
+      },
+      {
+        "filename": "providers/cncf/kubernetes/tests/unit/cncf/kubernetes/operators/test_pod.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 73808,
+    "title": "Fix airflowctl ignoring --env for non-auth commands",
+    "author": "liwenjie200543",
+    "merged_at": "2026-10-27T10:48:25Z",
+    "base_sha": "5243901c8186423b0add017bf3c9e000da0f77e7",
+    "head_sha": "3cf1dcbeb2ddf30c276a9be6f90da4ca9f6338ba",
+    "changed_files": [
+      {
+        "filename": "airflow-ctl/src/airflowctl/api/client.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/src/airflowctl/ctl/cli_config.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/src/airflowctl/ctl/commands/version_command.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/tests/airflow_ctl/api/test_client.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-ctl/tests/airflow_ctl/ctl/commands/test_version_command.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 75745,
+    "title": "[v3-4-test] Guard scheduler against Dag deserialization failures (#75263)",
+    "author": "vatsrahul1001",
+    "merged_at": "2026-10-27T10:45:41Z",
+    "base_sha": "ea342be8ed89789b5e51ecb8972441d8c3b3851c",
+    "head_sha": "7eea26a7844a3d2acaabeea4ef0873b740903c51",
+    "changed_files": [
+      {
+        "filename": "airflow-core/src/airflow/jobs/scheduler_job_runner.py",
+        "status": "modified"
+      },
+      {
+        "filename": "airflow-core/tests/unit/jobs/test_scheduler_job.py",
+        "status": "modified"
+      }
+    ]
+  }
+]
