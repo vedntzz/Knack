@@ -1,0 +1,36 @@
+name: Knack guard
+
+on:
+  pull_request:
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the PR base commit is available to diff against.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+      # Same .venv as ci.yml, so the guard runs exactly as the hook does.
+      - name: Install
+        run: uv venv && uv pip install -e ".[dev]"
+      - name: List changed .py files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # Deleted files are skipped; guard fixtures violate the rule on purpose.
+        run: |
+          git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- '*.py' \
+            | grep -v '^tests/guard/fixtures/' > changed_py.txt || true
+          cat changed_py.txt
+      - name: Knack guard check
+        run: |
+          mapfile -t files < changed_py.txt
+          bash .github/scripts/guard_changed.sh \
+            knack/guard/rules/no-alias-sort-keys.yml \
+            tests/guard/fixtures/replay/root_75025.json \
+            "${files[@]}"
