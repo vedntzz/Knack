@@ -1,0 +1,55 @@
+id: compiled-rule
+language: python
+severity: error
+message: aget_conn and acreate_agent must run unchanged get_conn/create_agent on hook single-worker executor, never default executor
+rule:
+  any:
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            regex: 'FALLBACK_CONN_IDS_EXTRA_KEY'
+        - has:
+            stopBy: end
+            kind: class_definition
+            regex: 'class PydanticAIHook\b'
+        - not:
+            has:
+              stopBy: end
+              regex: 'aget_conn|acreate_agent'
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            regex: '_ConnRegistry'
+        - not:
+            has:
+              stopBy: end
+              regex: 'aget_conn|acreate_agent'
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            kind: class_definition
+            regex: 'class PydanticAIHook\b'
+        - has:
+            stopBy: end
+            regex: 'run_in_executor\s*\(\s*None|to_thread\s*\('
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            kind: class_definition
+            regex: 'class PydanticAIHook\b'
+        - has:
+            stopBy: end
+            regex: 'max_workers\s*=\s*(0|[2-9][0-9]*|1[0-9]+)'
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            kind: class_definition
+            regex: 'class PydanticAIHook\b'
+        - has:
+            stopBy: end
+            regex: 'ThreadPoolExecutor\s*\(\s*\)'

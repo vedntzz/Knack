@@ -1,0 +1,42 @@
+id: compiled-rule
+language: python
+severity: error
+message: aget_conn and acreate_agent must run unchanged sync methods on hook single-worker executor never default executor
+rule:
+  any:
+    - all:
+      - pattern: 'PydanticAIHook'
+      - inside:
+          stopBy: end
+          all:
+            - kind: module
+            - not:
+                has:
+                  stopBy: end
+                  regex: 'aget_conn'
+    - all:
+      - pattern: 'PydanticAIHook'
+      - inside:
+          stopBy: end
+          all:
+            - kind: module
+            - not:
+                has:
+                  stopBy: end
+                  regex: 'acreate_agent'
+    - all:
+      - pattern: 'asyncio.to_thread($$$)'
+      - inside:
+          stopBy: end
+          any:
+            - pattern: 'async def aget_conn($$$): $$$'
+            - pattern: 'async def acreate_agent($$$): $$$'
+            - pattern: 'async def aget_hook($$$): $$$'
+    - all:
+      - pattern: '$LOOP.run_in_executor(None, $$$)'
+      - inside:
+          stopBy: end
+          any:
+            - pattern: 'async def aget_conn($$$): $$$'
+            - pattern: 'async def acreate_agent($$$): $$$'
+            - pattern: 'async def aget_hook($$$): $$$'

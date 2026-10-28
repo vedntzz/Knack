@@ -1,0 +1,24 @@
+id: compiled-rule
+language: python
+severity: error
+message: Reuse existing resumable_job.* counters tagged operator="KubernetesPodOperator" instead of inventing a KPO-specific metric name.
+rule:
+  any:
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            kind: identifier
+            regex: KubernetesPodOperator
+        - not:
+            has:
+              stopBy: end
+              kind: string
+              regex: resumable_job
+    - all:
+        - kind: call
+          regex: Stats\.(incr|decr|gauge|timing)
+        - has:
+            stopBy: end
+            kind: string
+            regex: (?i)kpo[._-]|kubernetes_pod|pod_operator

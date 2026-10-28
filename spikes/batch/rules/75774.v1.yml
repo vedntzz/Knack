@@ -1,0 +1,15 @@
+id: compiled-rule
+language: python
+severity: error
+message: Record start time on first execute() and carry sensor_started_at through re-defers with remaining timeout and AirflowSensorTimeout past deadline; sliding timeout=self.timeout or timeout-less sleep re-defer never times out.
+rule:
+  all:
+    - pattern: self.defer($$$)
+    - inside:
+        kind: class_definition
+        regex: MSGraphSensor
+        stopBy: end
+    - not:
+        has:
+          regex: sensor_started_at
+          stopBy: end

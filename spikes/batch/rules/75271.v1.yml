@@ -1,0 +1,17 @@
+id: compiled-rule
+language: python
+severity: error
+message: ResumableJobMixin stand-in durable must be typed as bool | None = None, not bool, Any, or bool | Any.
+rule:
+  all:
+    - kind: function_definition
+    - regex: 'def\s+__init__.*durable'
+    - inside:
+        stopBy: end
+        all:
+          - kind: class_definition
+          - regex: 'class\s+ResumableJobMixin\b'
+    - not:
+        any:
+          - regex: 'durable\s*:\s*bool\s*\|\s*None\s*=\s*None\b'
+          - regex: 'durable\s*:\s*None\s*\|\s*bool\s*=\s*None\b'
