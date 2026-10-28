@@ -1,0 +1,13 @@
+{
+  "id": "airflow-75734-1",
+  "title": "Emit resumable_job metrics from KubernetesPodOperator",
+  "decision": "Reuse existing resumable_job.* counters tagged operator=\"KubernetesPodOperator\" with no new metric names",
+  "why": "Easier tracking when operator tag lets a reader count saves without caring which mechanism produced them, which is the question being asked",
+  "decided_by": "amoghrajesh",
+  "source_url": "https://github.com/apache/airflow/pull/75734",
+  "quote": "Reusing `resumable_job.*` over inventing a KPO specific name.",
+  "status": "Inferred",
+  "rejected_alternative": "inventing a KPO specific name",
+  "seeded": false,
+  "model": "muse-spark-1.3"
+}

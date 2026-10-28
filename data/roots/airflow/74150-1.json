@@ -1,0 +1,13 @@
+{
+  "id": "airflow-74150-1",
+  "title": "Add async aget_conn and acreate_agent to PydanticAIHook",
+  "decision": "`aget_conn()` and `acreate_agent()` run the unchanged `get_conn()` / `create_agent()` on a single-worker executor of the hook module",
+  "why": "From any thread other than the loop's, a synchronous `send()` waits for the in-flight `asend()` to release the comms lock instead of raising, so fallback chains, `spec_file`, model-id qualification and subclass overrides behave exactly as in the sync path",
+  "decided_by": "dabla",
+  "source_url": "https://github.com/apache/airflow/pull/74150",
+  "quote": "never on asyncio's default executor:",
+  "status": "Inferred",
+  "rejected_alternative": "run on asyncio's default executor",
+  "seeded": false,
+  "model": "muse-spark-1.3"
+}

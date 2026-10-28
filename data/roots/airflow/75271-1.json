@@ -1,0 +1,13 @@
+{
+  "id": "airflow-75271-1",
+  "title": "Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None",
+  "decision": "Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None",
+  "why": "bool | None is what the argument actually takes and matches the operators using the mixin which already declare durable: bool | None = None and only forward durable when it is not None",
+  "decided_by": "dabla",
+  "source_url": "https://github.com/apache/airflow/pull/75271",
+  "quote": "`bool | Any` or `Any` would also be honest, but a union with `Any` switches type checking off for the argument, so `durable=\"yes\"` would pass.",
+  "status": "Inferred",
+  "rejected_alternative": "bool | Any",
+  "seeded": false,
+  "model": "muse-spark-1.3"
+}

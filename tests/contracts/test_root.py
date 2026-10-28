@@ -45,6 +45,10 @@ def test_defaults_rejected_alternative_none_and_seeded_false() -> None:
     assert root.seeded is False
 
 
+def test_defaults_model_none_for_human_sourced_roots() -> None:
+    assert Root.model_validate(valid_root_data()).model is None
+
+
 def test_mutation_raises() -> None:
     root = Root.model_validate(valid_root_data())
     with pytest.raises(ValidationError):

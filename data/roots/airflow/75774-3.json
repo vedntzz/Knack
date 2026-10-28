@@ -1,0 +1,13 @@
+{
+  "id": "airflow-75774-3",
+  "title": "Fix MSGraphSensor timeout being reset on every re-defer",
+  "decision": "Stop passing the sensor timeout to MSGraphTrigger and keep the HTTP timeout at the trigger/hook default None",
+  "why": "timeout=self.timeout became the httpx per-request timeout (7 days by default), while each request is still bounded by the remaining sensor time",
+  "decided_by": "stegololz",
+  "source_url": "https://github.com/apache/airflow/pull/75774",
+  "quote": "A dedicated HTTP-timeout parameter can follow if needed.",
+  "status": "Inferred",
+  "rejected_alternative": "Add a dedicated HTTP-timeout parameter now",
+  "seeded": false,
+  "model": "muse-spark-1.3"
+}

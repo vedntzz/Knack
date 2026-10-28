@@ -1,0 +1,13 @@
+{
+  "id": "airflow-75734-2",
+  "title": "Emit resumable_job metrics from KubernetesPodOperator",
+  "decision": "The phase decides the counter, not the cleanup - emit already_succeeded and terminal_resubmit from the pod phase before process_pod_deletion runs",
+  "why": "to avoid making the counter depend on is_delete_operator_pod, which is a cleanup setting rather than a resume decision",
+  "decided_by": "amoghrajesh",
+  "source_url": "https://github.com/apache/airflow/pull/75734",
+  "quote": "Emitting after would make the counter depend on `is_delete_operator_pod`, which is a cleanup setting rather than a resume decision.",
+  "status": "Inferred",
+  "rejected_alternative": "emitting after process_pod_deletion runs",
+  "seeded": false,
+  "model": "muse-spark-1.3"
+}

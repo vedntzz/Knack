@@ -27,6 +27,7 @@ class Root(BaseModel):
     status: DecisionStatus
     rejected_alternative: str | None = None
     seeded: bool = False
+    model: str | None = None
 
 
 class Leaf(BaseModel):
