@@ -156,7 +156,9 @@ def _registry_and_root(event: JsonDict) -> tuple[list[JsonDict], Path]:
         root = find_repo_root(event_cwd(event))
         return _load_registry(root), root
     registry = Path(override).expanduser().resolve()
-    return json.loads(registry.read_text(encoding="utf-8")), _env_registry_root(registry)
+    return json.loads(registry.read_text(encoding="utf-8")), _env_registry_root(
+        registry
+    )
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
