@@ -4,12 +4,19 @@ from pathlib import Path
 
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
+from knack.index.build import build_index
+from knack.roots.store import load_roots
+from knack.walk.registry import load_registry
+from knack.walk.text import format_walk
+from knack.walk.walk import walk
 
 GUARD_LOG = Path(".knack/guard_errors.log")
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    if args.command == "walk":
+        return _walk_command(args)
     verdict = _guard_check(args.file, args.rule, args.root)
     print(verdict.model_dump_json() if args.json else verdict.reason)
     return 0 if verdict.allowed else 1
@@ -17,9 +24,11 @@ def main(argv: list[str] | None = None) -> int:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="knack")
-    guard = parser.add_subparsers(dest="command", required=True).add_parser("guard")
+    commands = parser.add_subparsers(dest="command", required=True)
+    guard = commands.add_parser("guard")
     check = guard.add_subparsers(dest="action", required=True).add_parser("check")
     _add_check_arguments(check)
+    _add_walk_arguments(commands.add_parser("walk"))
     return parser
 
 
@@ -28,6 +37,21 @@ def _add_check_arguments(check: argparse.ArgumentParser) -> None:
     check.add_argument("--rule", type=Path, required=True)
     check.add_argument("--root", type=Path, required=True)
     check.add_argument("--json", action="store_true")
+
+
+def _add_walk_arguments(walk_parser: argparse.ArgumentParser) -> None:
+    walk_parser.add_argument("ticket")
+    walk_parser.add_argument("--repo", type=Path, required=True)
+    walk_parser.add_argument("--registry", type=Path, required=True)
+    walk_parser.add_argument("--roots", type=Path, required=True)
+    walk_parser.add_argument("--json", action="store_true")
+
+
+def _walk_command(args: argparse.Namespace) -> int:
+    registry, roots = load_registry(args.registry), load_roots(args.roots)
+    response = walk(args.ticket, build_index(args.repo), registry, roots)
+    print(response.model_dump_json(indent=2) if args.json else format_walk(response))
+    return 0
 
 
 def _guard_check(file_path: Path, rule_path: Path, root_path: Path) -> Verdict:
