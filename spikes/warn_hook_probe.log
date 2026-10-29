@@ -1,0 +1,43 @@
+KN-H2 UserPromptSubmit probe results (muse-bin-1.4.14-R7309.1)
+============================================================
+Method: temporary user-level UserPromptSubmit hook, one `muse exec` per
+variant asking "What is the secret word? Reply with one word.", settings
+restored byte-identical after every run. Hook fired on all runs (stdin
+captured each time).
+
+1b: nested hookSpecificOutput.additionalContext WITHOUT trailing newline
+  stdout: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit",
+            "additionalContext":"The secret word is PINEAPPLE."}}  (no \n)
+  reply: Unavailable  -> context NOT delivered
+
+1c-a: nested shape WITH trailing newline
+  reply: PINEAPPLE  -> DELIVERED
+  hook_run_terminal: status=completed exit=0 error=null effects=["context"]
+
+1c-b: top-level {"additionalContext": ...} + newline
+  reply: Unknown  -> NOT delivered
+  hook_run_terminal: status=failed exit=0
+    error="unsupported `additionalContext` in output of UserPromptSubmit
+            hook output", stdout echoed back unconsumed, no effects
+
+1c-c: plain text stdout "The secret word is PINEAPPLE." + newline
+  reply: PINEAPPLE  -> DELIVERED
+  hook_run_terminal: status=completed exit=0 error=null effects=["context"]
+
+1c-d: top-level {"systemMessage": ...} + newline
+  reply: unknown  -> NOT model-visible
+  hook_run_terminal: status=completed exit=0 error=null,
+    system_message recorded on the record, no effects (display channel)
+
+Captured UserPromptSubmit stdin keys (verbatim, step 1):
+  hook_event_name, prompt, session_id, turn_id, cwd, transcript_path,
+  model, permission_mode, model_provider
+
+Rules for knack/hooks/warn.py (proven, do not re-prove):
+- Nested envelope + trailing \n is the only JSON shape that injects.
+- print() (which appends \n) is REQUIRED; printf-without-newline fails
+  silently (exit 0, model never sees the context).
+- Top-level additionalContext is rejected; the rejection is silent at the
+  CLI and visible only in `muse export`.
+- Never emit a "decision" key: decision:block cancels the turn, and warn
+  must never block.
