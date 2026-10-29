@@ -6,7 +6,7 @@ from typing import Any
 from knack.contracts.models import Root
 from knack.roots.store import load_roots, RootStoreError, write_root
 
-# Hard-coded in spikes/q3_extract.py ask_spark, which produced decisions.jsonl.
+# The model behind the spike decisions.jsonl; knack init records its own.
 EXTRACTION_MODEL = "muse-spark-1.3"
 PR_URL = "https://github.com/apache/airflow/pull/{number}"
 # Root field name to extraction field name.
