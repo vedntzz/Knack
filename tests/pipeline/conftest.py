@@ -2,6 +2,8 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 
+import pytest
+from knack.pipeline import init
 from knack.pipeline.models import Post, PullSummary
 
 REPO = "acme/widgets"
@@ -163,3 +165,11 @@ def clean_tree(tmp_path: Path) -> Path:
     # The default branch: head's loader plus unrelated code.
     files = {"pkg/loader.py": HEAD, "pkg/util.py": "def add(a, b):\n    return a + b\n"}
     return write_tree(tmp_path / "tree", files)
+
+
+@pytest.fixture(autouse=True)
+def corrections(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    # The pipeline never reads the real ~/.knack/corrections.jsonl in a test.
+    path = tmp_path / "corrections.jsonl"
+    monkeypatch.setattr(init, "corrections_path", lambda: path)
+    return path

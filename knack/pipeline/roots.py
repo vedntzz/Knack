@@ -6,6 +6,7 @@ from knack.roots.store import load_roots, write_root
 
 PR_URL = "https://github.com/{repo}/pull/{number}"
 Pair = tuple[Decision, Alternative]
+REVIEWED = ("Confirmed", "Unknown")
 
 
 def roots_for(repo: str, extraction: Extraction, model: str) -> list[Root]:
@@ -20,9 +21,9 @@ def roots_for(repo: str, extraction: Extraction, model: str) -> list[Root]:
 
 
 def install_roots(roots: list[Root], out_dir: Path) -> list[Root]:
-    # A Confirmed root is human-verified, so init never replaces it.
-    confirmed = _confirmed_ids(out_dir)
-    written = [root for root in roots if root.id not in confirmed]
+    # A human-reviewed root, Confirmed or rejected to Unknown, is never replaced.
+    reviewed = reviewed_roots(out_dir)
+    written = [root for root in roots if root.id not in reviewed]
     for root in written:
         write_root(root, out_dir / f"{root.id}.json")
     return written
@@ -47,6 +48,7 @@ def _citation(repo: str, extraction: Extraction, n: int) -> dict[str, str]:
     return {"id": root_id, "title": extraction.title, "source_url": url}
 
 
-def _confirmed_ids(out_dir: Path) -> set[str]:
+def reviewed_roots(out_dir: Path) -> dict[str, Root]:
+    # Only a human sets Confirmed or Unknown; init writes Inferred alone.
     existing = load_roots(out_dir) if out_dir.is_dir() else []
-    return {root.id for root in existing if root.status == "Confirmed"}
+    return {root.id: root for root in existing if root.status in REVIEWED}

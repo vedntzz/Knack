@@ -1,18 +1,29 @@
 import json
 from pathlib import Path
 
+import pytest
 from conftest import (
     BASE,
     clean_tree,
+    EXTRACTIONS,
     FakeGitHub,
     FakeSpark,
+    GATHER_DECISION,
     HEAD,
     MEMORIZED,
     REPO,
     STRUCTURAL,
 )
+from knack.contracts.models import DecisionStatus, Root
 from knack.hooks.pretool_guard import decide
 from knack.pipeline.init import run_init
+from knack.roots.correct import reject_root
+from knack.roots.corrections import (
+    append_correction,
+    Correction,
+    few_shot_block,
+    recent_corrections,
+)
 from knack.roots.store import load_roots
 from knack.walk.registry import load_registry
 
@@ -92,7 +103,47 @@ def test_rerun_keeps_a_root_a_human_confirmed(tmp_path: Path) -> None:
     root_file.write_text(json.dumps(confirmed))
     _, lines, _ = init(tmp_path, STRUCTURAL)
     assert load_roots(load_registry(path).roots_dir)[0].status == "Confirmed"
-    assert "0 Inferred roots written (1 Confirmed kept)" in "\n".join(lines)
+    assert "0 Inferred roots written (1 Confirmed, 0 Unknown kept)" in "\n".join(lines)
+
+
+def rejected_then_rerun(tmp_path: Path) -> tuple[Path, list[str], FakeSpark]:
+    # init, a human rejects the only root behind rule 9, then init runs again.
+    path, _, _ = init(tmp_path, STRUCTURAL)
+    log = tmp_path / "corrections.jsonl"
+    reject_root(path, "widgets-9-1", "not a decision", "bo", log)
+    return init(tmp_path, STRUCTURAL)
+
+
+def test_rerun_keeps_a_rejected_root_unknown(tmp_path: Path) -> None:
+    path, lines, _ = rejected_then_rerun(tmp_path)
+    roots = load_roots(load_registry(path).roots_dir)
+    assert [(r.id, r.status) for r in roots] == [("widgets-9-1", "Unknown")]
+    assert "0 Inferred roots written (0 Confirmed, 1 Unknown kept)" in "\n".join(lines)
+
+
+def test_rerun_never_resurrects_the_rejected_roots_rule(tmp_path: Path) -> None:
+    path, lines, spark = rejected_then_rerun(tmp_path)
+    assert load_registry(path).rules == []
+    assert spark.compile_prompts() == [] and "[4/5] compile  0" in "\n".join(lines)
+
+
+def test_rerun_rule_drops_a_rejected_root_but_keeps_its_sibling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PR 9 now rejects two verbatim alternatives, so rule 9 backs two roots.
+    second = {"alternative": "x", "why_rejected": "y", "quote": "we hit the fd limit"}
+    alternatives = [*GATHER_DECISION["rejected_alternatives"], second]
+    two = json.dumps(
+        {"decisions": [{**GATHER_DECISION, "rejected_alternatives": alternatives}]}
+    )
+    monkeypatch.setitem(EXTRACTIONS, "Read blobs one at a time", two)
+    path, _, _ = init(tmp_path, STRUCTURAL)
+    assert [e.root_ids for e in load_registry(path).rules] == [
+        ["widgets-9-1", "widgets-9-2"]
+    ]
+    reject_root(path, "widgets-9-2", "misread", "bo", tmp_path / "corrections.jsonl")
+    init(tmp_path, STRUCTURAL)
+    assert [e.root_ids for e in load_registry(path).rules] == [["widgets-9-1"]]
 
 
 def test_guard_hook_only_advises_on_an_inferred_init_registry(tmp_path: Path) -> None:
@@ -111,3 +162,34 @@ def test_guard_hook_blocks_once_a_human_confirms_the_root(tmp_path: Path) -> Non
     reason = denied["hookSpecificOutput"]["permissionDecisionReason"]
     assert "Read blobs one at a time in a loop" in reason and "pull/9" in reason
     assert decide(write_event(HEAD, tmp_path), registry, tmp_path / "guard.log") is None
+
+
+def test_last_five_corrections_reach_the_extract_prompt_sent_to_spark(
+    tmp_path: Path, corrections: Path
+) -> None:
+    rejected = root("widgets-2-1", "Inferred")
+    for n in range(6):
+        append_correction(rejection(rejected, f"reason {n}"), corrections)
+    _, _, spark = init(tmp_path, STRUCTURAL)
+    extract = [p for p in spark.prompts if p.startswith("You are reading")]
+    assert extract and all(
+        few_shot_block(recent_corrections(corrections)) in p for p in extract
+    )
+    assert all("reason 5" in p and "reason 0" not in p for p in extract)
+
+
+def rejection(before: Root, reason: str) -> Correction:
+    after = before.model_copy(update={"status": "Unknown"})
+    fields = {"root_id": before.id, "action": "reject", "reason": reason}
+    times = {"by": "bo", "at": "2026-10-29T12:00:00+00:00"}
+    return Correction.model_validate(
+        {**fields, "before": before, "after": after, **times}
+    )
+
+
+def root(root_id: str, status: DecisionStatus) -> Root:
+    fields = {"id": root_id, "title": "t", "decision": "d", "why": "w"}
+    fields |= {"decided_by": "bo", "quote": f"quote of {root_id}", "status": status}
+    return Root.model_validate(
+        {**fields, "source_url": "https://github.com/acme/widgets/pull/2"}
+    )

@@ -2,6 +2,8 @@ import argparse
 import re
 import sys
 import time
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 
 from knack.contracts.models import Root, Verdict
@@ -9,7 +11,14 @@ from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
 from knack.pipeline.clients import live_clients, MissingCredentials
 from knack.pipeline.init import run_init
-from knack.roots.store import load_roots
+from knack.roots.correct import (
+    confirm_root,
+    CorrectionError,
+    reject_root,
+    reviewer_name,
+)
+from knack.roots.corrections import Correction, corrections_path
+from knack.roots.store import load_roots, RootStoreError
 from knack.walk.registry import load_registry
 from knack.walk.text import format_walk
 from knack.walk.walk import walk
@@ -22,17 +31,27 @@ DEFAULT_PRS = 50
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     handlers = {"guard": _guard_command, "walk": _walk_command, "init": _init_command}
+    handlers |= {"confirm": _confirm_command, "reject": _reject_command}
     return handlers[args.command](args)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="knack")
     commands = parser.add_subparsers(dest="command", required=True)
-    guard = commands.add_parser("guard").add_subparsers(dest="action", required=True)
-    _add_check_arguments(guard.add_parser("check"))
-    _add_walk_arguments(commands.add_parser("walk"))
-    _add_init_arguments(commands.add_parser("init"))
+    for name, add in _command_adders().items():
+        add(commands.add_parser(name))
     return parser
+
+
+def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
+    adders = {"guard": _add_guard_arguments, "walk": _add_walk_arguments}
+    adders |= {"init": _add_init_arguments, "confirm": _add_correct_arguments}
+    return adders | {"reject": _add_reject_arguments}
+
+
+def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
+    actions = guard.add_subparsers(dest="action", required=True)
+    _add_check_arguments(actions.add_parser("check"))
 
 
 def _add_check_arguments(check: argparse.ArgumentParser) -> None:
@@ -76,6 +95,42 @@ def _init_command(args: argparse.Namespace) -> int:
 
 def _home_registry(repo: str) -> Path:
     return Path.home() / ".knack" / "registries" / repo.replace("/", "-").lower()
+
+
+def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:
+    correct.add_argument("root_id")
+    correct.add_argument("--registry", type=Path, required=True)
+    correct.add_argument("--by", help="who decided; defaults to git user.name")
+
+
+def _add_reject_arguments(reject: argparse.ArgumentParser) -> None:
+    _add_correct_arguments(reject)
+    reject.add_argument("--reason", required=True)
+
+
+def _confirm_command(args: argparse.Namespace) -> int:
+    by, log = args.by or reviewer_name(Path.cwd()), corrections_path()
+    apply = partial(confirm_root, root_id=args.root_id, by=by, log=log)
+    return _correct("confirm", args.registry, apply)
+
+
+def _reject_command(args: argparse.Namespace) -> int:
+    by, log = args.by or reviewer_name(Path.cwd()), corrections_path()
+    apply = partial(
+        reject_root, root_id=args.root_id, reason=args.reason, by=by, log=log
+    )
+    return _correct("reject", args.registry, apply)
+
+
+def _correct(name: str, registry: Path, apply: Callable[[Path], Correction]) -> int:
+    # A bad id, registry or root state is operator error: a message and exit 2.
+    try:
+        done = apply(registry)
+    except (CorrectionError, RootStoreError) as error:
+        print(f"knack {name}: {error}", file=sys.stderr)
+        return 2
+    print(f"{done.root_id}: {done.before.status} -> {done.after.status}")
+    return 0
 
 
 def _walk_command(args: argparse.Namespace) -> int:
