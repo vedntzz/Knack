@@ -17,6 +17,7 @@ from conftest import (
 from knack.contracts.models import DecisionStatus, Root
 from knack.hooks.pretool_guard import decide
 from knack.pipeline.init import run_init
+from knack.pipeline.readings import load_readings
 from knack.roots.correct import reject_root
 from knack.roots.corrections import (
     append_correction,
@@ -193,3 +194,11 @@ def root(root_id: str, status: DecisionStatus) -> Root:
     return Root.model_validate(
         {**fields, "source_url": "https://github.com/acme/widgets/pull/2"}
     )
+
+
+def test_init_saves_the_reading_of_every_pr_it_extracted(tmp_path: Path) -> None:
+    init(tmp_path, STRUCTURAL)
+    work = tmp_path / "out" / "work"
+    assert [list(load_readings(work, n)) for n in (9, 4, 3)] == [["fake-spark"]] * 3
+    assert load_readings(work, 2) == {}
+    assert load_readings(work, 9)["fake-spark"].title == "Read blobs one at a time"

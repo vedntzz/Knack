@@ -19,7 +19,7 @@ from knack.pipeline.clients import (
     partner_client,
 )
 from knack.pipeline.github import GitHubApi
-from knack.pipeline.init import run_init
+from knack.pipeline.init import OtherRepoRegistry, run_init
 from knack.pipeline.ports import Spark
 from knack.roots.correct import (
     confirm_root,
@@ -118,7 +118,17 @@ def _init_command(args: argparse.Namespace) -> int:
         return 2
     out, (github, spark, second) = args.out or home_registry_dir(args.repo), clients
     repo, ref = args.repo, args.old_ref
-    run_init(repo, args.prs, out, github, spark, old_ref=ref, second=second)
+    init = partial(run_init, repo, args.prs, out, github, spark)
+    return _run_or_explain(partial(init, old_ref=ref, second=second))
+
+
+def _run_or_explain(init: Callable[[], Path]) -> int:
+    # An --out registry of another repo is operator error: a message and exit 2.
+    try:
+        init()
+    except OtherRepoRegistry as error:
+        print(f"knack init: {error}", file=sys.stderr)
+        return 2
     return 0
 
 
