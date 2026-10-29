@@ -1,5 +1,6 @@
 import subprocess
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Protocol
 
@@ -55,8 +56,16 @@ def _inside(path: str) -> str:
 def _cached(ticket: BenchTicket, path: str, github: BaseFiles, cache: Path) -> bytes:
     stored = cache / ticket.base_sha / path
     if not stored.is_file():
-        _write(stored, _fetched(ticket, path, github))
+        _write_atomically(stored, _fetched(ticket, path, github))
     return stored.read_bytes()
+
+
+def _write_atomically(path: Path, data: bytes) -> None:
+    # Parallel runs may fetch the same file; a reader never sees half of it.
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(f".{path.name}.{uuid.uuid4().hex}")
+    partial.write_bytes(data)
+    partial.replace(path)
 
 
 def _fetched(ticket: BenchTicket, path: str, github: BaseFiles) -> bytes:

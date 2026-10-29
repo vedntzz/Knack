@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from knack.bench.arms import ArmError, end_run, isolated_home, prepare_home
+from knack.bench.arms import ArmError, prepare_home
 from knack.contracts.models import DecisionStatus, Root
 from knack.roots.store import load_roots, write_root
 from knack.walk.registry import (
@@ -16,7 +16,7 @@ from knack.walk.registry import (
 )
 
 REPO = "acme/widgets"
-AUTH = b'{"schema_version": 1, "providers": {"spark": {"key": "secret"}}}\n'
+AUTH = b'{"schema_version": 2, "providers": {"meta": {"storage": "keychain"}}}\n'
 # The real settings carry a watch hook and more; no arm may inherit any of it.
 REAL_SETTINGS = {
     "schema_version": 1,
@@ -72,7 +72,7 @@ def source_registry(real_home: Path) -> Path:
 
 
 def prepare(arm: str, real_home: Path, runs: Path) -> Path:
-    return prepare_home(arm, source_registry(real_home), runs, real_home=real_home)
+    return prepare_home(arm, source_registry(real_home), runs)
 
 
 def settings(home: Path) -> dict[str, Any]:
@@ -122,13 +122,15 @@ def test_veto_hook_matches_file_writes_only(real_home: Path, runs: Path) -> None
     assert entry["matcher"] == "write_file|edit_file"
 
 
-def test_muse_config_holds_auth_copy_and_arm_settings_only(
+def test_muse_config_holds_the_arm_settings_and_no_credential(
     real_home: Path, runs: Path
 ) -> None:
-    muse = prepare("veto", real_home, runs) / ".config" / "muse"
-    assert sorted(p.name for p in muse.iterdir()) == ["auth.json", "settings.json"]
-    assert (muse / "auth.json").read_bytes() == AUTH
-    assert (muse / "auth.json").stat().st_mode & 0o777 == 0o600
+    # The key reaches muse through its environment, never as a file in the home.
+    home = prepare("veto", real_home, runs)
+    assert sorted(p.name for p in (home / ".config" / "muse").iterdir()) == [
+        "settings.json"
+    ]
+    assert not [p for p in home.rglob("auth.json")]
 
 
 def test_bench_registry_confirms_every_root(real_home: Path, runs: Path) -> None:
@@ -156,22 +158,20 @@ def test_real_settings_and_home_registry_are_untouched(
 ) -> None:
     before = snapshot(real_home)
     for arm in ARM_EVENTS:
-        with isolated_home(arm, source_registry(real_home), runs, real_home=real_home):
-            pass
+        prepare_home(arm, source_registry(real_home), runs)
     assert snapshot(real_home) == before
 
 
 @pytest.mark.skipif(
-    not (home_registry_dir("apache/airflow") / "registry.json").exists()
-    or not (Path.home() / ".config" / "muse" / "auth.json").exists(),
-    reason="needs the real Muse auth and the apache/airflow home registry",
+    not (home_registry_dir("apache/airflow") / "registry.json").exists(),
+    reason="needs the apache/airflow home registry",
 )
 def test_your_real_settings_and_home_registry_are_byte_identical(runs: Path) -> None:
     real = home_registry_dir("apache/airflow")
     watched = [Path.home() / ".config" / "muse", real]
     before = snapshot(*watched)
-    with isolated_home("warn+veto", real / "registry.json", runs) as home:
-        assert home.is_relative_to(runs)
+    home = prepare_home("warn+veto", real / "registry.json", runs)
+    assert home.is_relative_to(runs)
     assert snapshot(*watched) == before
 
 
@@ -181,39 +181,6 @@ def test_two_runs_never_share_a_home(real_home: Path, runs: Path) -> None:
     assert first != second
     assert not first.is_relative_to(second) and not second.is_relative_to(first)
     assert set(settings(second)["hooks"]) == {"PreToolUse"}
-
-
-def test_auth_copy_is_removed_when_the_run_ends(real_home: Path, runs: Path) -> None:
-    with isolated_home(
-        "veto", source_registry(real_home), runs, real_home=real_home
-    ) as home:
-        assert (home / ".config" / "muse" / "auth.json").exists()
-    assert not (home / ".config" / "muse" / "auth.json").exists()
-    assert (home / ".config" / "muse" / "settings.json").exists()
-
-
-def test_auth_copy_is_removed_when_the_run_fails(real_home: Path, runs: Path) -> None:
-    homes = list[Path]()
-    with pytest.raises(RuntimeError):
-        with isolated_home(
-            "veto", source_registry(real_home), runs, real_home=real_home
-        ) as home:
-            homes.append(home)
-            raise RuntimeError("agent crashed")
-    assert not (homes[0] / ".config" / "muse" / "auth.json").exists()
-
-
-def test_end_run_twice_is_harmless(real_home: Path, runs: Path) -> None:
-    home = prepare("veto", real_home, runs)
-    end_run(home)
-    end_run(home)
-    assert not (home / ".config" / "muse" / "auth.json").exists()
-
-
-def test_missing_auth_raises(real_home: Path, runs: Path) -> None:
-    (real_home / ".config" / "muse" / "auth.json").unlink()
-    with pytest.raises(ArmError, match="auth.json"):
-        prepare("veto", real_home, runs)
 
 
 def test_unknown_arm_raises(real_home: Path, runs: Path) -> None:

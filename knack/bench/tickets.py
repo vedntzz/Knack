@@ -107,13 +107,18 @@ def _registry_for(repo: str) -> Registry:
     return load_registry(path)
 
 
+def rule_entry(registry: Registry, rule_id: str) -> RegistryEntry | None:
+    # The entry whose rule file carries rule_id; None when the registry lacks it.
+    found = (e for e in registry.rules if _rule_file_id(e.rule) == rule_id)
+    return next(found, None)
+
+
 def _entry_for(registry: Registry, ticket: BenchTicket) -> RegistryEntry:
-    for entry in registry.rules:
-        if _rule_file_id(entry.rule) == ticket.rule:
-            return entry
-    raise TicketError(
-        f"{ticket.id}: rule {ticket.rule} is not in the {ticket.repo} registry"
-    )
+    entry = rule_entry(registry, ticket.rule)
+    if entry is None:
+        message = f"rule {ticket.rule} is not in the {ticket.repo} registry"
+        raise TicketError(f"{ticket.id}: {message}")
+    return entry
 
 
 def _rule_file_id(path: Path) -> str | None:
