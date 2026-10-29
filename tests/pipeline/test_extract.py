@@ -15,6 +15,7 @@ from knack.pipeline.extract import (
     extract_all,
     mark_verbatim,
     parse_decisions,
+    PROMPT,
     thread_text,
 )
 from knack.pipeline.models import Alternative, Decision, Post, PullRequest
@@ -87,3 +88,20 @@ def test_extract_all_reports_each_pr_in_order_as_it_finishes(tmp_path: Path) -> 
     prs = select_prs(github, REPO, 50).prs
     extract_all(github, spark, REPO, prs, lambda n, e: seen.append((n, e is None)))
     assert seen == [(9, False), (4, False), (3, False), (2, True)]
+
+
+def test_few_shot_block_sits_between_the_rules_and_the_pr_text(
+    tmp_path: Path,
+) -> None:
+    github, spark = FakeGitHub(clean_tree(tmp_path)), FakeSpark([STRUCTURAL])
+    prs = select_prs(github, REPO, 1).prs
+    extract_all(github, spark, REPO, prs, few_shot="PAST CORRECTIONS\n\n")
+    prompt = spark.prompts[0]
+    assert prompt.index("Do not guess.") < prompt.index("PAST CORRECTIONS")
+    assert prompt.index("PAST CORRECTIONS") < prompt.index("PR TEXT:\nTitle: ")
+
+
+def test_without_corrections_the_prompt_is_unchanged(tmp_path: Path) -> None:
+    github, spark = FakeGitHub(clean_tree(tmp_path)), FakeSpark([STRUCTURAL])
+    extract_all(github, spark, REPO, select_prs(github, REPO, 1).prs)
+    assert spark.prompts[0].startswith(PROMPT + "Title: ")

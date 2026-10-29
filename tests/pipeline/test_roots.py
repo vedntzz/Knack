@@ -45,6 +45,14 @@ def test_install_never_replaces_a_confirmed_root(tmp_path: Path) -> None:
     assert load_roots(tmp_path) == [confirmed]
 
 
+def test_install_never_replaces_a_rejected_root(tmp_path: Path) -> None:
+    inferred = roots_for(REPO, extraction(GATHER_DECISION), "m")[0]
+    rejected = inferred.model_copy(update={"status": "Unknown"})
+    write_root(rejected, tmp_path / "widgets-9-1.json")
+    assert install_roots([inferred], tmp_path) == []
+    assert load_roots(tmp_path) == [rejected]
+
+
 def test_install_refreshes_an_older_inferred_root(tmp_path: Path) -> None:
     fresh = roots_for(REPO, extraction(GATHER_DECISION), "m")[0]
     stale: Root = fresh.model_copy(update={"why": "older run"})
