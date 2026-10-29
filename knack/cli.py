@@ -7,6 +7,7 @@ from functools import partial
 from pathlib import Path
 
 from knack.contracts.models import Root, Verdict
+from knack.git import git_root, origin_repo
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
 from knack.pipeline.clients import live_clients, MissingCredentials
@@ -124,7 +125,8 @@ def _watch_command(args: argparse.Namespace) -> int:
 
 def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:
     correct.add_argument("root_id")
-    correct.add_argument("--registry", type=Path, required=True)
+    help = "defaults to the home registry of the clone you are in"
+    correct.add_argument("--registry", type=Path, help=help)
     correct.add_argument("--by", help="who decided; defaults to git user.name")
 
 
@@ -147,15 +149,26 @@ def _reject_command(args: argparse.Namespace) -> int:
     return _correct("reject", args.registry, apply)
 
 
-def _correct(name: str, registry: Path, apply: Callable[[Path], Correction]) -> int:
-    # A bad id, registry or root state is operator error: a message and exit 2.
+def _correct(
+    name: str, registry: Path | None, apply: Callable[[Path], Correction]
+) -> int:
+    # A bad id, registry, clone or root state is operator error: a message and exit 2.
     try:
-        done = apply(registry)
+        done = apply(registry or _clone_registry(Path.cwd()))
     except (CorrectionError, RootStoreError) as error:
         print(f"knack {name}: {error}", file=sys.stderr)
         return 2
     print(f"{done.root_id}: {done.before.status} -> {done.after.status}")
     return 0
+
+
+def _clone_registry(cwd: Path) -> Path:
+    # The registry knack init installed for this clone's origin repo.
+    root = git_root(cwd)
+    repo = origin_repo(root) if root else None
+    if repo is None:
+        raise CorrectionError(f"{cwd} is not a git clone of a repo; pass --registry")
+    return home_registry_dir(repo) / "registry.json"
 
 
 def _walk_command(args: argparse.Namespace) -> int:
