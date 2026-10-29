@@ -18,8 +18,8 @@ from knack.pipeline.clients import (
     MissingCredentials,
 )
 from knack.pipeline.github import GitHubApi
-from knack.pipeline.ports import Spark
 from knack.pipeline.init import run_init
+from knack.pipeline.ports import Spark
 from knack.roots.correct import (
     confirm_root,
     CorrectionError,
