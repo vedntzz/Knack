@@ -76,17 +76,24 @@ def write_side(tmp_path: Path, side: str, source: str) -> dict[str, Path]:
 def write_variants(tmp_path: Path) -> dict[str, dict[str, Path]]:
     out = tmp_path / "variants"
     out.mkdir()
-    named = {"variant-violation": ("violation", VIOLATIONS), "variant-compliant": ("compliant", COMPLIANT)}
+    named = {
+        "variant-violation": ("violation", VIOLATIONS),
+        "variant-compliant": ("compliant", COMPLIANT),
+    }
     for prefix, sources in named.values():
         for i, source in enumerate(sources, 1):
             (out / f"{prefix}_{i}.py").write_text(source)
-    return {side: {f"{prefix}_{i}.py": out / f"{prefix}_{i}.py" for i in (1, 2, 3)}
-            for side, (prefix, _) in named.items()}
+    return {
+        side: {f"{prefix}_{i}.py": out / f"{prefix}_{i}.py" for i in (1, 2, 3)}
+        for side, (prefix, _) in named.items()
+    }
 
 
 def sides_for(spike: ModuleType, tmp_path: Path) -> dict[str, dict[str, Path]]:
     base, head = write_side(tmp_path, "base", BASE), write_side(tmp_path, "head", HEAD)
-    return spike.verifier_sides(7, base, head, tmp_path / "renamed", write_variants(tmp_path))
+    return spike.verifier_sides(
+        7, base, head, tmp_path / "renamed", write_variants(tmp_path)
+    )
 
 
 def verdicts(spike: ModuleType, tmp_path: Path, rule: str) -> dict[str, bool]:
@@ -104,7 +111,9 @@ def test_rename_names_rewrites_every_occurrence_and_nothing_else(
     spike: ModuleType,
 ) -> None:
     renamed = spike.rename_names(HEAD, {"item": "zz1", "append": "zz2"})
-    assert "item " not in renamed and "item." not in renamed and ".append" not in renamed
+    assert (
+        "item " not in renamed and "item." not in renamed and ".append" not in renamed
+    )
     assert "for zz1 in items" in renamed and "results.zz2(await zz1.read())" in renamed
     ast.parse(renamed)
 
@@ -147,8 +156,12 @@ def test_rule_spelling_a_pr_introduced_name_fails_rename_head(
     spike: ModuleType, tmp_path: Path
 ) -> None:
     assert verdicts(spike, tmp_path, MEMORIZED_ON_HEAD) == {
-        "base": True, "head": True, "rename-base": True, "rename-head": False,
-        "variant-violation": True, "variant-compliant": False,
+        "base": True,
+        "head": True,
+        "rename-base": True,
+        "rename-head": False,
+        "variant-violation": True,
+        "variant-compliant": False,
     }
 
 
@@ -156,15 +169,21 @@ def test_rule_spelling_a_base_local_fails_rename_base(
     spike: ModuleType, tmp_path: Path
 ) -> None:
     assert verdicts(spike, tmp_path, MEMORIZED_ON_BASE) == {
-        "base": True, "head": True, "rename-base": False, "rename-head": True,
-        "variant-violation": False, "variant-compliant": True,
+        "base": True,
+        "head": True,
+        "rename-base": False,
+        "rename-head": True,
+        "variant-violation": False,
+        "variant-compliant": True,
     }
 
 
 def test_structural_rule_catching_two_of_three_violations_passes(
     spike: ModuleType, tmp_path: Path
 ) -> None:
-    assert spike.passes(spike.evaluate(STRUCTURAL, sides_for(spike, tmp_path)), [], None)
+    assert spike.passes(
+        spike.evaluate(STRUCTURAL, sides_for(spike, tmp_path)), [], None
+    )
 
 
 def test_catching_one_of_three_violations_fails_the_variant_check(
@@ -178,7 +197,9 @@ def test_flagging_one_compliant_variant_fails_the_variant_check(
 ) -> None:
     sides = sides_for(spike, tmp_path)
     sides["variant-compliant"]["compliant_2.py"].write_text(VIOLATIONS[0])
-    assert spike.side_ok(spike.evaluate(STRUCTURAL, sides))["variant-compliant"] is False
+    assert (
+        spike.side_ok(spike.evaluate(STRUCTURAL, sides))["variant-compliant"] is False
+    )
 
 
 def test_rename_failure_blocks_the_rule(spike: ModuleType, tmp_path: Path) -> None:
@@ -205,8 +226,10 @@ def test_feedback_names_missed_violations(spike: ModuleType, tmp_path: Path) -> 
 
 
 def test_prompt_forbids_matching_pr_introduced_identifiers(spike: ModuleType) -> None:
-    assert ("Do not match identifiers introduced by this PR; "
-            "match the structure of the violation.") in spike.PROMPT
+    assert (
+        "Do not match identifiers introduced by this PR; "
+        "match the structure of the violation."
+    ) in spike.PROMPT
 
 
 def test_previous_rule_is_kept_as_v2_and_v1_is_untouched(
@@ -222,7 +245,9 @@ def test_previous_rule_is_kept_as_v2_and_v1_is_untouched(
     assert not (batch.rules / "1.yml").exists()
 
 
-def test_rerun_never_overwrites_an_existing_v2(spike: ModuleType, tmp_path: Path) -> None:
+def test_rerun_never_overwrites_an_existing_v2(
+    spike: ModuleType, tmp_path: Path
+) -> None:
     batch = spike.Batch("apache/airflow", root=tmp_path)
     batch.rules.mkdir(parents=True)
     (batch.rules / "1.v2.yml").write_text("v2 rule")
