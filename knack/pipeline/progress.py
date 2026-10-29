@@ -46,6 +46,16 @@ def compile_line(targets: int) -> str:
     return f"[4/5] compile  {targets} PRs with a verbatim rejected alternative"
 
 
+def old_release_line(number: int, ref: str | None, merged_at: str, given: bool) -> str:
+    # Which release this PR's rule must stay clean on, and why that one.
+    head, merged = f"  #{number} old release:", merged_at[:10]
+    if given:
+        return f"{head} {ref} (--old-ref)"
+    if ref is None:
+        return f"{head} none before merge {merged}, check skipped"
+    return f"{head} {ref} (last release before merge {merged})"
+
+
 def outcome_line(compiled: Compiled) -> str:
     # Indented under the compile stage, one line per PR as it finishes.
     if compiled.rule is not None:

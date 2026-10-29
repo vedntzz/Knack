@@ -97,6 +97,8 @@ def _add_init_arguments(init: argparse.ArgumentParser) -> None:
     init.add_argument("--out", type=Path)
     choices, default = list(EXTRACTORS), DEFAULT_EXTRACTOR
     init.add_argument("--extractor", choices=choices, default=default)
+    help = "release tag rules must not flag; defaults to the previous minor release"
+    init.add_argument("--old-ref", help=help)
 
 
 def _owner_name(value: str) -> str:
@@ -110,7 +112,8 @@ def _init_command(args: argparse.Namespace) -> int:
     clients = _clients_or_explain(args.extractor)
     if clients is None:
         return 2
-    run_init(args.repo, args.prs, args.out or home_registry_dir(args.repo), *clients)
+    out = args.out or home_registry_dir(args.repo)
+    run_init(args.repo, args.prs, out, *clients, old_ref=args.old_ref)
     return 0
 
 

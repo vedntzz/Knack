@@ -17,6 +17,16 @@ WINDOW = timedelta(days=7)
 LOOKBACK = timedelta(days=365)
 CLONE_TIMEOUT_SECONDS = 1800
 Window = tuple[datetime, datetime]
+TAGS_QUERY = """query($owner: String!, $name: String!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    refs(refPrefix: "refs/tags/", first: 100, after: $after) {
+      pageInfo { hasNextPage endCursor }
+      nodes { name target { __typename
+        ... on Commit { committedDate }
+        ... on Tag { tagger { date } } } }
+    }
+  }
+}"""
 
 
 def weekly_windows(now: datetime) -> Iterator[Window]:
@@ -87,9 +97,35 @@ class GitHubApi:
             _shallow_clone(f"https://github.com/{repo}.git", branch, dest)
         return dest
 
+    def tags(self, repo: str) -> dict[str, str]:
+        # Every tag with its date; GraphQL dates 100 tags per call, REST one.
+        tags, after = dict[str, str](), None
+        while True:
+            page, after = self._tag_page(repo, after)
+            tags |= page
+            if after is None:
+                return tags
+
+    def checkout_ref(self, repo: str, ref: str, dest: Path) -> Path:
+        # A shallow clone at a tag, reused like the default-branch clone.
+        if not (dest / ".git").exists():
+            _shallow_clone(f"https://github.com/{repo}.git", ref, dest)
+        return dest
+
     def _get(self, path: str, **params: object) -> Any:
         query = f"?{urlencode(params)}" if params else ""
         return request_json(f"{API}{path}{query}", self.headers)
+
+    def _tag_page(
+        self, repo: str, after: str | None
+    ) -> tuple[dict[str, str], str | None]:
+        owner, name = repo.split("/")
+        variables = {"owner": owner, "name": name, "after": after}
+        body = {"query": TAGS_QUERY, "variables": variables}
+        found = request_json(f"{API}/graphql", self.headers, body)
+        refs = found["data"]["repository"]["refs"]
+        page = {str(n["name"]): tag_date(n["target"]) for n in refs["nodes"]}
+        return page, next_cursor(refs["pageInfo"])
 
     def _all(self, path: str) -> list[dict[str, Any]]:
         items, page = list[dict[str, Any]](), 1
@@ -105,6 +141,18 @@ class GitHubApi:
             chunk = found["items"]
             items, page, more = items + chunk, page + 1, len(chunk) == PAGE
         return items
+
+
+def next_cursor(page_info: dict[str, Any]) -> str | None:
+    # None once the last page is read.
+    return str(page_info["endCursor"]) if page_info["hasNextPage"] else None
+
+
+def tag_date(target: dict[str, Any]) -> str:
+    # An annotated tag is dated when it was tagged; a lightweight one by its commit.
+    if target["__typename"] == "Tag":
+        return str(target["tagger"]["date"])
+    return str(target["committedDate"])
 
 
 def review_post(review: dict[str, Any]) -> Post:

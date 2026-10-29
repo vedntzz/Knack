@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 from knack.contracts.models import Root
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, with_rule_id
@@ -14,11 +15,13 @@ from knack.pipeline.progress import (
     extract_totals_line,
     extracted_line,
     install_line,
+    old_release_line,
     outcome_line,
     roots_line,
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
+from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
 from knack.pipeline.sources import fetch_side, joined_source
 from knack.pipeline.variants import variant_files, variant_prompt
@@ -37,6 +40,15 @@ class Run:
     log: Log
     # Proof scans this tree; None clones the default branch under out/work/tree.
     tree: Path | None = None
+    # The release every proof must also stay clean on; None picks one per PR.
+    old_ref: str | None = None
+
+
+@dataclass(frozen=True)
+class Trees:
+    tree: Path
+    # Release tag dates, read once; empty when old_ref names the release.
+    tags: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -96,8 +108,9 @@ def _compile_stage(
     run.log(compile_line(len(targets)))
     if not targets:
         return []
-    tree = _prepare(run)
-    return [_compile_logged(run, target, tree) for target in targets]
+    tags = {} if run.old_ref else run.github.tags(run.repo)
+    trees = Trees(_prepare(run), tags)
+    return [_compile_logged(run, target, trees) for target in targets]
 
 
 def _targets(
@@ -121,28 +134,43 @@ def _prepare(run: Run) -> Path:
     return run.tree or run.github.checkout(run.repo, run.out / "work" / "tree")
 
 
-def _compile_logged(run: Run, target: Target, tree: Path) -> Compiled:
-    compiled = _compile_safely(run, target, tree)
+def _old_release(run: Run, pr: PullRequest, tags: dict[str, str]) -> dict[str, Any]:
+    # --old-ref wins; otherwise the last release tagged before this PR merged.
+    ref = run.old_ref or last_release_before(tags, pr.merged_at)
+    run.log(old_release_line(pr.number, ref, pr.merged_at, bool(run.old_ref)))
+    if ref is None:
+        return {}
+    dest = run.out / "work" / f"release-{ref}"
+    return {"old_ref": ref, "old_tree": run.github.checkout_ref(run.repo, ref, dest)}
+
+
+def _compile_logged(run: Run, target: Target, trees: Trees) -> Compiled:
+    compiled = _compile_safely(run, target, trees)
     run.log(outcome_line(compiled))
     return compiled
 
 
-def _compile_safely(run: Run, target: Target, tree: Path) -> Compiled:
+def _compile_safely(run: Run, target: Target, trees: Trees) -> Compiled:
     # One PR's network or model failure is reported, never fatal to the run.
     try:
-        return _record(run, target, _compile_pr(run, target, tree))
+        return _record(run, target, _compile_pr(run, target, trees))
     except Exception as error:
         return _failed(target, error)
 
 
-def _compile_pr(run: Run, target: Target, tree: Path) -> Attempt:
+def _compile_pr(run: Run, target: Target, trees: Trees) -> Attempt:
     work = run.out / "work" / str(target.pr.number)
     base, head = _side(run, target, "base", work), _side(run, target, "head", work)
     before, after = joined_source(base), joined_source(head)
     variants = _variants(run, target.decision, (before, after), work)
     sides = verifier_sides(target.pr.number, base, head, work, variants)
-    case = ProofCase(sides=sides, changed=target.pr.python_files, tree=tree)
+    case = _case(run, target.pr, trees, sides)
     return compile_rule(run.spark, case, compile_prompt(target.decision, before, after))
+
+
+def _case(run: Run, pr: PullRequest, trees: Trees, sides: Sides) -> ProofCase:
+    fields = {"sides": sides, "changed": pr.python_files, "tree": trees.tree}
+    return ProofCase.model_validate({**fields, **_old_release(run, pr, trees.tags)})
 
 
 def _side(run: Run, target: Target, side: str, work: Path) -> dict[str, Path]:

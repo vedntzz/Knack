@@ -43,6 +43,34 @@ reads, no extra columns as sort keys), the compiler writes a structural rule.
 When it says *use the thing this PR added*, the compiler anchors on the PR's
 new names. That rule passes the PR's own head and does not generalize.
 
+## Known limitation: #16049 matches `cache_key` by name
+
+The #16049 rule is a list of the 10 attribute names `Dependant` had in base
+(`$OBJ.cache_key`, `$OBJ.oauth_scopes`, …). It flags any read of those names
+on any object. It never looks for `@cached_property` or computed attributes,
+which are what the decision removed. On fastapi 0.115.0, `cache_key` is a plain
+dataclass field, and the rule flags it 9 times. All 9 are false positives (see
+"#16049 (base `ae031be`)" below).
+
+The KN-29 old-release check (`knack init --old-ref`) does not catch this.
+All 9 matches are in `fastapi/dependencies/models.py` and
+`fastapi/dependencies/utils.py`, and the PR touched both. The check excludes
+the PR's own files, so it counts 0.
+
+| #16049 on 0.115.0 | Raw matches | Counted by the old-release check |
+|---|---|---|
+| Before KN-29 (v4 rule, `spikes/batch/.../16049.yml`) | 9 | — (check did not exist) |
+| After KN-29 (recompiled with `--old-ref 0.115.0`, proven on attempt 2) | 9 | 0 |
+
+The recompiled rule is the same 10-name list. With no `--old-ref`, detection
+picks 0.139.2 for #16049: the last release tag before its 2026-07-24 merge.
+
+Why this is tolerable: the rule's root `fastapi-16049-1` is **Inferred**, and
+it stays that way. The guard blocks only on Confirmed roots, so this rule
+advises and never blocks. Do not confirm it until a recompile anchors on
+`@cached_property` or `@property` inside `class Dependant`, not on attribute
+names.
+
 ## v4: variant check
 
 For each decision, Spark writes 3 fresh violations of the rejected approach
