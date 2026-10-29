@@ -115,6 +115,14 @@ class WalkResponse(BaseModel):
                 raise ValueError(f"leaf cites unknown root_ids: {sorted(missing)}")
 
 
+class Ruling(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    decision: Literal["hold", "escalate"]
+    reply: str = Field(min_length=1)
+    cited_quotes: list[str]
+
+
 class CompiledRule(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
