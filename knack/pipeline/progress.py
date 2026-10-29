@@ -54,8 +54,9 @@ def outcome_line(compiled: Compiled) -> str:
     return f"  #{compiled.number} discarded{after}: {', '.join(compiled.failed_checks)}"
 
 
-def install_line(proven: int, discarded: int, path: Path) -> str:
-    return f"[5/5] install  {proven} rules proven, {discarded} discarded -> {path}"
+def install_line(proven: int, discarded: int, total: int, path: Path) -> str:
+    counts = f"{proven} rules proven, {discarded} discarded, {total} in registry"
+    return f"[5/5] install  {counts} -> {path}"
 
 
 def _counted(count: int, noun: str) -> str:

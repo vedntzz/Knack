@@ -55,6 +55,10 @@ class GitHubApi:
             )
             yield from (summary_from_item(item) for item in items)
 
+    def summary(self, repo: str, number: int) -> PullSummary:
+        pr = self._get(f"/repos/{repo}/pulls/{number}")
+        return summary_from_item({**pr, "pull_request": {"merged_at": pr["merged_at"]}})
+
     def changed_files(self, repo: str, number: int) -> list[str]:
         files = self._all(f"/repos/{repo}/pulls/{number}/files")
         return [str(f["filename"]) for f in files]

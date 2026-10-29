@@ -18,6 +18,14 @@ def select_prs(github: GitHub, repo: str, limit: int) -> Selection:
     return Selection(read=read, prs=kept)
 
 
+def select_numbers(github: GitHub, repo: str, numbers: list[int]) -> Selection:
+    # Named PRs, e.g. just merged, pass the same filters as a history scan.
+    kept = list[PullRequest]()
+    for number in numbers:
+        kept += _qualified(github, repo, github.summary(repo, number))
+    return Selection(read=len(numbers), prs=kept)
+
+
 def qualifies(paths: list[str]) -> bool:
     # One to five Python files, and not a tests-or-docs-only change.
     python = [path for path in paths if path.endswith(".py")]

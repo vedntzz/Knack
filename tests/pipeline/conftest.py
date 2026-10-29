@@ -1,9 +1,10 @@
 import json
+import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from knack.pipeline import init
+from knack.pipeline import stages
 from knack.pipeline.models import Post, PullSummary
 
 REPO = "acme/widgets"
@@ -116,6 +117,9 @@ class FakeGitHub:
             self.summaries_read += 1
             yield pr
 
+    def summary(self, repo: str, number: int) -> PullSummary:
+        return next(pr for pr in SUMMARIES if pr.number == number)
+
     def changed_files(self, repo: str, number: int) -> list[str]:
         return FILES.get(number, [])
 
@@ -167,9 +171,62 @@ def clean_tree(tmp_path: Path) -> Path:
     return write_tree(tmp_path / "tree", files)
 
 
+ORIGIN = "https://github.com/acme/widgets.git"
+SQUASH_SUBJECT = "Read blobs one at a time (#9)"
+
+
+@pytest.fixture
+def isolated_git(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # No user or system git config (hooksPath, identity) leaks into a test.
+    empty = tmp_path / "gitconfig"
+    empty.write_text("")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    for role in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{role}_NAME", "maria")
+        monkeypatch.setenv(f"GIT_{role}_EMAIL", "maria@example.com")
+
+
+def git(repo: Path, *args: str) -> str:
+    done = subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True
+    )
+    assert done.returncode == 0, done.stderr
+    return done.stdout + done.stderr
+
+
+def make_repo(path: Path) -> Path:
+    # A clone of acme/widgets on main, holding the pre-PR loader.
+    path.mkdir(parents=True)
+    git(path, "init", "-q", "-b", "main")
+    git(path, "remote", "add", "origin", ORIGIN)
+    write_tree(path, {"pkg/loader.py": BASE, "pkg/util.py": "X = 1\n"})
+    git(path, "add", ".")
+    git(path, "commit", "-q", "-m", "Initial layout")
+    return path
+
+
+def merge_pr(repo: Path, subject: str = SQUASH_SUBJECT, no_ff: bool = False) -> str:
+    # A real merge of a feature branch that swaps gather for a loop; returns git's output.
+    git(repo, "checkout", "-q", "-b", "feature")
+    write_tree(repo, {"pkg/loader.py": HEAD})
+    git(repo, "commit", "-q", "-am", subject)
+    git(repo, "checkout", "-q", "main")
+    if no_ff:
+        return git(
+            repo,
+            "merge",
+            "--no-ff",
+            "-m",
+            "Merge pull request #9 from acme/feature",
+            "feature",
+        )
+    return git(repo, "merge", "--ff-only", "feature")
+
+
 @pytest.fixture(autouse=True)
 def corrections(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     # The pipeline never reads the real ~/.knack/corrections.jsonl in a test.
     path = tmp_path / "corrections.jsonl"
-    monkeypatch.setattr(init, "corrections_path", lambda: path)
+    monkeypatch.setattr(stages, "corrections_path", lambda: path)
     return path
