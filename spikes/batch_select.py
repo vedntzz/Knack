@@ -1,21 +1,24 @@
-"""Spike: pick 50 recent merged apache/airflow PRs worth replaying through the guard."""
+"""Spike: pick 50 recent merged PRs from one repo (default apache/airflow) worth replaying through the guard."""
 
 import json
 import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import requests
 
-REPO = "apache/airflow"
+from batch_repo import Batch, repo_parser
+
 API = "https://api.github.com"
-OUT = Path(__file__).parent / "batch" / "prs.json"
 TARGET = 50
 MIN_BODY = 400
 WINDOW_DAYS = 7
 DOC_SUFFIXES = (".rst", ".md", ".txt")
+
+
+def parse_args(argv=None):
+    return repo_parser("select recent merged PRs from a repo").parse_args(argv)
 
 
 def session():
@@ -40,9 +43,9 @@ def get(s, url, **params):
     raise RuntimeError(f"gave up on {url}")
 
 
-def search_window(s, start, end):
+def search_window(s, repo, start, end):
     # Search caps at 1000 results, so a week-wide window keeps us well under it.
-    q = f"repo:{REPO} is:pr is:merged merged:{start:%Y-%m-%dT%H:%M:%SZ}..{end:%Y-%m-%dT%H:%M:%SZ}"
+    q = f"repo:{repo} is:pr is:merged merged:{start:%Y-%m-%dT%H:%M:%SZ}..{end:%Y-%m-%dT%H:%M:%SZ}"
     items, page = [], 1
     while True:
         data = get(s, f"{API}/search/issues", q=q, per_page=100, page=page)
@@ -61,10 +64,10 @@ def is_doc(path):
     return path.startswith("docs/") or "/docs/" in path or path.endswith(DOC_SUFFIXES)
 
 
-def pr_files(s, number):
+def pr_files(s, repo, number):
     files, page = [], 1
     while True:
-        batch = get(s, f"{API}/repos/{REPO}/pulls/{number}/files", per_page=100, page=page)
+        batch = get(s, f"{API}/repos/{repo}/pulls/{number}/files", per_page=100, page=page)
         files += batch
         if len(batch) < 100:
             return files
@@ -78,8 +81,8 @@ def qualifies(files):
     return 1 <= len(py) <= 5 and not only_tests_or_docs
 
 
-def record(s, number, files):
-    pr = get(s, f"{API}/repos/{REPO}/pulls/{number}")
+def record(s, repo, number, files):
+    pr = get(s, f"{API}/repos/{repo}/pulls/{number}")
     return {
         "number": number,
         "title": pr["title"],
@@ -91,14 +94,15 @@ def record(s, number, files):
     }
 
 
-def main():
+def main(argv=None):
+    repo = parse_args(argv).repo
     s = session()
     now = datetime.now(timezone.utc)
     floor = now - timedelta(days=365)
     kept, seen, end = [], 0, now
     while end > floor and len(kept) < TARGET:
         start = max(end - timedelta(days=WINDOW_DAYS), floor)
-        items = search_window(s, start, end)
+        items = search_window(s, repo, start, end)
         items.sort(key=lambda i: i["pull_request"]["merged_at"], reverse=True)
         for item in items:
             if len(kept) >= TARGET:
@@ -106,15 +110,16 @@ def main():
             seen += 1
             if len(item.get("body") or "") <= MIN_BODY:
                 continue
-            files = pr_files(s, item["number"])
+            files = pr_files(s, repo, item["number"])
             if qualifies(files):
-                kept.append(record(s, item["number"], files))
+                kept.append(record(s, repo, item["number"], files))
                 print(f"  kept #{item['number']} ({len(kept)}/{TARGET})", file=sys.stderr)
         end = start
     kept.sort(key=lambda p: p["merged_at"], reverse=True)
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(kept, indent=2) + "\n")
-    print(f"scanned {seen} merged PRs, kept {len(kept)} -> {OUT}")
+    out = Batch(repo).prs
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(kept, indent=2) + "\n")
+    print(f"scanned {seen} merged {repo} PRs, kept {len(kept)} -> {out}")
 
 
 if __name__ == "__main__":

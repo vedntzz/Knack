@@ -19,6 +19,7 @@ dev = [
     "pytest",
     "ufmt",
     "pyright",
+    "requests",
 ]
 
 [tool.hatch.build.targets.wheel]
