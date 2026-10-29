@@ -1,0 +1,22 @@
+id: compiled-rule
+language: python
+severity: error
+message: Forward exclude_defaults in dict branch key and value recursion, matching list branch and sibling exclude_unset/exclude_none.
+rule:
+  all:
+    - pattern: jsonable_encoder($$$ARGS)
+    - inside:
+        stopBy: end
+        pattern: |
+          if isinstance($OBJ, dict):
+            $$$BODY
+    - has:
+        stopBy: end
+        pattern: exclude_unset
+    - has:
+        stopBy: end
+        pattern: exclude_none
+    - not:
+        has:
+          stopBy: end
+          pattern: exclude_defaults

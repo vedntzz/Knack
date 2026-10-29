@@ -1,0 +1,18 @@
+id: compiled-rule
+language: python
+severity: error
+message: Read files sequentially instead of (fake) parallel with task group.
+rule:
+  all:
+    - pattern: |-
+        async with $X as $TG:
+          $$$BODY
+    - has:
+        stopBy: end
+        regex: create_task_group
+    - has:
+        stopBy: end
+        pattern: $S.start_soon($$$ARGS)
+    - has:
+        stopBy: end
+        pattern: $OBJ.read

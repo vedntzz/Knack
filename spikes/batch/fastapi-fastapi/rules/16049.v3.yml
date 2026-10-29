@@ -1,0 +1,16 @@
+id: compiled-rule
+language: python
+severity: error
+message: Dependant must only hold data, do not use computed Dependant attributes, use helper functions instead.
+rule:
+  any:
+    - pattern: $X.oauth_scopes
+    - pattern: $X.cache_key
+    - pattern: $X.computed_scope
+    - pattern: $X.is_gen_callable
+    - pattern: $X.is_async_gen_callable
+    - pattern: $X.is_coroutine_callable
+    - pattern: $X._uses_scopes
+    - pattern: $X._is_security_scheme
+    - pattern: $X._security_scheme
+    - pattern: $X._security_dependencies

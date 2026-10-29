@@ -1,17 +1,32 @@
 # Batch compile spike: can Spark turn each PR's rejected alternative into a rule that flags base, not head, not main?
-import json, os, tempfile
+import json, os, random, tempfile
 from pathlib import Path
 
 import requests
 
 from batch_precision import clone_dir, resolve_ref, scan_tree, shallow_clone
 from batch_repo import Batch, repo_parser
-from compile_spike import PROMPT, answer_text, ask_spark, scan
+from batch_variants import variant_files, variant_prompt
+from batch_rename import fresh_names, introduced_identifiers, rename_locals, rename_names
+from compile_spike import PROMPT as BASE_PROMPT, answer_text, ask_spark, scan
 
 # Airflow keeps its hand-picked five; other repos compile every PR whose extraction found a rejection
 TARGETS = {"apache/airflow": [75774, 74150, 75271, 75734, 75025]}
 MAX_ATTEMPTS = 5
 FP_FEEDBACK_LIMIT = 5
+GENERALITY = "Do not match identifiers introduced by this PR; match the structure of the violation.\n"
+PROMPT = BASE_PROMPT.replace("Use id: compiled-rule.", GENERALITY + "Use id: compiled-rule.")
+# whether each verifier side must flag (True) or never flag (False)
+MUST_FLAG = {"base": True, "head": False, "rename-base": True, "rename-head": False,
+             "variant-violation": True, "variant-compliant": False}
+# files a must-flag side needs flagged; 1 unless listed
+MIN_FLAGGED = {"variant-violation": 2}
+SIDE_NOTES = {"base": "", "head": "", "rename-base": " (base with its local variables renamed)",
+              "rename-head": " (head with every identifier this PR introduced renamed to _r... names)",
+              "variant-violation": " (fresh violation written apart from the PR; >=2 of 3 must be flagged)",
+              "variant-compliant": " (fresh compliant code written apart from the PR)"}
+VARIANT_MISSES = {"variant-violation": "MISSED VIOLATION (the rule must flag this)",
+                  "variant-compliant": "FLAGGED COMPLIANT CODE (the rule must allow this)"}
 
 
 def parse_args(argv=None):
@@ -79,9 +94,44 @@ def joined_source(files):
     return "\n\n".join(f"# file: {name}\n{path.read_text()}" for name, path in files.items())
 
 
-def evaluate(rule_yaml, base, head):
-    results = [(f"base {n}", True, p) for n, p in base.items()] + [(f"head {n}", False, p) for n, p in head.items()]
-    return [(label, should_flag, *scan(rule_yaml, path)) for label, should_flag, path in results]
+def verifier_sides(number, base, head, out, variants):
+    # rename and variant sides catch rules that memorize spellings instead of the violation's structure
+    rng = random.Random(number)
+    mapping = fresh_names(introduced_identifiers(texts(base), texts(head)), rng)
+    return {"base": base, "head": head,
+            "rename-base": rewritten(base, lambda source: rename_locals(source, rng), out / "rename-base"),
+            "rename-head": rewritten(head, lambda source: rename_names(source, mapping), out / "rename-head"),
+            **variants}
+
+
+def texts(files):
+    return [path.read_text() for path in files.values()]
+
+
+def rewritten(files, transform, out):
+    # same relative paths under out, so path-scoped rules see the same filenames
+    for name, path in files.items():
+        (out / name).parent.mkdir(parents=True, exist_ok=True)
+        (out / name).write_text(transform(path.read_text()))
+    return {name: out / name for name in files}
+
+
+def evaluate(rule_yaml, sides):
+    files = [(side, name, path) for side, named in sides.items() for name, path in named.items()]
+    return [(side, name, *scan(rule_yaml, path)) for side, name, path in files]
+
+
+def side_ok(rows):
+    # a must-flag side with too few flagged files (or no files) fails; a must-not side fails on any flag
+    flagged = {side: sum(1 for s, _, matches, _ in rows if s == side and matches) for side in MUST_FLAG}
+    return {side: flagged[side] >= MIN_FLAGGED.get(side, 1) if must else flagged[side] == 0
+            for side, must in MUST_FLAG.items()}
+
+
+def variant_feedback(rows, sides):
+    # the wrong variants' source, so the compiler sees the shapes its rule got wrong
+    wrong = [(side, name) for side, name, matches, _ in rows if side in VARIANT_MISSES and bool(matches) != MUST_FLAG[side]]
+    return "".join(f"\n\n{VARIANT_MISSES[side]} {name}:\n{sides[side][name].read_text()}" for side, name in wrong)
 
 
 def main_false_positives(rule_yaml, changed, clone):
@@ -101,18 +151,19 @@ def fp_row(match, clone):
     return path, match["range"]["start"]["line"] + 1, " ".join(match["lines"].split())[:160]
 
 
-def passes(results, fps, fp_error):
-    errors = [e for *_, e in results if e]
-    flagged = [(should, bool(matches)) for _, should, matches, _ in results]
-    history_ok = any(f for s, f in flagged if s) and not any(f for s, f in flagged if not s)
-    return not errors and not fp_error and not fps and history_ok
+def passes(rows, fps, fp_error):
+    errors = [e for *_, e in rows if e]
+    return not errors and not fp_error and not fps and all(side_ok(rows).values())
 
 
-def report(batch, ref, results, fps, fp_error):
-    lines = [f"{'base must flag >=1' if s else 'head must flag 0'} | {label}: "
-             f"{err or ', '.join(f'{m.matched_text!r} (line {m.line})' for m in matches) or 'no matches'}"
-             for label, s, matches, err in results]
-    return "\n".join(lines + [main_report(batch, ref, fps, fp_error)])
+def report_rows(rows):
+    return "\n".join(f"{side} {'must flag >=1' if MUST_FLAG[side] else 'must flag 0'}{SIDE_NOTES[side]} | {name}: "
+                     f"{err or ', '.join(f'{m.matched_text!r} (line {m.line})' for m in matches) or 'no matches'}"
+                     for side, name, matches, err in rows)
+
+
+def report(batch, ref, rows, fps, fp_error):
+    return f"{report_rows(rows)}\n{main_report(batch, ref, fps, fp_error)}"
 
 
 def main_report(batch, ref, fps, fp_error):
@@ -122,30 +173,31 @@ def main_report(batch, ref, fps, fp_error):
     return f"{batch.repo} {ref} must flag 0 outside this PR's files | {len(fps)} false positives{shown}"
 
 
-def preserve_v1(batch, number):
-    # the rule from the base/head-only verifier is kept for comparison, never overwritten on rerun
-    old, v1 = batch.rules / f"{number}.yml", batch.rules / f"{number}.v1.yml"
-    if old.exists() and not v1.exists():
-        old.rename(v1)
+def preserve_as(batch, number, version):
+    # the previous rule is kept as <pr>.<version>.yml for comparison, never overwritten on rerun; older versions stay
+    old, kept = batch.rules / f"{number}.yml", batch.rules / f"{number}.{version}.yml"
+    if old.exists() and not kept.exists():
+        old.rename(kept)
 
 
 def compile_pr(batch, ref, clone, number):
     meta = pr_meta(batch, number)
     changed = {f["filename"] for f in meta["changed_files"]}
     base, head = fetch_side(batch, number, meta, "base"), fetch_side(batch, number, meta, "head")
-    prompt = PROMPT.format(decision=json.dumps(decision_with_rejection(batch, number), indent=2),
-                           before=joined_source(base), after=joined_source(head))
-    fps = []
+    decision, before, after = decision_with_rejection(batch, number), joined_source(base), joined_source(head)
+    prompt = PROMPT.format(decision=json.dumps(decision, indent=2), before=before, after=after)
+    variants = variant_files(batch.src / str(number) / "variants", variant_prompt(decision, before, after), ask_spark)
+    sides, fps = verifier_sides(number, base, head, batch.src / str(number), variants), []
     for attempt in range(1, MAX_ATTEMPTS + 1):
         rule_yaml = answer_text(ask_spark(prompt))
-        results = evaluate(rule_yaml, base, head)
+        results = evaluate(rule_yaml, sides)
         fps, fp_error = main_false_positives(rule_yaml, changed, clone)
-        print(f"\n=== #{number} ATTEMPT {attempt} ===\n{rule_yaml}\n\n{report(batch, ref, results, fps, fp_error)}")
+        feedback = report(batch, ref, results, fps, fp_error) + variant_feedback(results, sides)
+        print(f"\n=== #{number} ATTEMPT {attempt} ===\n{rule_yaml}\n\n{feedback}")
         if passes(results, fps, fp_error):
             (batch.rules / f"{number}.yml").write_text(rule_yaml)
             return attempt, []
-        prompt += (f"\n\nYOUR PREVIOUS RULE:\n{rule_yaml}\n\nVERIFIER RESULTS:\n"
-                   f"{report(batch, ref, results, fps, fp_error)}\nFix the rule.")
+        prompt += f"\n\nYOUR PREVIOUS RULE:\n{rule_yaml}\n\nVERIFIER RESULTS:\n{feedback}\nFix the rule."
     return None, fps
 
 
@@ -173,7 +225,7 @@ if __name__ == "__main__":
     batch.rules.mkdir(parents=True, exist_ok=True)
     numbers = targets(batch)
     for number in numbers:
-        preserve_v1(batch, number)
+        preserve_as(batch, number, "v3")
     outcomes = {n: safe_compile(batch, ref, clone, n) for n in numbers}
     print("\n=== SUMMARY ===")
     for number, (attempt, fps) in outcomes.items():

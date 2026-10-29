@@ -1,0 +1,31 @@
+id: compiled-rule
+language: python
+severity: error
+message: Async hook lookups must run unchanged get_conn/create_agent on hook-module single-worker executor, never on asyncio default executor.
+rule:
+  any:
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            pattern: "FallbackModel"
+        - has:
+            stopBy: end
+            pattern: "MaskingCapability"
+        - not:
+            has:
+              stopBy: end
+              pattern: "await $X"
+    - all:
+        - any:
+            - pattern: "$X.run_in_executor(None, $$$ARGS)"
+            - pattern: "run_in_executor(None, $$$ARGS)"
+            - pattern: "$X.to_thread($$$ARGS)"
+            - pattern: "to_thread($$$ARGS)"
+        - has:
+            stopBy: end
+            any:
+              - pattern: "get_conn"
+              - pattern: "create_agent"
+              - pattern: "get_connection"
+              - pattern: "get_hook"

@@ -1,0 +1,367 @@
+
+=== #16049 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: Dependant must only hold data, do not define or use computed Dependant attributes, use helper functions instead.
+rule:
+  any:
+    - pattern: $X.oauth_scopes
+    - pattern: $X.cache_key
+    - pattern: $X.computed_scope
+    - pattern: $X.is_gen_callable
+    - pattern: $X.is_async_gen_callable
+    - pattern: $X.is_coroutine_callable
+    - pattern: $X._uses_scopes
+    - pattern: $X._is_security_scheme
+    - pattern: $X._security_scheme
+    - pattern: $X._security_dependencies
+    - all:
+        - pattern: cached_property
+        - inside:
+            stopBy: end
+            pattern: class Dependant: $$$
+
+base must flag >=1 | fastapi/dependencies/models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpockpfnx3.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+base must flag >=1 | fastapi/dependencies/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpec9587ha.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+base must flag >=1 | fastapi/openapi/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpflgzt9dt.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+base must flag >=1 | fastapi/routing.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpe7ue9p8e.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+head must flag 0 | fastapi/dependencies/models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpot9t0g25.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+head must flag 0 | fastapi/dependencies/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmphz4ywiv1.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+head must flag 0 | fastapi/openapi/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp9t49zvef.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+head must flag 0 | fastapi/routing.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmps10hfc61.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+head must flag 0 | tests/test_dependency_models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpafw3gufv.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpyyemkl6f.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp7fylmmgj.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/openapi/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp706f6_9q.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/routing.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpbg59fgha.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpv4bfua54.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp2xfjidw4.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/openapi/utils.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp3assywwi.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/routing.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmps2selaun.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_dependency_models.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp_n3j4qxs.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+fastapi/fastapi master must flag 0 | ERROR: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpvt75__cg.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 21 column 37: mapping values are not allowed in this context
+  --> <input>:21:37
+   |
+19 |         - inside:
+20 |             stopBy: end
+21 |             pattern: class Dependant: $$$
+   |                                     ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 21, column 37
+
+
+
+=== #16049 ATTEMPT 2 ===
+id: compiled-rule
+language: python
+severity: error
+message: Dependant must only hold data, do not use computed Dependant attributes, use helper functions instead.
+rule:
+  any:
+    - pattern: $X.oauth_scopes
+    - pattern: $X.cache_key
+    - pattern: $X.computed_scope
+    - pattern: $X.is_gen_callable
+    - pattern: $X.is_async_gen_callable
+    - pattern: $X.is_coroutine_callable
+    - pattern: $X._uses_scopes
+    - pattern: $X._is_security_scheme
+    - pattern: $X._security_scheme
+    - pattern: $X._security_dependencies
+
+base must flag >=1 | fastapi/dependencies/models.py: 'self.oauth_scopes' (line 65), 'self._uses_scopes' (line 65), 'self.computed_scope' (line 70), 'self._is_security_scheme' (line 79), 'sub_dep._uses_scopes' (line 82), 'dep._is_security_scheme' (line 102), 'self.is_gen_callable' (line 191), 'self.is_async_gen_callable' (line 191)
+base must flag >=1 | fastapi/dependencies/utils.py: 'dependant.cache_key' (line 147), 'dependant.oauth_scopes' (line 149), 'sub_dependant.cache_key' (line 173), 'flat_dependant.oauth_scopes' (line 179), 'dependant.is_gen_callable' (line 320), 'dependant.is_async_gen_callable' (line 320), 'dependant.computed_scope' (line 321), 'dependant.is_async_gen_callable' (line 582), 'dependant.is_gen_callable' (line 584), 'sub_dependant.oauth_scopes' (line 645), 'sub_dependant.cache_key' (line 664), 'sub_dependant.cache_key' (line 665), 'use_sub_dependant.is_gen_callable' (line 667), 'use_sub_dependant.is_async_gen_callable' (line 667), 'use_sub_dependant.is_coroutine_callable' (line 677), 'sub_dependant.cache_key' (line 683), 'sub_dependant.cache_key' (line 684), 'dependant.oauth_scopes' (line 727)
+base must flag >=1 | fastapi/openapi/utils.py: 'flat_dependant._security_dependencies' (line 87), 'security_dependency._security_scheme' (line 89), 'security_dependency._security_scheme' (line 93), 'security_dependency.oauth_scopes' (line 98)
+base must flag >=1 | fastapi/routing.py: 'dependant.is_coroutine_callable' (line 387), 'dependant.is_async_gen_callable' (line 546), 'dependant.is_async_gen_callable' (line 644), 'dependant.is_async_gen_callable' (line 670), 'dependant.is_gen_callable' (line 670), 'dependant.is_async_gen_callable' (line 673), 'route.dependant.is_async_gen_callable' (line 1101), 'route.dependant.is_gen_callable' (line 1101)
+head must flag 0 | fastapi/dependencies/models.py: no matches
+head must flag 0 | fastapi/dependencies/utils.py: no matches
+head must flag 0 | fastapi/openapi/utils.py: no matches
+head must flag 0 | fastapi/routing.py: no matches
+head must flag 0 | tests/test_dependency_models.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/models.py: 'self.oauth_scopes' (line 65), 'self._uses_scopes' (line 65), 'self.computed_scope' (line 70), 'self._is_security_scheme' (line 79), '_r5708ab5d4e._uses_scopes' (line 82), '_rec8c952139._is_security_scheme' (line 102), 'self.is_gen_callable' (line 191), 'self.is_async_gen_callable' (line 191)
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/utils.py: 'dependant.cache_key' (line 147), 'dependant.oauth_scopes' (line 149), '_r713ac4b71f.cache_key' (line 173), '_r0bb8ce17ae.oauth_scopes' (line 179), '_r4cf16b9b26.is_gen_callable' (line 320), '_r4cf16b9b26.is_async_gen_callable' (line 320), '_r4cf16b9b26.computed_scope' (line 321), 'dependant.is_async_gen_callable' (line 582), 'dependant.is_gen_callable' (line 584), '_ra282f7a7e8.oauth_scopes' (line 645), '_ra282f7a7e8.cache_key' (line 664), '_ra282f7a7e8.cache_key' (line 665), '_rba85fbe959.is_gen_callable' (line 667), '_rba85fbe959.is_async_gen_callable' (line 667), '_rba85fbe959.is_coroutine_callable' (line 677), '_ra282f7a7e8.cache_key' (line 683), '_ra282f7a7e8.cache_key' (line 684), 'dependant.oauth_scopes' (line 727)
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/openapi/utils.py: 'flat_dependant._security_dependencies' (line 87), '_r21549d0f52._security_scheme' (line 89), '_r21549d0f52._security_scheme' (line 93), '_r21549d0f52.oauth_scopes' (line 98)
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/routing.py: 'dependant.is_coroutine_callable' (line 387), 'dependant.is_async_gen_callable' (line 546), 'dependant.is_async_gen_callable' (line 644), 'dependant.is_async_gen_callable' (line 670), 'dependant.is_gen_callable' (line 670), 'dependant.is_async_gen_callable' (line 673), 'route.dependant.is_async_gen_callable' (line 1101), 'route.dependant.is_gen_callable' (line 1101)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/models.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/utils.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/openapi/utils.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/routing.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_dependency_models.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+#16049: PASS on attempt 2

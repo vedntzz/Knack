@@ -1,0 +1,486 @@
+Cloning into '/tmp/fastapi-fastapi-master'...
+
+=== #15937 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE and JSONL branches must use _build_response_args() instead of explicit background handling
+rule:
+  all:
+    - pattern: StreamingResponse($$$)
+    - any:
+        - has:
+            stopBy: end
+            pattern: '"text/event-stream"'
+        - has:
+            stopBy: end
+            pattern: '"application/jsonl"'
+    - has:
+        stopBy: end
+        pattern: background=$B
+
+base must flag >=1 | fastapi/routing.py: no matches
+head must flag 0 | fastapi/routing.py: no matches
+head must flag 0 | tests/test_stream_status_code.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/routing.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/routing.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_stream_status_code.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #15937 ATTEMPT 2 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE and JSONL branches must use _build_response_args() instead of explicit background handling
+rule:
+  all:
+    - pattern: StreamingResponse($$$)
+    - regex: background
+    - any:
+        - regex: text/event-stream
+        - regex: application/jsonl
+
+base must flag >=1 | fastapi/routing.py: 'StreamingResponse(\n                    sse_stream_content,\n                    media_type="text/event-stream",\n                    background=solved_result.background_tasks,\n                )' (line 627), 'StreamingResponse(\n                    jsonl_stream_content,\n                    media_type="application/jsonl",\n                    background=solved_result.background_tasks,\n                )' (line 663)
+head must flag 0 | fastapi/routing.py: no matches
+head must flag 0 | tests/test_stream_status_code.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/routing.py: 'StreamingResponse(\n                    _r1515c59ee9,\n                    media_type="text/event-stream",\n                    background=_r052b594a09.background_tasks,\n                )' (line 627), 'StreamingResponse(\n                    _r299f7d14c8,\n                    media_type="application/jsonl",\n                    background=_r052b594a09.background_tasks,\n                )' (line 663)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/routing.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_stream_status_code.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #15515 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE data and comment must normalize CRLF and lone CR to LF then split on LF; splitlines() drops trailing empty strings and splits on extra Unicode line breaks not recognized by SSE.
+rule:
+  all:
+    - pattern: $X.splitlines($$$)
+    - inside:
+        stopBy: end
+        pattern: def format_sse_event($$$): $$$
+
+base must flag >=1 | fastapi/sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp3c1ja084.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+base must flag >=1 | tests/test_sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpj5c71ose.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+head must flag 0 | fastapi/sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpjdyrpfr2.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+head must flag 0 | tests/test_sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp4et8987u.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpy59x8e6y.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp58tnalio.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp2hwl0kzm.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_sse.py: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmpdta8qiyl.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+fastapi/fastapi master must flag 0 | ERROR: ast-grep exited 8: Error: Cannot parse rule /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/tmp3s0ztdtt.yml
+Help: The file is not a valid ast-grep rule. Please refer to doc and fix the error.
+See also: https://ast-grep.github.io/guide/rule-config.html
+
+✖ Caused by
+╰▻ Fail to parse yaml as RuleConfig
+╰▻ error: line 10 column 43: mapping values are not allowed in this context
+  --> <input>:10:43
+   |
+ 8 |     - inside:
+ 9 |         stopBy: end
+10 |         pattern: def format_sse_event($$$): $$$
+   |                                           ^ mapping values are not allowed in this context
+╰▻ mapping values are not allowed in this context at line 10, column 43
+
+
+
+=== #15515 ATTEMPT 2 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE data and comment must normalize CRLF and lone CR to LF then split on LF; splitlines drops trailing empty strings and splits on extra Unicode breaks not recognized by SSE.
+rule:
+  all:
+    - pattern: "$X.splitlines($$$)"
+    - inside:
+        stopBy: end
+        pattern: "def format_sse_event($$$): $$$"
+
+base must flag >=1 | fastapi/sse.py: no matches
+base must flag >=1 | tests/test_sse.py: no matches
+head must flag 0 | fastapi/sse.py: no matches
+head must flag 0 | tests/test_sse.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/sse.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_sse.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/sse.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_sse.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #15515 ATTEMPT 3 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE data and comment must normalize CRLF and lone CR to LF then split on LF; splitlines drops trailing empty strings and splits on extra Unicode breaks not recognized by SSE.
+rule:
+  any:
+    - all:
+        - pattern: $X.splitlines()
+        - inside:
+            stopBy: end
+            kind: function_definition
+            regex: format_sse_event
+    - all:
+        - pattern: from fastapi.sse import $X
+        - not:
+            regex: ","
+
+base must flag >=1 | fastapi/sse.py: 'comment.splitlines()' (line 209), 'data_str.splitlines()' (line 216)
+base must flag >=1 | tests/test_sse.py: 'from fastapi.sse import ServerSentEvent' (line 9)
+head must flag 0 | fastapi/sse.py: no matches
+head must flag 0 | tests/test_sse.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/sse.py: 'comment.splitlines()' (line 209), 'data_str.splitlines()' (line 216)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_sse.py: 'from fastapi.sse import ServerSentEvent' (line 9)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/sse.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_sse.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 3 false positives
+  docs_src/server_sent_events/tutorial001_py310.py:4  from fastapi.sse import EventSourceResponse
+  fastapi/openapi/utils.py:39  from fastapi.sse import _SSE_EVENT_SCHEMA
+  fastapi/responses.py:5  from fastapi.sse import EventSourceResponse as EventSourceResponse # noqa
+
+=== #15515 ATTEMPT 4 ===
+id: compiled-rule
+language: python
+severity: error
+message: SSE data and comment must normalize CRLF and lone CR to LF then split on LF; splitlines drops trailing empty strings and splits on extra Unicode breaks not recognized by SSE.
+rule:
+  any:
+    - all:
+        - pattern: $X.splitlines($$$)
+        - inside:
+            stopBy: end
+            kind: function_definition
+            regex: format_sse_event
+    - all:
+        - pattern: from fastapi.sse import ServerSentEvent
+        - not:
+            regex: ','
+
+base must flag >=1 | fastapi/sse.py: 'comment.splitlines()' (line 209), 'data_str.splitlines()' (line 216)
+base must flag >=1 | tests/test_sse.py: 'from fastapi.sse import ServerSentEvent' (line 9)
+head must flag 0 | fastapi/sse.py: no matches
+head must flag 0 | tests/test_sse.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/sse.py: 'comment.splitlines()' (line 209), 'data_str.splitlines()' (line 216)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_sse.py: 'from fastapi.sse import ServerSentEvent' (line 9)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/sse.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_sse.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #16043 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: Forward exclude_defaults in dict branch key and value recursion, matching list branch and sibling exclude_unset/exclude_none.
+rule:
+  all:
+    - pattern: jsonable_encoder($$$ARGS)
+    - inside:
+        stopBy: end
+        pattern: |
+          if isinstance($OBJ, dict):
+            $$$BODY
+    - has:
+        stopBy: end
+        pattern: exclude_unset
+    - has:
+        stopBy: end
+        pattern: exclude_none
+    - not:
+        has:
+          stopBy: end
+          pattern: exclude_defaults
+
+base must flag >=1 | fastapi/encoders.py: 'jsonable_encoder(\n                    key,\n                    by_alias=by_alias,\n                    exclude_unset=exclude_unset,\n                    exclude_none=exclude_none,\n                    custom_encoder=custom_encoder,\n                    sqlalchemy_safe=sqlalchemy_safe,\n                )' (line 298), 'jsonable_encoder(\n                    value,\n                    by_alias=by_alias,\n                    exclude_unset=exclude_unset,\n                    exclude_none=exclude_none,\n                    custom_encoder=custom_encoder,\n                    sqlalchemy_safe=sqlalchemy_safe,\n                )' (line 306)
+base must flag >=1 | tests/test_jsonable_encoder.py: no matches
+head must flag 0 | fastapi/encoders.py: no matches
+head must flag 0 | tests/test_jsonable_encoder.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/encoders.py: 'jsonable_encoder(\n                    _r0ad54d2f06,\n                    by_alias=by_alias,\n                    exclude_unset=exclude_unset,\n                    exclude_none=exclude_none,\n                    custom_encoder=custom_encoder,\n                    sqlalchemy_safe=sqlalchemy_safe,\n                )' (line 298), 'jsonable_encoder(\n                    _rd098ead042,\n                    by_alias=by_alias,\n                    exclude_unset=exclude_unset,\n                    exclude_none=exclude_none,\n                    custom_encoder=custom_encoder,\n                    sqlalchemy_safe=sqlalchemy_safe,\n                )' (line 306)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_jsonable_encoder.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/encoders.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_jsonable_encoder.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #16062 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: dependency classifier lru_cache maxsize must be 4096 to support large apps
+rule:
+  any:
+    - all:
+        - pattern: "@lru_cache(maxsize=$SIZE)"
+        - regex: "maxsize\\s*=\\s*(\\d+|None)"
+        - not:
+            regex: "maxsize\\s*=\\s*4096\\b"
+        - inside:
+            stopBy: end
+            regex: "callable_cached"
+    - all:
+        - pattern: "cache_info.maxsize == $V"
+        - regex: "maxsize\\s*==\\s*(\\d+|None)"
+        - not:
+            regex: "maxsize\\s*==\\s*4096\\b"
+
+base must flag >=1 | fastapi/dependencies/models.py: '@lru_cache(maxsize=1024)' (line 140), '@lru_cache(maxsize=1024)' (line 170), '@lru_cache(maxsize=1024)' (line 200)
+base must flag >=1 | tests/test_dependency_models.py: 'cache_info.maxsize == 1024' (line 96)
+head must flag 0 | fastapi/dependencies/models.py: no matches
+head must flag 0 | tests/test_dependency_models.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/models.py: '@lru_cache(maxsize=1024)' (line 140), '@lru_cache(maxsize=1024)' (line 170), '@lru_cache(maxsize=1024)' (line 200)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_dependency_models.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/models.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_dependency_models.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+#16049 ERROR: ReadTimeout(ReadTimeoutError("HTTPSConnectionPool(host='api.meta.ai', port=443): Read timed out. (read timeout=300)"))
+
+=== #15967 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: Fix Starlette docs link that returns 404, points to incorrect content, or redirects.
+rule:
+  all:
+    - kind: string
+    - regex: 'www\.starlette\.dev/applications/#(instantiating-the-application|storing-state-on-the-app-instance)'
+
+base must flag >=1 | fastapi/applications.py: '"""\n                Boolean indicating if debug tracebacks should be returned on server\n                errors.\n\n                Read more in the\n                [Starlette docs for Applications](https://www.starlette.dev/applications/#instantiating-the-application).\n                """' (line 64), '"""\n                A state object for the application. This is the same object for the\n                entire application, it doesn\'t change from request to request.\n\n                You normally wouldn\'t use this in FastAPI, for most of the cases you\n                would instead use FastAPI dependencies.\n\n                This is simply inherited from Starlette.\n\n                Read more about it in the\n                [Starlette docs for Applications](https://www.starlette.dev/applications/#storing-state-on-the-app-instance).\n                """' (line 953)
+head must flag 0 | fastapi/applications.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/applications.py: '"""\n                Boolean indicating if debug tracebacks should be returned on server\n                errors.\n\n                Read more in the\n                [Starlette docs for Applications](https://www.starlette.dev/applications/#instantiating-the-application).\n                """' (line 64), '"""\n                A state object for the application. This is the same object for the\n                entire application, it doesn\'t change from request to request.\n\n                You normally wouldn\'t use this in FastAPI, for most of the cases you\n                would instead use FastAPI dependencies.\n\n                This is simply inherited from Starlette.\n\n                Read more about it in the\n                [Starlette docs for Applications](https://www.starlette.dev/applications/#storing-state-on-the-app-instance).\n                """' (line 953)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/applications.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #15139 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: Fix tests to allow multiple schema versions instead of requiring single pydantic 2.11 output.
+rule:
+  any:
+    - all:
+        - pattern: snapshot($$$)
+        - has:
+            stopBy: end
+            regex: '"openapi"'
+        - not:
+            has:
+              stopBy: end
+              kind: call
+    - all:
+        - kind: string
+        - regex: pydantic.*2\.11
+
+base must flag >=1 | tests/test_schema_compat_pydantic_v2.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/users": {\n                    "get": {\n                        "summary": "Get User",\n                        "operationId": "get_user_users_get",\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {"$ref": "#/components/schemas/User"}\n                                    }\n                                },\n                            }\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "PlatformRole": {\n                        "type": "string",\n                        "enum": ["admin", "user"],\n                        "title": "PlatformRole",\n                    },\n                    "User": {\n                        "properties": {\n                            "username": {"type": "string", "title": "Username"},\n                            "role": {\n                                "anyOf": [\n                                    {"$ref": "#/components/schemas/PlatformRole"},\n                                    {"enum": [], "title": "OtherRole"},\n                                ],\n                                "title": "Role",\n                            },\n                        },\n                        "type": "object",\n                        "required": ["username", "role"],\n                        "title": "User",\n                    },\n                }\n            },\n        }\n    )' (line 43)
+base must flag >=1 | tests/test_union_body_discriminator.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/items/": {\n                    "post": {\n                        "summary": "Save Union Body Discriminator",\n                        "operationId": "save_union_body_discriminator_items__post",\n                        "parameters": [\n                            {\n                                "name": "q",\n                                "in": "query",\n                                "required": True,\n                                "schema": {\n                                    "type": "string",\n                                    "description": "Query string",\n                                    "title": "Q",\n                                },\n                            }\n                        ],\n                        "requestBody": {\n                            "required": True,\n                            "content": {\n                                "application/json": {\n                                    "schema": {\n                                        "oneOf": [\n                                            {"$ref": "#/components/schemas/FirstItem"},\n                                            {"$ref": "#/components/schemas/OtherItem"},\n                                        ],\n                                        "discriminator": {\n                                            "propertyName": "value",\n                                            "mapping": {\n                                                "first": "#/components/schemas/FirstItem",\n                                                "other": "#/components/schemas/OtherItem",\n                                            },\n                                        },\n                                        "title": "Item",\n                                    }\n                                }\n                            },\n                        },\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "type": "object",\n                                            "additionalProperties": True,\n                                            "title": "Response Save Union Body Discriminator Items  Post",\n                                        }\n                                    }\n                                },\n                            },\n                            "422": {\n                                "description": "Validation Error",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "$ref": "#/components/schemas/HTTPValidationError"\n                                        }\n                                    }\n                                },\n                            },\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "FirstItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "first",\n                                "title": "Value",\n                            },\n                            "price": {"type": "integer", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "FirstItem",\n                    },\n                    "HTTPValidationError": {\n                        "properties": {\n                            "detail": {\n                                "items": {\n                                    "$ref": "#/components/schemas/ValidationError"\n                                },\n                                "type": "array",\n                                "title": "Detail",\n                            }\n                        },\n                        "type": "object",\n                        "title": "HTTPValidationError",\n                    },\n                    "OtherItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "other",\n                                "title": "Value",\n                            },\n                            "price": {"type": "number", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "OtherItem",\n                    },\n                    "ValidationError": {\n                        "properties": {\n                            "ctx": {"title": "Context", "type": "object"},\n                            "input": {"title": "Input"},\n                            "loc": {\n                                "items": {\n                                    "anyOf": [{"type": "string"}, {"type": "integer"}]\n                                },\n                                "type": "array",\n                                "title": "Location",\n                            },\n                            "msg": {"type": "string", "title": "Message"},\n                            "type": {"type": "string", "title": "Error Type"},\n                        },\n                        "type": "object",\n                        "required": ["loc", "msg", "type"],\n                        "title": "ValidationError",\n                    },\n                }\n            },\n        }\n    )' (line 44)
+head must flag 0 | tests/test_schema_compat_pydantic_v2.py: no matches
+head must flag 0 | tests/test_union_body_discriminator.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_schema_compat_pydantic_v2.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/users": {\n                    "get": {\n                        "summary": "Get User",\n                        "operationId": "get_user_users_get",\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {"$ref": "#/components/schemas/User"}\n                                    }\n                                },\n                            }\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "PlatformRole": {\n                        "type": "string",\n                        "enum": ["admin", "user"],\n                        "title": "PlatformRole",\n                    },\n                    "User": {\n                        "properties": {\n                            "username": {"type": "string", "title": "Username"},\n                            "role": {\n                                "anyOf": [\n                                    {"$ref": "#/components/schemas/PlatformRole"},\n                                    {"enum": [], "title": "OtherRole"},\n                                ],\n                                "title": "Role",\n                            },\n                        },\n                        "type": "object",\n                        "required": ["username", "role"],\n                        "title": "User",\n                    },\n                }\n            },\n        }\n    )' (line 43)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_union_body_discriminator.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/items/": {\n                    "post": {\n                        "summary": "Save Union Body Discriminator",\n                        "operationId": "save_union_body_discriminator_items__post",\n                        "parameters": [\n                            {\n                                "name": "q",\n                                "in": "query",\n                                "required": True,\n                                "schema": {\n                                    "type": "string",\n                                    "description": "Query string",\n                                    "title": "Q",\n                                },\n                            }\n                        ],\n                        "requestBody": {\n                            "required": True,\n                            "content": {\n                                "application/json": {\n                                    "schema": {\n                                        "oneOf": [\n                                            {"$ref": "#/components/schemas/FirstItem"},\n                                            {"$ref": "#/components/schemas/OtherItem"},\n                                        ],\n                                        "discriminator": {\n                                            "propertyName": "value",\n                                            "mapping": {\n                                                "first": "#/components/schemas/FirstItem",\n                                                "other": "#/components/schemas/OtherItem",\n                                            },\n                                        },\n                                        "title": "Item",\n                                    }\n                                }\n                            },\n                        },\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "type": "object",\n                                            "additionalProperties": True,\n                                            "title": "Response Save Union Body Discriminator Items  Post",\n                                        }\n                                    }\n                                },\n                            },\n                            "422": {\n                                "description": "Validation Error",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "$ref": "#/components/schemas/HTTPValidationError"\n                                        }\n                                    }\n                                },\n                            },\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "FirstItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "first",\n                                "title": "Value",\n                            },\n                            "price": {"type": "integer", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "FirstItem",\n                    },\n                    "HTTPValidationError": {\n                        "properties": {\n                            "detail": {\n                                "items": {\n                                    "$ref": "#/components/schemas/ValidationError"\n                                },\n                                "type": "array",\n                                "title": "Detail",\n                            }\n                        },\n                        "type": "object",\n                        "title": "HTTPValidationError",\n                    },\n                    "OtherItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "other",\n                                "title": "Value",\n                            },\n                            "price": {"type": "number", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "OtherItem",\n                    },\n                    "ValidationError": {\n                        "properties": {\n                            "ctx": {"title": "Context", "type": "object"},\n                            "input": {"title": "Input"},\n                            "loc": {\n                                "items": {\n                                    "anyOf": [{"type": "string"}, {"type": "integer"}]\n                                },\n                                "type": "array",\n                                "title": "Location",\n                            },\n                            "msg": {"type": "string", "title": "Message"},\n                            "type": {"type": "string", "title": "Error Type"},\n                        },\n                        "type": "object",\n                        "required": ["loc", "msg", "type"],\n                        "title": "ValidationError",\n                    },\n                }\n            },\n        }\n    )' (line 44)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_schema_compat_pydantic_v2.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_union_body_discriminator.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 293 false positives
+  tests/test_additional_properties.py:30  assert response.json() == snapshot( { "openapi": "3.1.0", "info": {"title": "FastAPI", "version": "0.1.0"}, "paths": { "/foo": { "post": { "responses": { "200":
+  tests/test_additional_properties_bool.py:42  assert response.json() == snapshot( { "openapi": "3.1.0", "info": {"title": "FastAPI", "version": "0.1.0"}, "paths": { "/": { "post": { "summary": "Post", "oper
+  tests/test_additional_response_extra.py:33  assert response.json() == snapshot( { "openapi": "3.1.0", "info": {"title": "FastAPI", "version": "0.1.0"}, "paths": { "/items/": { "get": { "responses": { "200
+  tests/test_additional_responses_custom_model_in_callback.py:35  assert response.json() == snapshot( { "openapi": "3.1.0", "info": {"title": "FastAPI", "version": "0.1.0"}, "paths": { "/": { "post": { "summary": "Main Route",
+  tests/test_additional_responses_custom_validationerror.py:38  assert response.json() == snapshot( { "openapi": "3.1.0", "info": {"title": "FastAPI", "version": "0.1.0"}, "paths": { "/a/{id}": { "get": { "responses": { "422
+
+=== #15139 ATTEMPT 2 ===
+id: compiled-rule
+language: python
+severity: error
+message: Fix tests to allow multiple schema versions instead of requiring single pydantic 2.11 output.
+rule:
+  all:
+    - pattern: snapshot($$$)
+    - has:
+        stopBy: end
+        regex: '"openapi"'
+    - any:
+        - all:
+            - has:
+                stopBy: end
+                regex: PlatformRole
+            - has:
+                stopBy: end
+                regex: '"anyOf"'
+        - all:
+            - has:
+                stopBy: end
+                regex: discriminator
+            - has:
+                stopBy: end
+                regex: '"const"'
+            - has:
+                stopBy: end
+                regex: save_union_body_discriminator
+    - not:
+        has:
+          stopBy: end
+          kind: call
+
+base must flag >=1 | tests/test_schema_compat_pydantic_v2.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/users": {\n                    "get": {\n                        "summary": "Get User",\n                        "operationId": "get_user_users_get",\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {"$ref": "#/components/schemas/User"}\n                                    }\n                                },\n                            }\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "PlatformRole": {\n                        "type": "string",\n                        "enum": ["admin", "user"],\n                        "title": "PlatformRole",\n                    },\n                    "User": {\n                        "properties": {\n                            "username": {"type": "string", "title": "Username"},\n                            "role": {\n                                "anyOf": [\n                                    {"$ref": "#/components/schemas/PlatformRole"},\n                                    {"enum": [], "title": "OtherRole"},\n                                ],\n                                "title": "Role",\n                            },\n                        },\n                        "type": "object",\n                        "required": ["username", "role"],\n                        "title": "User",\n                    },\n                }\n            },\n        }\n    )' (line 43)
+base must flag >=1 | tests/test_union_body_discriminator.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/items/": {\n                    "post": {\n                        "summary": "Save Union Body Discriminator",\n                        "operationId": "save_union_body_discriminator_items__post",\n                        "parameters": [\n                            {\n                                "name": "q",\n                                "in": "query",\n                                "required": True,\n                                "schema": {\n                                    "type": "string",\n                                    "description": "Query string",\n                                    "title": "Q",\n                                },\n                            }\n                        ],\n                        "requestBody": {\n                            "required": True,\n                            "content": {\n                                "application/json": {\n                                    "schema": {\n                                        "oneOf": [\n                                            {"$ref": "#/components/schemas/FirstItem"},\n                                            {"$ref": "#/components/schemas/OtherItem"},\n                                        ],\n                                        "discriminator": {\n                                            "propertyName": "value",\n                                            "mapping": {\n                                                "first": "#/components/schemas/FirstItem",\n                                                "other": "#/components/schemas/OtherItem",\n                                            },\n                                        },\n                                        "title": "Item",\n                                    }\n                                }\n                            },\n                        },\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "type": "object",\n                                            "additionalProperties": True,\n                                            "title": "Response Save Union Body Discriminator Items  Post",\n                                        }\n                                    }\n                                },\n                            },\n                            "422": {\n                                "description": "Validation Error",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "$ref": "#/components/schemas/HTTPValidationError"\n                                        }\n                                    }\n                                },\n                            },\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "FirstItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "first",\n                                "title": "Value",\n                            },\n                            "price": {"type": "integer", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "FirstItem",\n                    },\n                    "HTTPValidationError": {\n                        "properties": {\n                            "detail": {\n                                "items": {\n                                    "$ref": "#/components/schemas/ValidationError"\n                                },\n                                "type": "array",\n                                "title": "Detail",\n                            }\n                        },\n                        "type": "object",\n                        "title": "HTTPValidationError",\n                    },\n                    "OtherItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "other",\n                                "title": "Value",\n                            },\n                            "price": {"type": "number", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "OtherItem",\n                    },\n                    "ValidationError": {\n                        "properties": {\n                            "ctx": {"title": "Context", "type": "object"},\n                            "input": {"title": "Input"},\n                            "loc": {\n                                "items": {\n                                    "anyOf": [{"type": "string"}, {"type": "integer"}]\n                                },\n                                "type": "array",\n                                "title": "Location",\n                            },\n                            "msg": {"type": "string", "title": "Message"},\n                            "type": {"type": "string", "title": "Error Type"},\n                        },\n                        "type": "object",\n                        "required": ["loc", "msg", "type"],\n                        "title": "ValidationError",\n                    },\n                }\n            },\n        }\n    )' (line 44)
+head must flag 0 | tests/test_schema_compat_pydantic_v2.py: no matches
+head must flag 0 | tests/test_union_body_discriminator.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_schema_compat_pydantic_v2.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/users": {\n                    "get": {\n                        "summary": "Get User",\n                        "operationId": "get_user_users_get",\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {"$ref": "#/components/schemas/User"}\n                                    }\n                                },\n                            }\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "PlatformRole": {\n                        "type": "string",\n                        "enum": ["admin", "user"],\n                        "title": "PlatformRole",\n                    },\n                    "User": {\n                        "properties": {\n                            "username": {"type": "string", "title": "Username"},\n                            "role": {\n                                "anyOf": [\n                                    {"$ref": "#/components/schemas/PlatformRole"},\n                                    {"enum": [], "title": "OtherRole"},\n                                ],\n                                "title": "Role",\n                            },\n                        },\n                        "type": "object",\n                        "required": ["username", "role"],\n                        "title": "User",\n                    },\n                }\n            },\n        }\n    )' (line 43)
+rename-base must flag >=1 (base with its local variables renamed) | tests/test_union_body_discriminator.py: 'snapshot(\n        {\n            "openapi": "3.1.0",\n            "info": {"title": "FastAPI", "version": "0.1.0"},\n            "paths": {\n                "/items/": {\n                    "post": {\n                        "summary": "Save Union Body Discriminator",\n                        "operationId": "save_union_body_discriminator_items__post",\n                        "parameters": [\n                            {\n                                "name": "q",\n                                "in": "query",\n                                "required": True,\n                                "schema": {\n                                    "type": "string",\n                                    "description": "Query string",\n                                    "title": "Q",\n                                },\n                            }\n                        ],\n                        "requestBody": {\n                            "required": True,\n                            "content": {\n                                "application/json": {\n                                    "schema": {\n                                        "oneOf": [\n                                            {"$ref": "#/components/schemas/FirstItem"},\n                                            {"$ref": "#/components/schemas/OtherItem"},\n                                        ],\n                                        "discriminator": {\n                                            "propertyName": "value",\n                                            "mapping": {\n                                                "first": "#/components/schemas/FirstItem",\n                                                "other": "#/components/schemas/OtherItem",\n                                            },\n                                        },\n                                        "title": "Item",\n                                    }\n                                }\n                            },\n                        },\n                        "responses": {\n                            "200": {\n                                "description": "Successful Response",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "type": "object",\n                                            "additionalProperties": True,\n                                            "title": "Response Save Union Body Discriminator Items  Post",\n                                        }\n                                    }\n                                },\n                            },\n                            "422": {\n                                "description": "Validation Error",\n                                "content": {\n                                    "application/json": {\n                                        "schema": {\n                                            "$ref": "#/components/schemas/HTTPValidationError"\n                                        }\n                                    }\n                                },\n                            },\n                        },\n                    }\n                }\n            },\n            "components": {\n                "schemas": {\n                    "FirstItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "first",\n                                "title": "Value",\n                            },\n                            "price": {"type": "integer", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "FirstItem",\n                    },\n                    "HTTPValidationError": {\n                        "properties": {\n                            "detail": {\n                                "items": {\n                                    "$ref": "#/components/schemas/ValidationError"\n                                },\n                                "type": "array",\n                                "title": "Detail",\n                            }\n                        },\n                        "type": "object",\n                        "title": "HTTPValidationError",\n                    },\n                    "OtherItem": {\n                        "properties": {\n                            "value": {\n                                "type": "string",\n                                "const": "other",\n                                "title": "Value",\n                            },\n                            "price": {"type": "number", "title": "Price"},\n                        },\n                        "type": "object",\n                        "required": ["value", "price"],\n                        "title": "OtherItem",\n                    },\n                    "ValidationError": {\n                        "properties": {\n                            "ctx": {"title": "Context", "type": "object"},\n                            "input": {"title": "Input"},\n                            "loc": {\n                                "items": {\n                                    "anyOf": [{"type": "string"}, {"type": "integer"}]\n                                },\n                                "type": "array",\n                                "title": "Location",\n                            },\n                            "msg": {"type": "string", "title": "Message"},\n                            "type": {"type": "string", "title": "Error Type"},\n                        },\n                        "type": "object",\n                        "required": ["loc", "msg", "type"],\n                        "title": "ValidationError",\n                    },\n                }\n            },\n        }\n    )' (line 44)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_schema_compat_pydantic_v2.py: no matches
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | tests/test_union_body_discriminator.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== #14884 ATTEMPT 1 ===
+id: compiled-rule
+language: python
+severity: error
+message: Read files sequentially instead of (fake) parallel with task group.
+rule:
+  all:
+    - pattern: |-
+        async with $X as $TG:
+          $$$BODY
+    - has:
+        stopBy: end
+        regex: create_task_group
+    - has:
+        stopBy: end
+        pattern: $S.start_soon($$$ARGS)
+    - has:
+        stopBy: end
+        pattern: $OBJ.read
+
+base must flag >=1 | fastapi/dependencies/utils.py: 'async with anyio.create_task_group() as tg:\n                for sub_value in value:\n                    tg.start_soon(process_fn, sub_value.read)' (line 913)
+head must flag 0 | fastapi/dependencies/utils.py: no matches
+rename-base must flag >=1 (base with its local variables renamed) | fastapi/dependencies/utils.py: 'async with anyio.create_task_group() as _rbd5e9214f4:\n                for _r96b741e731 in _r6db5d66802:\n                    _rbd5e9214f4.start_soon(process_fn, _r96b741e731.read)' (line 913)
+rename-head must flag 0 (head with every identifier this PR introduced renamed to _r... names) | fastapi/dependencies/utils.py: no matches
+fastapi/fastapi master must flag 0 outside this PR's files | 0 false positives
+
+=== SUMMARY ===
+#15937: PASS on attempt 2
+#15515: PASS on attempt 4
+#16043: PASS on attempt 1
+#16062: PASS on attempt 1
+#16049: FAIL (0 false positives on fastapi/fastapi master remaining)
+#15967: PASS on attempt 1
+#15139: PASS on attempt 2
+#14884: PASS on attempt 1
+total: 7 / 8

@@ -1,0 +1,21 @@
+id: compiled-rule
+language: python
+severity: error
+message: ResumableJobMixin durable default must be bool | None = None; bool alone, Any, or bool | Any disables type checking.
+rule:
+  any:
+    - all:
+        - kind: function_definition
+        - regex: "def __init__\\b"
+        - inside:
+            stopBy: end
+            regex: "class ResumableJobMixin\\b"
+        - has:
+            stopBy: end
+            pattern: "self.durable = False"
+        - any:
+            - regex: ":\\s*bool\\s*="
+            - regex: ":\\s*bool\\s*[,)]"
+            - regex: ":\\s*Any\\s*="
+            - regex: "bool\\s*\\|\\s*Any|Any\\s*\\|\\s*bool"
+    - pattern: "def test_durable_left_at_default_does_not_warn(self): $$$"

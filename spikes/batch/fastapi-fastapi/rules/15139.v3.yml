@@ -1,0 +1,32 @@
+id: compiled-rule
+language: python
+severity: error
+message: Fix tests to allow multiple schema versions instead of requiring single pydantic 2.11 output.
+rule:
+  all:
+    - pattern: snapshot($$$)
+    - has:
+        stopBy: end
+        regex: '"openapi"'
+    - any:
+        - all:
+            - has:
+                stopBy: end
+                regex: PlatformRole
+            - has:
+                stopBy: end
+                regex: '"anyOf"'
+        - all:
+            - has:
+                stopBy: end
+                regex: discriminator
+            - has:
+                stopBy: end
+                regex: '"const"'
+            - has:
+                stopBy: end
+                regex: save_union_body_discriminator
+    - not:
+        has:
+          stopBy: end
+          kind: call

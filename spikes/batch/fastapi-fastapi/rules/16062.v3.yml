@@ -1,0 +1,19 @@
+id: compiled-rule
+language: python
+severity: error
+message: dependency classifier lru_cache maxsize must be 4096 to support large apps
+rule:
+  any:
+    - all:
+        - pattern: "@lru_cache(maxsize=$SIZE)"
+        - regex: "maxsize\\s*=\\s*(\\d+|None)"
+        - not:
+            regex: "maxsize\\s*=\\s*4096\\b"
+        - inside:
+            stopBy: end
+            regex: "callable_cached"
+    - all:
+        - pattern: "cache_info.maxsize == $V"
+        - regex: "maxsize\\s*==\\s*(\\d+|None)"
+        - not:
+            regex: "maxsize\\s*==\\s*4096\\b"
