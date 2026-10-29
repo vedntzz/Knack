@@ -63,6 +63,17 @@ class ProofCase(BaseModel):
     sides: Sides
     changed: list[str]
     tree: Path
+    # The previous release checkout; None skips the old-release check.
+    old_ref: str | None = None
+    old_tree: Path | None = None
+
+
+class OldRelease(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ref: str
+    false_positives: list[str]
+    error: str | None = None
 
 
 class Proof(BaseModel):
@@ -71,6 +82,7 @@ class Proof(BaseModel):
     rows: list[SideRow]
     false_positives: list[str]
     tree_error: str | None = None
+    old_release: OldRelease | None = None
 
 
 def verifier_sides(
@@ -88,8 +100,11 @@ def verifier_sides(
 def prove(rule_yaml: str, case: ProofCase) -> Proof:
     with _rule_file(rule_yaml) as rule_path:
         rows = [_scan_row(rule_path, side, path) for side, path in _files(case.sides)]
-        false_positives, tree_error = _tree_false_positives(rule_path, case)
-    return Proof(rows=rows, false_positives=false_positives, tree_error=tree_error)
+        found, tree_error = _tree_false_positives(rule_path, case.tree, case.changed)
+        old = _old_release(rule_path, case)
+    return Proof(
+        rows=rows, false_positives=found, tree_error=tree_error, old_release=old
+    )
 
 
 def passed(proof: Proof) -> bool:
@@ -105,23 +120,40 @@ def side_ok(rows: list[SideRow]) -> dict[str, bool]:
 
 
 def failed_checks(proof: Proof) -> list[str]:
-    # Rule errors first, then failing sides, then default-branch false positives.
-    errors = [e for e in [proof.tree_error, *(r.error for r in proof.rows)] if e]
-    rejected = [f"ast-grep rejected the rule: {e.splitlines()[0]}" for e in errors[:1]]
+    # Rule errors first, then failing sides, then default-branch and old-release FPs.
+    old = proof.old_release
+    errors = [proof.tree_error, old and old.error, *(r.error for r in proof.rows)]
+    rejected = [f"ast-grep rejected the rule: {e.splitlines()[0]}" for e in errors if e]
     sides = [side for side, ok in side_ok(proof.rows).items() if not ok]
-    return rejected + sides + _false_positive_check(proof.false_positives)
+    branch = _false_positive_check(proof.false_positives, "the default branch")
+    return rejected[:1] + sides + branch + _old_release_check(old)
 
 
 def feedback(proof: Proof, case: ProofCase) -> str:
     # What the compiler sees on retry: every side, the tree, and wrong variants' source.
     rows = "\n".join(_row_report(row) for row in proof.rows)
-    return f"{rows}\n{_tree_report(proof)}{_variant_feedback(proof, case.sides)}"
+    trees = _tree_report(proof) + _old_release_report(proof.old_release)
+    return f"{rows}\n{trees}{_variant_feedback(proof, case.sides)}"
 
 
-def _false_positive_check(false_positives: list[str]) -> list[str]:
+def _false_positive_check(false_positives: list[str], where: str) -> list[str]:
     if not false_positives:
         return []
-    return [f"{len(false_positives)} false positives on the default branch"]
+    return [f"{len(false_positives)} false positives on {where}"]
+
+
+def _old_release_check(old: OldRelease | None) -> list[str]:
+    if old is None:
+        return []
+    return _false_positive_check(old.false_positives, f"release {old.ref}")
+
+
+def _old_release(rule_path: Path, case: ProofCase) -> OldRelease | None:
+    # Released code the PR never touched must not be flagged either.
+    if case.old_ref is None or case.old_tree is None:
+        return None
+    found, error = _tree_false_positives(rule_path, case.old_tree, case.changed)
+    return OldRelease(ref=case.old_ref, false_positives=found, error=error)
 
 
 def _files(sides: Sides) -> list[tuple[str, tuple[str, Path]]]:
@@ -176,15 +208,15 @@ def _scan_row(rule_path: Path, side: str, file: tuple[str, Path]) -> SideRow:
 
 
 def _tree_false_positives(
-    rule_path: Path, case: ProofCase
+    rule_path: Path, tree: Path, changed: list[str]
 ) -> tuple[list[str], str | None]:
-    # Matches on the default branch outside the PR's own files.
+    # Matches on a whole checkout outside the PR's own files.
     try:
-        matches = _scan_tree(rule_path, case.tree)
+        matches = _scan_tree(rule_path, tree)
     except (GuardRunnerError, OSError, subprocess.TimeoutExpired, ValueError) as error:
         return [], str(error)
-    rows = [(str(Path(m["file"]).relative_to(case.tree)), m) for m in matches]
-    return [_fp_line(path, m) for path, m in rows if path not in case.changed], None
+    rows = [(str(Path(m["file"]).relative_to(tree)), m) for m in matches]
+    return [_fp_line(path, m) for path, m in rows if path not in changed], None
 
 
 def _scan_tree(rule_path: Path, tree: Path) -> list[dict[str, Any]]:
@@ -209,11 +241,21 @@ def _row_report(row: SideRow) -> str:
 
 
 def _tree_report(proof: Proof) -> str:
-    if proof.tree_error:
-        return f"default branch must flag 0 | ERROR: {proof.tree_error}"
-    count = f"{len(proof.false_positives)} false positives"
-    shown = "".join(f"\n  {fp}" for fp in proof.false_positives[:FP_SHOWN])
-    return f"default branch must flag 0 outside this PR's files | {count}{shown}"
+    return _fp_report("default branch", proof.false_positives, proof.tree_error)
+
+
+def _old_release_report(old: OldRelease | None) -> str:
+    if old is None:
+        return ""
+    return "\n" + _fp_report(f"release {old.ref}", old.false_positives, old.error)
+
+
+def _fp_report(label: str, false_positives: list[str], error: str | None) -> str:
+    if error:
+        return f"{label} must flag 0 | ERROR: {error}"
+    count = f"{len(false_positives)} false positives"
+    shown = "".join(f"\n  {fp}" for fp in false_positives[:FP_SHOWN])
+    return f"{label} must flag 0 outside this PR's files | {count}{shown}"
 
 
 def _variant_feedback(proof: Proof, sides: Sides) -> str:

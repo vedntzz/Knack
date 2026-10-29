@@ -30,6 +30,14 @@ class GitHub(Protocol):
         # A shallow clone of the default branch, reused when dest already holds one.
         ...
 
+    def tags(self, repo: str) -> dict[str, str]:
+        # Every tag name with its ISO-8601 date: tagged, or committed if lightweight.
+        ...
+
+    def checkout_ref(self, repo: str, ref: str, dest: Path) -> Path:
+        # A shallow clone at ref, reused when dest already holds one.
+        ...
+
 
 class Spark(Protocol):
     @property

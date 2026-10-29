@@ -111,6 +111,9 @@ class FakeGitHub:
     # One small repo history; counts how many PR summaries were pulled.
     def __init__(self, tree: Path) -> None:
         self.tree, self.summaries_read, self.checkouts = tree, 0, 0
+        # No release tags unless a test gives some, so no old-release check.
+        self.tag_names, self.tag_reads = dict[str, str](), 0
+        self.old_trees, self.refs_checked_out = dict[str, Path](), list[str]()
 
     def merged_prs(self, repo: str) -> Iterator[PullSummary]:
         for pr in SUMMARIES:
@@ -137,6 +140,14 @@ class FakeGitHub:
     def checkout(self, repo: str, dest: Path) -> Path:
         self.checkouts += 1
         return self.tree
+
+    def tags(self, repo: str) -> dict[str, str]:
+        self.tag_reads += 1
+        return self.tag_names
+
+    def checkout_ref(self, repo: str, ref: str, dest: Path) -> Path:
+        self.refs_checked_out.append(ref)
+        return self.old_trees[ref]
 
 
 class FakeSpark:

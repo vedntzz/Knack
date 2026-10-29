@@ -141,3 +141,37 @@ def test_feedback_names_missed_violations(tmp_path: Path) -> None:
 @pytest.mark.parametrize("name", ["rename-base", "rename-head"])
 def test_renamed_sides_keep_relative_paths(tmp_path: Path, name: str) -> None:
     assert list(case(tmp_path).sides[name]) == ["pkg/loader.py"]
+
+
+def old_release_case(tmp_path: Path, files: dict[str, str]) -> ProofCase:
+    # The PR's case plus a checkout of release 0.115.0 holding the given files.
+    old = write_tree(tmp_path / "old", files)
+    return case(tmp_path).model_copy(update={"old_ref": "0.115.0", "old_tree": old})
+
+
+def test_match_on_the_previous_release_fails_the_old_release_check(
+    tmp_path: Path,
+) -> None:
+    proof = prove(STRUCTURAL, old_release_case(tmp_path, {"pkg/old.py": VIOLATIONS[0]}))
+    assert failed_checks(proof) == ["1 false positives on release 0.115.0"]
+
+
+def test_previous_release_matches_in_the_prs_own_files_do_not_count(
+    tmp_path: Path,
+) -> None:
+    proof = prove(STRUCTURAL, old_release_case(tmp_path, {"pkg/loader.py": BASE}))
+    assert passed(proof)
+
+
+def test_feedback_shows_the_previous_release_false_positives(tmp_path: Path) -> None:
+    old = old_release_case(tmp_path, {"pkg/old.py": VIOLATIONS[0]})
+    text = feedback(prove(STRUCTURAL, old), old)
+    expected = "release 0.115.0 must flag 0 outside this PR's files | 1 false positives"
+    assert expected in text and "pkg/old.py:4" in text
+
+
+def test_without_a_previous_release_there_is_no_old_release_check(
+    tmp_path: Path,
+) -> None:
+    plain = case(tmp_path)
+    assert "release" not in feedback(prove(STRUCTURAL, plain), plain)
