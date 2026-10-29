@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 from conftest import clean_tree, FakeGitHub, REPO
-from knack.pipeline.select import is_doc, is_test, qualifies, select_prs
+from knack.pipeline.select import is_doc, is_test, qualifies, select_numbers, select_prs
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,8 @@ def test_selection_stops_reading_once_the_limit_is_kept(tmp_path: Path) -> None:
     selection = select_prs(github, REPO, 2)
     assert [pr.number for pr in selection.prs] == [9, 4]
     assert selection.read == github.summaries_read == 6
+
+
+def test_named_prs_go_through_the_same_filters(tmp_path: Path) -> None:
+    selection = select_numbers(FakeGitHub(clean_tree(tmp_path)), REPO, [9, 8, 7])
+    assert [pr.number for pr in selection.prs] == [9] and selection.read == 3

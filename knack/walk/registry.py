@@ -18,6 +18,11 @@ class Registry(BaseModel):
     rules: list[RegistryEntry]
 
 
+def home_registry_dir(repo: str) -> Path:
+    # Where knack init installs by default, and where knack watch looks.
+    return Path.home() / ".knack" / "registries" / repo.replace("/", "-").lower()
+
+
 def load_registry(path: Path) -> Registry:
     # Rule and roots paths in the file are relative to the registry file.
     registry = Registry.model_validate_json(path.read_text(encoding="utf-8"))

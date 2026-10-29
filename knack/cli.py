@@ -8,11 +8,15 @@ from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
 from knack.pipeline.clients import live_clients, MissingCredentials
+from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import run_init
+from knack.pipeline.spark import SparkApi
 from knack.roots.store import load_roots
-from knack.walk.registry import load_registry
+from knack.walk.registry import home_registry_dir, load_registry
 from knack.walk.text import format_walk
 from knack.walk.walk import walk
+from knack.watch.install import WatchInstallError
+from knack.watch.setup import install_watch
 
 GUARD_LOG = Path(".knack/guard_errors.log")
 REPO_PATTERN = re.compile(r"[\w.-]+/[\w.-]+")
@@ -21,18 +25,24 @@ DEFAULT_PRS = 50
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    handlers = {"guard": _guard_command, "walk": _walk_command, "init": _init_command}
+    handlers = {"guard": _guard_command, "walk": _walk_command}
+    handlers |= {"init": _init_command, "watch": _watch_command}
     return handlers[args.command](args)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="knack")
     commands = parser.add_subparsers(dest="command", required=True)
-    guard = commands.add_parser("guard").add_subparsers(dest="action", required=True)
-    _add_check_arguments(guard.add_parser("check"))
-    _add_walk_arguments(commands.add_parser("walk"))
-    _add_init_arguments(commands.add_parser("init"))
+    adders = {"guard": _add_guard_arguments, "walk": _add_walk_arguments}
+    adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
+    for name, add in adders.items():
+        add(commands.add_parser(name))
     return parser
+
+
+def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
+    actions = guard.add_subparsers(dest="action", required=True)
+    _add_check_arguments(actions.add_parser("check"))
 
 
 def _add_check_arguments(check: argparse.ArgumentParser) -> None:
@@ -64,18 +74,37 @@ def _owner_name(value: str) -> str:
 
 
 def _init_command(args: argparse.Namespace) -> int:
-    # Missing tokens are operator error: a message and exit 2, no traceback.
-    try:
-        github, spark = live_clients()
-    except MissingCredentials as error:
-        print(f"knack init: {error}", file=sys.stderr)
+    clients = _clients_or_explain()
+    if clients is None:
         return 2
-    run_init(args.repo, args.prs, args.out or _home_registry(args.repo), github, spark)
+    run_init(args.repo, args.prs, args.out or home_registry_dir(args.repo), *clients)
     return 0
 
 
-def _home_registry(repo: str) -> Path:
-    return Path.home() / ".knack" / "registries" / repo.replace("/", "-").lower()
+def _clients_or_explain() -> tuple[GitHubApi, SparkApi] | None:
+    # Missing tokens are operator error: a message and exit 2, no traceback.
+    try:
+        return live_clients()
+    except MissingCredentials as error:
+        print(f"knack init: {error}", file=sys.stderr)
+        return None
+
+
+def _add_watch_arguments(watch: argparse.ArgumentParser) -> None:
+    muse = Path.home() / ".config" / "muse" / "settings.json"
+    watch.add_argument("--registry", type=Path)
+    watch.add_argument("--muse-settings", type=Path, default=muse)
+
+
+def _watch_command(args: argparse.Namespace) -> int:
+    # Install problems (no registry, someone else's hook) exit 2 with a reason.
+    try:
+        lines = install_watch(Path.cwd(), args.registry, args.muse_settings)
+    except WatchInstallError as error:
+        print(f"knack watch: {error}", file=sys.stderr)
+        return 2
+    print("\n".join(lines))
+    return 0
 
 
 def _walk_command(args: argparse.Namespace) -> int:
