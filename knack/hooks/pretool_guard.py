@@ -1,5 +1,4 @@
 import json
-import os
 import tempfile
 import time
 from pathlib import Path
@@ -7,44 +6,59 @@ from typing import Any
 
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open, log_error_quietly
+from knack.hooks.scope import (
+    event_cwd,
+    home_error_log,
+    registry_path_from_env,
+    scoped_quietly,
+)
+from knack.roots.store import load_roots
+from knack.walk.registry import Registry
 
 JsonDict = dict[str, Any]
+RuleAndRoot = tuple[Path, Root | None]
 WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
-GUARD_JSON = ".knack/guard.json"
-ERROR_LOG = ".knack/guard_errors.log"
-REGISTRY_ENV = "KNACK_REGISTRY"
 
 
-def decide(event: JsonDict, registry: list[JsonDict], root: Path) -> JsonDict | None:
+def run_hook(stdin_text: str) -> JsonDict | None:
+    # Silent unless the event cwd is a clone of the registry's repo.
+    event = json.loads(stdin_text)
+    scoped = scoped_quietly(event, registry_path_from_env())
+    if scoped is None:
+        return None
+    return decide(event, scoped[0], home_error_log())
+
+
+def decide(event: JsonDict, registry: Registry, log_path: Path) -> JsonDict | None:
     # Fail open: any surprise in the hook input is logged, never blocks the edit.
     try:
-        return _decide_inner(event, registry, root)
+        return _decide_inner(event, registry, log_path)
     except Exception as error:
-        log_error_quietly(root / ERROR_LOG, error)
+        log_error_quietly(log_path, error)
         return None
 
 
 def _decide_inner(
-    event: JsonDict, registry: list[JsonDict], root: Path
+    event: JsonDict, registry: Registry, log_path: Path
 ) -> JsonDict | None:
     content = _proposed_content(event, event_cwd(event))
     if content is None:
         return None
-    return _scan_proposal(content, registry, root)
+    return _scan_proposal(content, _rules_with_roots(registry), log_path)
 
 
-def event_cwd(event: JsonDict) -> Path:
-    # tool_input.path is relative to the payload cwd, not the process cwd.
-    return Path(str(event.get("cwd") or Path.cwd())).resolve()
+def _rules_with_roots(registry: Registry) -> list[RuleAndRoot]:
+    # Root ids resolve through the roots store the registry names.
+    by_id = {root.id: root for root in load_roots(registry.roots_dir)}
+    return [(e.rule, _speaking_root(e.root_ids, by_id)) for e in registry.rules]
 
 
-def find_repo_root(start: Path) -> Path:
-    # The nearest ancestor holding .knack/guard.json is the repo root.
-    for candidate in (start, *start.parents):
-        if (candidate / GUARD_JSON).is_file():
-            return candidate
-    raise FileNotFoundError(f"no {GUARD_JSON} at or above {start}")
+def _speaking_root(root_ids: list[str], by_id: dict[str, Root]) -> Root | None:
+    # A Confirmed root speaks for the rule; weaker ones only advise, never block.
+    known = [by_id[root_id] for root_id in root_ids if root_id in by_id]
+    confirmed = [root for root in known if root.status == "Confirmed"]
+    return next(iter(confirmed + known), None)
 
 
 def _proposed_content(event: JsonDict, base: Path) -> str | None:
@@ -80,12 +94,12 @@ def _resolve(base: Path, value: str) -> Path:
 
 
 def _scan_proposal(
-    content: str, registry: list[JsonDict], base: Path
+    content: str, rules: list[RuleAndRoot], log_path: Path
 ) -> JsonDict | None:
     # ast-grep scans a real file; the temp copy never touches the tree.
     temp = _write_temp(content)
     try:
-        return _first_deny(temp, registry, base)
+        return _first_deny(temp, rules, log_path)
     finally:
         temp.unlink(missing_ok=True)
 
@@ -98,28 +112,23 @@ def _write_temp(content: str) -> Path:
     return Path(handle.name)
 
 
-def _first_deny(temp: Path, registry: list[JsonDict], base: Path) -> JsonDict | None:
-    # Entries run in order; the first deny wins.
-    for entry in registry:
-        verdict = _check_entry(temp, entry, base)
+def _first_deny(
+    temp: Path, rules: list[RuleAndRoot], log_path: Path
+) -> JsonDict | None:
+    # Rules run in registry order; the first deny wins.
+    for rule_path, root in rules:
+        verdict = _check_rule(temp, rule_path, root, log_path)
         if not verdict.allowed:
             return _deny(verdict.reason)
     return None
 
 
-def _check_entry(temp: Path, entry: JsonDict, base: Path) -> Verdict:
-    # A broken entry is logged and fails open without blinding the rest.
+def _check_rule(temp: Path, rule_path: Path, root: Root | None, log: Path) -> Verdict:
+    # A broken rule is logged and fails open without blinding the rest.
     try:
-        rule_path = _resolve(base, str(entry["rule"]))
-        root = _load_root(_resolve(base, str(entry["root"])))
-        return check_file(temp, rule_path, _rule_id(rule_path), root, base / ERROR_LOG)
+        return check_file(temp, rule_path, _rule_id(rule_path), root, log)
     except Exception as error:
-        return fail_open(error, base / ERROR_LOG, time.perf_counter())
-
-
-def _load_root(path: Path) -> Root:
-    # Roots are frozen contract models; bad JSON fails open upstream.
-    return Root.model_validate(json.loads(path.read_text(encoding="utf-8")))
+        return fail_open(error, log, time.perf_counter())
 
 
 def _rule_id(rule_path: Path) -> str:
@@ -135,33 +144,3 @@ def _deny(reason: str) -> JsonDict:
     inner = {"hookEventName": "PreToolUse", "permissionDecision": "deny"}
     inner["permissionDecisionReason"] = reason
     return {"hookSpecificOutput": inner}
-
-
-def _load_registry(root: Path) -> list[JsonDict]:
-    # Registry paths are relative to the repo root that holds guard.json.
-    return json.loads((root / GUARD_JSON).read_text(encoding="utf-8"))
-
-
-def _env_registry_root(registry: Path) -> Path:
-    # $X/.knack/guard.json resolves like a repo at $X; any other file, its own dir.
-    if registry.parent.name == ".knack":
-        return registry.parent.parent
-    return registry.parent
-
-
-def _registry_and_root(event: JsonDict) -> tuple[list[JsonDict], Path]:
-    # KNACK_REGISTRY, when set and non-empty, replaces the walk for guard.json.
-    override = os.environ.get(REGISTRY_ENV)
-    if not override:
-        root = find_repo_root(event_cwd(event))
-        return _load_registry(root), root
-    registry = Path(override).expanduser().resolve()
-    return json.loads(registry.read_text(encoding="utf-8")), _env_registry_root(
-        registry
-    )
-
-
-def run_hook(stdin_text: str) -> JsonDict | None:
-    event = json.loads(stdin_text)
-    registry, root = _registry_and_root(event)
-    return decide(event, registry, root)

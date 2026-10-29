@@ -1,61 +1,42 @@
 import json
-import os
 from pathlib import Path
 from typing import Any
 
 from knack.contracts.models import Root, WalkResponse
 from knack.guard.check import log_error_quietly
-from knack.hooks.pretool_guard import event_cwd
-from knack.index.build import build_index
+from knack.hooks.scope import home_error_log, registry_path_from_env, scoped_quietly
+from knack.index.cache import repo_index
 from knack.roots.store import load_roots
-from knack.walk.registry import load_registry
+from knack.walk.registry import Registry
 from knack.walk.walk import walk
 
 JsonDict = dict[str, Any]
-REGISTRY_ENV = "KNACK_WALK_REGISTRY"
-ROOTS_ENV = "KNACK_ROOTS_DIR"
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
-    # Bad stdin and missing env raise to the entry, which reports on stderr.
+    # Silent unless the event cwd is a clone of the registry's repo.
     event = json.loads(stdin_text)
-    registry = _require_env(REGISTRY_ENV)
-    roots_dir = _require_env(ROOTS_ENV)
-    return _warn(event, registry, roots_dir)
+    scoped = scoped_quietly(event, registry_path_from_env())
+    if scoped is None:
+        return None
+    return _warn(event, *scoped)
 
 
-def _error_log() -> Path:
-    # Knack files stay in the user's home, never inside the walked repo.
-    return Path.home() / ".knack" / "guard_errors.log"
-
-
-def _warn(event: JsonDict, registry: Path, roots_dir: Path) -> JsonDict | None:
+def _warn(event: JsonDict, registry: Registry, repo_root: Path) -> JsonDict | None:
     # Walk failures hit the home log; the prompt is never blocked.
-    base = event_cwd(event)
     try:
-        response = _walk_prompt(event, base, registry, roots_dir)
+        response = _walk_prompt(event, registry, repo_root)
     except Exception as error:
-        log_error_quietly(_error_log(), error)
+        log_error_quietly(home_error_log(), error)
         return None
     return _envelope(_confirmed_text(response))
 
 
-def _walk_prompt(
-    event: JsonDict, base: Path, registry: Path, roots_dir: Path
-) -> WalkResponse:
-    # The prompt is the ticket; the event cwd is the repo being discussed.
+def _walk_prompt(event: JsonDict, registry: Registry, repo_root: Path) -> WalkResponse:
+    # The prompt is the ticket; the index comes from the git root, not the cwd.
     prompt = str(event.get("prompt", ""))
-    index = build_index(base)
-    entries = load_registry(registry)
-    return walk(prompt, index, entries, load_roots(roots_dir))
-
-
-def _require_env(name: str) -> Path:
-    # A missing hook env is operator error: loud on stderr, silent on stdout.
-    value = os.environ.get(name)
-    if not value:
-        raise FileNotFoundError(f"{name} is not set")
-    return Path(value).expanduser().resolve()
+    index = repo_index(repo_root, registry.repo)
+    return walk(prompt, index, registry.rules, load_roots(registry.roots_dir))
 
 
 def _envelope(text: str | None) -> JsonDict | None:

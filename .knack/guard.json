@@ -1,6 +1,0 @@
-[
-  {
-    "rule": "knack/guard/rules/no-alias-sort-keys.yml",
-    "root": "tests/guard/fixtures/replay/root_75025.json"
-  }
-]

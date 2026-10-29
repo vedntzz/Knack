@@ -138,7 +138,7 @@ def test_result_validates_as_walk_response_citing_only_matched_roots(
 
 
 def test_75025_ticket_marks_get_dags_high_and_confirmed() -> None:
-    registry = [e for e in load_registry(REGISTRY) if e.rule.stem == "75025"]
+    registry = [e for e in load_registry(REGISTRY).rules if e.rule.stem == "75025"]
     response = walk(TICKET_75025, build_index(FIXTURES), registry, load_roots(ROOTS))
     [leaf] = [x for x in response.leaves if (x.file, x.function) == VIOLATING_GET_DAGS]
     assert (leaf.risk, leaf.status) == ("high", "Confirmed")
@@ -147,7 +147,7 @@ def test_75025_ticket_marks_get_dags_high_and_confirmed() -> None:
 
 def test_registry_rules_exist_with_airflow_ids_and_known_roots() -> None:
     known = {root.id for root in load_roots(ROOTS)}
-    for entry in load_registry(REGISTRY):
+    for entry in load_registry(REGISTRY).rules:
         assert entry.rule.read_text().startswith(f"id: airflow-{entry.rule.stem}\n")
         assert entry.root_ids and set(entry.root_ids) <= known
 
@@ -172,13 +172,39 @@ def run_knack(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def registry_json(entries: list[dict[str, Any]]) -> str:
-    return json.dumps(entries)
+    return json.dumps(
+        {"repo": "apache/airflow", "roots_dir": "../roots", "rules": entries}
+    )
 
 
 def test_load_registry_resolves_rules_relative_to_registry_file(tmp_path: Path) -> None:
     path = tmp_path / "registry" / "team.json"
     path.parent.mkdir()
     path.write_text(registry_json([{"rule": "../rules/r.yml", "root_ids": ["r-1"]}]))
-    [entry] = load_registry(path)
+    [entry] = load_registry(path).rules
     assert entry.rule.resolve() == (tmp_path / "rules" / "r.yml").resolve()
     assert entry.root_ids == ["r-1"]
+
+
+def test_load_registry_resolves_roots_dir_relative_to_registry_file(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "registry" / "team.json"
+    path.parent.mkdir()
+    path.write_text(registry_json([]))
+    registry = load_registry(path)
+    assert registry.roots_dir.resolve() == (tmp_path / "roots").resolve()
+    assert registry.repo == "apache/airflow"
+
+
+def test_airflow_registry_names_its_repo_and_roots() -> None:
+    registry = load_registry(REGISTRY)
+    assert registry.repo == "apache/airflow"
+    assert registry.roots_dir.resolve() == ROOTS.resolve()
+
+
+def test_cli_walk_takes_roots_from_the_registry() -> None:
+    args = ["walk", TICKET_75025, "--repo", str(FIXTURES), "--registry", str(REGISTRY)]
+    done = run_knack([*args, "--json"])
+    response = WalkResponse.model_validate(json.loads(done.stdout))
+    assert (done.returncode, response.leaves[0].risk) == (0, "high")

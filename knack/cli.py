@@ -43,13 +43,15 @@ def _add_walk_arguments(walk_parser: argparse.ArgumentParser) -> None:
     walk_parser.add_argument("ticket")
     walk_parser.add_argument("--repo", type=Path, required=True)
     walk_parser.add_argument("--registry", type=Path, required=True)
-    walk_parser.add_argument("--roots", type=Path, required=True)
+    walk_parser.add_argument("--roots", type=Path)
     walk_parser.add_argument("--json", action="store_true")
 
 
 def _walk_command(args: argparse.Namespace) -> int:
-    registry, roots = load_registry(args.registry), load_roots(args.roots)
-    response = walk(args.ticket, build_index(args.repo), registry, roots)
+    # --roots overrides the roots_dir the registry names.
+    registry = load_registry(args.registry)
+    roots = load_roots(args.roots or registry.roots_dir)
+    response = walk(args.ticket, build_index(args.repo), registry.rules, roots)
     print(response.model_dump_json(indent=2) if args.json else format_walk(response))
     return 0
 
