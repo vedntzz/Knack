@@ -90,3 +90,23 @@ def test_hooks_pin_python_to_the_architecture_knack_was_installed_for(
     pinned = f"/usr/bin/arch -{platform.machine()} {PYTHON} -m knack.watch.hook"
     assert pinned in install_post_merge(repo, tmp_path / "r.json", PYTHON).read_text()
     assert pinned in muse_command(PYTHON, tmp_path / "r.json")
+
+
+def test_corroborate_rides_along_in_both_hook_commands(
+    repo: Path, tmp_path: Path
+) -> None:
+    registry = tmp_path / "r.json"
+    hook = install_post_merge(repo, registry, PYTHON, corroborate=True)
+    assert f"post-merge --registry {registry} --corroborate" in hook.read_text()
+    assert f"tool-batch --registry {registry} --corroborate" in muse_command(
+        PYTHON, registry, corroborate=True
+    )
+
+
+def test_reinstalling_with_corroborate_replaces_our_muse_hook(tmp_path: Path) -> None:
+    settings, registry = tmp_path / "settings.json", tmp_path / "r.json"
+    add_muse_hook(settings, registry, PYTHON)
+    assert add_muse_hook(settings, registry, PYTHON, corroborate=True) is True
+    batch = json.loads(settings.read_text())["hooks"]["PostToolBatch"]
+    commands = [hook["command"] for entry in batch for hook in entry["hooks"]]
+    assert commands == [muse_command(PYTHON, registry, corroborate=True)]

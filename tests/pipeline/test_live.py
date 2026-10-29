@@ -118,7 +118,7 @@ def test_live_spark_and_spark_open_extract_the_same_pr() -> None:
     print(agreement_report(by_model))
     assert list(by_model) == ["muse-spark-1.3", "meta-models/muse-spark-open-1026"]
     assert all(
-        root.model == model for model, roots in by_model.items() for root in roots
+        root.models == [model] for model, roots in by_model.items() for root in roots
     )
 
 

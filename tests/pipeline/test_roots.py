@@ -20,7 +20,7 @@ def test_one_inferred_root_per_verbatim_rejected_alternative() -> None:
     roots = roots_for(REPO, extraction(GATHER_DECISION, INVENTED), "spark-x")
     assert [root.id for root in roots] == ["widgets-9-1"]
     root = roots[0]
-    assert (root.status, root.seeded, root.model) == ("Inferred", False, "spark-x")
+    assert (root.status, root.seeded, root.models) == ("Inferred", False, ["spark-x"])
     assert str(root.source_url) == "https://github.com/acme/widgets/pull/9"
     assert (root.quote, root.decided_by) == (QUOTE, "maria")
     assert root.rejected_alternative == "asyncio.gather over every read"

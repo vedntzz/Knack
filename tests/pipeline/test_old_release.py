@@ -105,7 +105,9 @@ def test_cli_old_ref_reaches_init(
 ) -> None:
     seen: list[str | None] = []
 
-    def fake_init(*args: object, old_ref: str | None = None) -> None:
+    def fake_init(
+        *args: object, old_ref: str | None = None, second: object = None
+    ) -> None:
         seen.append(old_ref)
 
     monkeypatch.setattr(cli, "live_clients", no_clients)

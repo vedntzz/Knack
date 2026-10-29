@@ -35,11 +35,18 @@ def failed_text(failed: list[int]) -> str:
     return f"{len(failed)} failed: {listed}" if failed else "0 failed"
 
 
-def roots_line(written: int, kept: list[Root]) -> str:
+def second_line(model: str, stage: ExtractStage) -> str:
+    # The corroborating extractor's totals, under the primary's.
+    return f"  second reading by {model}: {extract_totals_line(stage).strip()}"
+
+
+def roots_line(
+    written: list[Root], kept: list[Root], corroborating: bool = False
+) -> str:
     # kept are the human-reviewed roots init left alone.
     confirmed = sum(root.status == "Confirmed" for root in kept)
     counts = f"{confirmed} Confirmed, {len(kept) - confirmed} Unknown kept"
-    return f"[3/5] roots    {written} Inferred roots written ({counts})"
+    return f"[3/5] roots    {_written_text(written, corroborating)} ({counts})"
 
 
 def compile_line(targets: int) -> str:
@@ -67,6 +74,16 @@ def outcome_line(compiled: Compiled) -> str:
 def install_line(proven: int, discarded: int, total: int, path: Path) -> str:
     counts = f"{proven} rules proven, {discarded} discarded, {total} in registry"
     return f"[5/5] install  {counts} -> {path}"
+
+
+def _written_text(written: list[Root], corroborating: bool) -> str:
+    inferred = sum(root.status == "Inferred" for root in written)
+    if not corroborating:
+        return f"{inferred} Inferred roots written"
+    corroborated = sum(root.status == "Corroborated" for root in written)
+    uncorroborated = sum(root.status == "Uncorroborated" for root in written)
+    labels = f"{corroborated} corroborated, {uncorroborated} uncorroborated, {inferred} Inferred"
+    return f"{len(written)} roots written: {labels}"
 
 
 def _counted(count: int, noun: str) -> str:

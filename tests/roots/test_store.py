@@ -22,7 +22,7 @@ EXPECTED_CITATION = {
     "source_url": "https://github.com/apache/airflow/pull/75774",
     "quote": "verbatim quote 1",
     "rejected_alternative": "alternative 1",
-    "model": EXTRACTION_MODEL,
+    "models": [EXTRACTION_MODEL],
 }
 
 
@@ -163,3 +163,9 @@ def test_seed_pr_without_title_raises(tmp_path: Path) -> None:
 def test_seed_unknown_pr_raises(tmp_path: Path) -> None:
     with pytest.raises(RootStoreError, match="no extraction for PR 1$"):
         main([str(DECISIONS), str(tmp_path), "--prs", "1"])
+
+
+def test_repo_root_files_are_migrated_to_models() -> None:
+    files = sorted((Path(__file__).parents[2] / "data" / "roots").rglob("*.json"))
+    raw = [json.loads(path.read_text(encoding="utf-8")) for path in files]
+    assert raw and all("models" in data and "model" not in data for data in raw)

@@ -12,6 +12,7 @@ from knack.contracts.models import Leaf, Root, WalkResponse
 from knack.index.build import build_index, Index
 from knack.roots.store import load_roots
 from knack.walk.registry import home_registry_dir, load_registry, RegistryEntry
+from knack.walk.text import format_walk
 from knack.walk.walk import walk
 
 REPO = Path(__file__).parents[2]
@@ -120,6 +121,31 @@ def test_strongest_root_is_confirmed_first_then_lowest_id(tmp_path: Path) -> Non
     leaf = leaves_by_name(walk_repo(tmp_path, "Refactor helper", roots))["helper"]
     assert (leaf.status, leaf.why) == ("Confirmed", "why r-2")
     assert leaf.root_ids == ["r-1", "r-2", "r-3"]
+
+
+def test_corroborated_ranks_above_inferred_and_uncorroborated_below(
+    tmp_path: Path,
+) -> None:
+    statuses = {"r-1": "Uncorroborated", "r-2": "Inferred", "r-3": "Corroborated"}
+    roots = [make_root(root_id, status, "x") for root_id, status in statuses.items()]
+    leaf = leaves_by_name(walk_repo(tmp_path, "Refactor helper", roots))["helper"]
+    assert (leaf.risk, leaf.status, leaf.why) == ("medium", "Corroborated", "why r-3")
+
+
+def test_uncorroborated_ranks_below_inferred(tmp_path: Path) -> None:
+    roots = [make_root("r-1", "Uncorroborated", "x"), make_root("r-2", "Inferred", "x")]
+    leaf = leaves_by_name(walk_repo(tmp_path, "Refactor helper", roots))["helper"]
+    assert (leaf.status, leaf.why) == ("Inferred", "why r-2")
+
+
+def test_text_names_every_extractor_or_human(tmp_path: Path) -> None:
+    root = make_root("r-1", "Corroborated", "x").model_copy(
+        update={"models": ["spark", "spark-open"]}
+    )
+    human = make_root("r-2", "Confirmed", "x")
+    text = format_walk(walk_repo(tmp_path, "Refactor helper", [root, human]))
+    assert "r-1  Corroborated seeded=False extracted_by=spark,spark-open" in text
+    assert "r-2  Confirmed seeded=False extracted_by=human" in text
 
 
 def test_function_without_root_is_low_unknown_without_why(tmp_path: Path) -> None:

@@ -16,7 +16,7 @@ def _leaf_line(leaf: Leaf) -> str:
 
 def _root_lines(root: Root) -> str:
     # Shows the honest labels next to the verbatim source.
-    source = "human" if root.model is None else root.model
+    source = ",".join(root.models) or "human"
     labels = f"{root.status} seeded={root.seeded} extracted_by={source}"
     citation = f"{root.decided_by}, {root.source_url}"
     return f'{root.id}  {labels}\n  "{root.quote}" ({citation})'

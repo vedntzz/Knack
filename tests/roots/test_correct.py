@@ -3,9 +3,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from knack.contracts.models import DecisionStatus
 from knack.roots.correct import confirm_root, CorrectionError, reject_root
 from knack.roots.corrections import Correction
-from registry_fixture import make_registry, raw_entries, status_on_disk
+from knack.roots.store import write_root
+from registry_fixture import make_registry, raw_entries, root, status_on_disk
 
 
 @pytest.fixture
@@ -98,6 +100,18 @@ def test_unknown_root_id_raises_and_logs_nothing(registry: Path, log: Path) -> N
     with pytest.raises(CorrectionError, match="widgets-99-1"):
         confirm_root(registry, "widgets-99-1", "maria", log)
     assert not log.exists()
+
+
+@pytest.mark.parametrize("status", ["Corroborated", "Uncorroborated"])
+def test_confirm_promotes_a_corroboration_label(
+    registry: Path, log: Path, status: DecisionStatus
+) -> None:
+    write_root(
+        root("widgets-4-1", status), registry.parent / "roots" / "widgets-4-1.json"
+    )
+    record = confirm_root(registry, "widgets-4-1", "maria", log)
+    assert (record.before.status, record.after.status) == (status, "Confirmed")
+    assert status_on_disk(registry, "widgets-4-1") == "Confirmed"
 
 
 def test_confirm_refuses_an_already_confirmed_root(registry: Path, log: Path) -> None:

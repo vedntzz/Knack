@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, cast, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -10,7 +10,10 @@ from pydantic import (
     PositiveInt,
 )
 
-DecisionStatus = Literal["Confirmed", "Inferred", "Unknown"]
+# Corroborated: both extractors found it; Uncorroborated: only one did. Neither blocks.
+DecisionStatus = Literal[
+    "Confirmed", "Corroborated", "Inferred", "Uncorroborated", "Unknown"
+]
 NonEmptyStr = Annotated[str, Field(min_length=1)]
 
 
@@ -27,7 +30,19 @@ class Root(BaseModel):
     status: DecisionStatus
     rejected_alternative: str | None = None
     seeded: bool = False
-    model: str | None = None
+    # Every extractor that found this root; empty when a human wrote it.
+    models: list[str] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_old_model_field(cls, data: Any) -> Any:
+        # Root files from before KN-27 name one model; it becomes the models list.
+        fields = cast(dict[str, Any], data) if isinstance(data, dict) else {}
+        if "model" not in fields:
+            return cast(Any, data)
+        fields = {**fields}
+        model = fields.pop("model")
+        return {"models": [model] if model else [], **fields}
 
 
 class Leaf(BaseModel):
@@ -50,7 +65,7 @@ class Leaf(BaseModel):
         return self
 
     def require_evidence_when_known(self) -> None:
-        # Confirmed or Inferred leaves must say why and who decided.
+        # Every leaf but Unknown must say why and who decided.
         if self.status == "Unknown":
             return
         if not self.why or not self.decided_by:

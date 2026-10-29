@@ -17,15 +17,20 @@ STATUS_AFTER: dict[Action, DecisionStatus] = {
 }
 
 
+# Every machine label a human can promote.
+CONFIRMABLE = ("Inferred", "Corroborated", "Uncorroborated")
+
+
 class CorrectionError(Exception):
     pass
 
 
 def confirm_root(registry_path: Path, root_id: str, by: str, log: Path) -> Correction:
-    # Only an Inferred root is a guess a human can promote; its rule now blocks.
+    # Only a machine-labelled root is a guess a human can promote; its rule now blocks.
     found = _located(registry_path, root_id)
-    if found[1].status != "Inferred":
-        raise CorrectionError(f"{root_id} is {found[1].status}, only Inferred confirms")
+    if found[1].status not in CONFIRMABLE:
+        allowed = ", ".join(CONFIRMABLE)
+        raise CorrectionError(f"{root_id} is {found[1].status}; only {allowed} confirm")
     return _record(found, "confirm", None, by, log)
 
 

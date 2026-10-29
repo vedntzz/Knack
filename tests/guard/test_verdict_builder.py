@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from knack.contracts.models import DecisionStatus, Root
 from knack.guard.runner import RuleMatch
 from knack.guard.verdict_builder import build_verdict
@@ -98,3 +99,10 @@ def test_missing_root_allows_with_advisory_reason() -> None:
 def test_latency_ms_passes_through() -> None:
     verdict = build_verdict(RULE_ID, make_matches(), make_root(), 4.25)
     assert verdict.latency_ms == 4.25
+
+
+@pytest.mark.parametrize("status", ["Corroborated", "Uncorroborated"])
+def test_corroboration_statuses_never_deny(status: DecisionStatus) -> None:
+    verdict = build_verdict(RULE_ID, make_matches(), make_root(status), 1.0)
+    assert verdict.allowed is True
+    assert verdict.reason.startswith("advisory:")

@@ -12,6 +12,8 @@ EXTRACTORS: dict[str, tuple[str, Callable[[str], Spark]]] = {
     "spark-open": ("BASETEN_API_KEY", SparkOpenApi),
 }
 DEFAULT_EXTRACTOR = "spark"
+# Corroboration pairs each extractor with the other one.
+PARTNERS = {"spark": "spark-open", "spark-open": "spark"}
 
 
 class MissingCredentials(Exception):
@@ -21,6 +23,17 @@ class MissingCredentials(Exception):
 def live_clients(extractor: str = DEFAULT_EXTRACTOR) -> tuple[GitHubApi, Spark]:
     key_env, spark = EXTRACTORS[extractor]
     return GitHubApi(_required_env("GITHUB_TOKEN")), spark(_required_env(key_env))
+
+
+def partner_client(extractor: str) -> Spark:
+    key_env, spark = EXTRACTORS[PARTNERS[extractor]]
+    return spark(_required_env(key_env))
+
+
+def corroborating_clients(
+    extractor: str = DEFAULT_EXTRACTOR,
+) -> tuple[GitHubApi, Spark, Spark]:
+    return (*live_clients(extractor), partner_client(extractor))
 
 
 def _required_env(name: str) -> str:

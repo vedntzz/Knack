@@ -80,3 +80,14 @@ def test_a_foreign_post_merge_hook_exits_2_untouched(
     assert watch(tmp_path / "muse.json") == 2
     assert hook.read_text() == "#!/bin/sh\nmake deps\n"
     assert "post-merge" in capsys.readouterr().err
+
+
+def test_watch_corroborate_installs_hooks_that_corroborate(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write_registry(home_out(tmp_path))
+    settings = tmp_path / "muse.json"
+    assert watch(settings, "--corroborate") == 0
+    assert "--corroborate" in (repo / ".git" / "hooks" / "post-merge").read_text()
+    assert "--corroborate" in settings.read_text()
+    assert "corroborate: a second extractor reads every PR" in capsys.readouterr().out
