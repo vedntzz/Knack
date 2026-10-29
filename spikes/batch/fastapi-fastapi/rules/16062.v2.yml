@@ -1,0 +1,30 @@
+id: compiled-rule
+language: python
+severity: error
+message: Dependency classifier lru_cache must use maxsize 4096 via _CALLABLE_CLASSIFICATION_CACHE_SIZE.
+rule:
+  any:
+    - all:
+        - any:
+            - pattern: 'lru_cache(maxsize=$SIZE)'
+            - pattern: 'functools.lru_cache(maxsize=$SIZE)'
+        - inside:
+            stopBy: end
+            any:
+              - pattern: 'def _is_gen_callable_cached($$$): $$$'
+              - pattern: 'def _is_async_gen_callable_cached($$$): $$$'
+              - pattern: 'def _is_coroutine_callable_cached($$$): $$$'
+        - not:
+            any:
+              - pattern: 'lru_cache(maxsize=4096)'
+              - pattern: 'lru_cache(maxsize=_CALLABLE_CLASSIFICATION_CACHE_SIZE)'
+              - pattern: 'functools.lru_cache(maxsize=4096)'
+              - pattern: 'functools.lru_cache(maxsize=_CALLABLE_CLASSIFICATION_CACHE_SIZE)'
+    - all:
+        - pattern: '_CALLABLE_CLASSIFICATION_CACHE_SIZE = $SIZE'
+        - not:
+            pattern: '_CALLABLE_CLASSIFICATION_CACHE_SIZE = 4096'
+    - all:
+        - pattern: 'assert $VAR.maxsize == $SIZE'
+        - not:
+            pattern: 'assert $VAR.maxsize == 4096'

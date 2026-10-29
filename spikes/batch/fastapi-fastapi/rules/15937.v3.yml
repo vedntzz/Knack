@@ -1,0 +1,11 @@
+id: compiled-rule
+language: python
+severity: error
+message: SSE and JSONL branches must use _build_response_args() instead of explicit background handling
+rule:
+  all:
+    - pattern: StreamingResponse($$$)
+    - regex: background
+    - any:
+        - regex: text/event-stream
+        - regex: application/jsonl

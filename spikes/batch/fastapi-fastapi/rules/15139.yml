@@ -1,42 +1,33 @@
 id: compiled-rule
 language: python
 severity: error
-message: Fix tests to allow multiple schema versions with IsOneOf instead of single-version snapshot; do not bump pydantic lower bound to 2.11.
+message: Allow multiple OpenAPI schema versions instead of requiring a single pydantic version.
 rule:
   any:
     - all:
-        - kind: call
-        - pattern: snapshot($$$ARGS)
+        - pattern: snapshot($$$)
         - has:
             stopBy: end
-            all:
-              - kind: string
-              - regex: PlatformRole
+            pattern: '"openapi"'
+        - has:
+            stopBy: end
+            pattern: '"get_user_users_get"'
         - not:
             has:
               stopBy: end
-              all:
-                - kind: call
-                - regex: IsOneOf
+              kind: call
     - all:
-        - kind: call
-        - pattern: snapshot($$$ARGS)
+        - pattern: snapshot($$$)
         - has:
             stopBy: end
-            all:
-              - kind: string
-              - regex: save_union_body_discriminator
+            pattern: '"openapi"'
+        - has:
+            stopBy: end
+            pattern: '"save_union_body_discriminator_items__post"'
         - not:
             has:
               stopBy: end
-              all:
-                - kind: call
-                - regex: IsOneOf
+              kind: call
     - all:
         - kind: string
-        - regex: '>=.*2\.11'
-        - inside:
-            stopBy: end
-            all:
-              - kind: module
-              - regex: '[Pp]ydantic'
+        - regex: (?i)pydantic.*(>=|==|~=|>).*2\.11

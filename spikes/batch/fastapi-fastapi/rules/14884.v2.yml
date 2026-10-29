@@ -1,0 +1,42 @@
+id: compiled-rule
+language: python
+severity: error
+message: Read in-memory/uploaded files sequentially with await instead of (fake) parallel task group.
+rule:
+  any:
+    - all:
+        - pattern: |
+            async with anyio.create_task_group() as $TG:
+              $$$
+        - has:
+            stopBy: end
+            pattern: $X.read
+    - all:
+        - pattern: |
+            async with create_task_group() as $TG:
+              $$$
+        - has:
+            stopBy: end
+            pattern: $X.read
+    - all:
+        - pattern: |
+            async with asyncio.TaskGroup() as $TG:
+              $$$
+        - has:
+            stopBy: end
+            pattern: $X.read
+    - all:
+        - pattern: $TG.start_soon($$$)
+        - has:
+            stopBy: end
+            pattern: $X.read
+    - all:
+        - pattern: asyncio.gather($$$)
+        - has:
+            stopBy: end
+            pattern: $X.read
+    - all:
+        - pattern: anyio.gather($$$)
+        - has:
+            stopBy: end
+            pattern: $X.read

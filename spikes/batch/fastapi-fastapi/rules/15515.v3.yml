@@ -1,0 +1,16 @@
+id: compiled-rule
+language: python
+severity: error
+message: SSE data and comment must normalize CRLF and lone CR to LF then split on LF; splitlines drops trailing empty strings and splits on extra Unicode breaks not recognized by SSE.
+rule:
+  any:
+    - all:
+        - pattern: $X.splitlines($$$)
+        - inside:
+            stopBy: end
+            kind: function_definition
+            regex: format_sse_event
+    - all:
+        - pattern: from fastapi.sse import ServerSentEvent
+        - not:
+            regex: ','

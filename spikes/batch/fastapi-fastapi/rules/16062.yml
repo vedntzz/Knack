@@ -1,30 +1,25 @@
 id: compiled-rule
 language: python
 severity: error
-message: Dependency classifier lru_cache must use maxsize 4096 via _CALLABLE_CLASSIFICATION_CACHE_SIZE.
+message: Dependency callable classification lru_cache maxsize must be 4096; 1024 is too small for large apps and larger bumps are deferred.
 rule:
-  any:
-    - all:
-        - any:
-            - pattern: 'lru_cache(maxsize=$SIZE)'
-            - pattern: 'functools.lru_cache(maxsize=$SIZE)'
-        - inside:
-            stopBy: end
-            any:
-              - pattern: 'def _is_gen_callable_cached($$$): $$$'
-              - pattern: 'def _is_async_gen_callable_cached($$$): $$$'
-              - pattern: 'def _is_coroutine_callable_cached($$$): $$$'
+  all:
+    - kind: decorator
+    - regex: "lru_cache"
+    - any:
+        - all:
+            - regex: "maxsize\\s*=\\s*\\d+"
+            - not:
+                regex: "maxsize\\s*=\\s*4096\\b"
+        - regex: "maxsize\\s*=\\s*None\\b"
         - not:
-            any:
-              - pattern: 'lru_cache(maxsize=4096)'
-              - pattern: 'lru_cache(maxsize=_CALLABLE_CLASSIFICATION_CACHE_SIZE)'
-              - pattern: 'functools.lru_cache(maxsize=4096)'
-              - pattern: 'functools.lru_cache(maxsize=_CALLABLE_CLASSIFICATION_CACHE_SIZE)'
-    - all:
-        - pattern: '_CALLABLE_CLASSIFICATION_CACHE_SIZE = $SIZE'
-        - not:
-            pattern: '_CALLABLE_CLASSIFICATION_CACHE_SIZE = 4096'
-    - all:
-        - pattern: 'assert $VAR.maxsize == $SIZE'
-        - not:
-            pattern: 'assert $VAR.maxsize == 4096'
+            regex: "maxsize"
+    - inside:
+        stopBy: end
+        all:
+          - kind: decorated_definition
+          - any:
+              - regex: "def _is_(gen_callable_cached|async_gen_callable_cached|coroutine_callable_cached)\\b"
+              - has:
+                  stopBy: end
+                  regex: "_is_(gen_callable|async_gen_callable|coroutine_callable)(_cached)?\\b|_CallIdentity\\b"

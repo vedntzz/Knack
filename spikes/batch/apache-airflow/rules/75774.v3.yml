@@ -1,0 +1,38 @@
+id: compiled-rule
+language: python
+severity: error
+message: MSGraph sensor must carry start time with remaining deadline, not a defer without timeout or a sliding full timeout.
+rule:
+  any:
+    - all:
+        - pattern: "self.defer($$$)"
+        - inside:
+            pattern: "class MSGraphSensor($$$): $$$"
+            stopBy: end
+        - has:
+            pattern: "MSGraphTrigger($$$)"
+            stopBy: end
+        - not:
+            pattern: "self.defer($$$, timeout=$TIMEOUT, $$$)"
+    - all:
+        - pattern: "self.defer($$$, timeout=$TIMEOUT, $$$)"
+        - inside:
+            pattern: "class MSGraphSensor($$$): $$$"
+            stopBy: end
+        - has:
+            pattern: "TimeDeltaTrigger($$$)"
+            stopBy: end
+        - has:
+            pattern: "self.timeout"
+            stopBy: end
+    - all:
+        - pattern: "self.defer($$$)"
+        - inside:
+            pattern: "class MSGraphSensor($$$): $$$"
+            stopBy: end
+        - has:
+            pattern: "TimeDeltaTrigger($$$)"
+            stopBy: end
+        - not:
+            pattern: "self.defer($$$, timeout=$TIMEOUT, $$$)"
+    - pattern: "def test_execute_complete_passes_timeout_to_defer($$$): $$$"

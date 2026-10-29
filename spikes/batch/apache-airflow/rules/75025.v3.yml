@@ -1,0 +1,15 @@
+id: compiled-rule
+language: python
+severity: error
+message: Do not expose 'state' or 'start_date' as sortable keys on DagModel; neither column exists. Use 'last_run_state' / 'last_run_start_date'.
+rule:
+  all:
+    - pattern: SortParam($$$)
+    - has:
+        pattern: DagModel
+        stopBy: end
+    - has:
+        stopBy: end
+        any:
+          - pattern: '"state"'
+          - pattern: '"start_date"'

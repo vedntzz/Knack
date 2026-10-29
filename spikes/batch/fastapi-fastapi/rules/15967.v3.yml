@@ -1,0 +1,8 @@
+id: compiled-rule
+language: python
+severity: error
+message: Fix Starlette docs link that returns 404, points to incorrect content, or redirects.
+rule:
+  all:
+    - kind: string
+    - regex: 'www\.starlette\.dev/applications/#(instantiating-the-application|storing-state-on-the-app-instance)'

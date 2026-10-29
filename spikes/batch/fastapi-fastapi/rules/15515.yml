@@ -1,22 +1,25 @@
 id: compiled-rule
 language: python
 severity: error
-message: Use _split_sse_lines (normalize CRLF and lone CR to LF then split on LF) for SSE data/comment instead of splitlines() or Unicode line-break split.
+message: Use _split_sse_lines that normalizes CRLF and lone CR to LF then splits on LF for SSE data and comment instead of splitlines() or Unicode line-break split.
 rule:
-  any:
-    - all:
-        - kind: function_definition
-        - regex: 'def format_sse_event\b'
-        - any:
-            - has:
-                stopBy: end
-                pattern: $X.splitlines($$$)
-            - has:
-                stopBy: end
-                pattern: re.split($$$)
-            - has:
-                stopBy: end
-                pattern: regex.split($$$)
-    - all:
-        - kind: import_from_statement
-        - regex: 'from fastapi\.sse import ServerSentEvent\s*$'
+  all:
+    - any:
+        - pattern: $X.splitlines($$$)
+        - pattern: re.split($$$)
+        - pattern: regex.split($$$)
+    - inside:
+        stopBy: end
+        all:
+          - kind: function_definition
+          - has:
+              stopBy: end
+              any:
+                - pattern: 'f"data: {$Y}"'
+                - pattern: "f'data: {$Y}'"
+                - pattern: 'f": {$Y}"'
+                - pattern: "f': {$Y}'"
+                - pattern: '"data: " + $Y'
+                - pattern: "'data: ' + $Y"
+                - pattern: '": " + $Y'
+                - pattern: "': ' + $Y"
