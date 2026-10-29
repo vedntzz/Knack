@@ -266,11 +266,34 @@ def test_bad_stdin_exits_zero_without_output(tmp_path: Path) -> None:
     assert (done.returncode, done.stdout) == (0, b"")
 
 
-def test_unset_registry_env_exits_zero_with_stderr_note(tmp_path: Path) -> None:
+def write_home_registry(home: Path) -> Path:
+    # The registry knack init or import puts in home for apache/airflow.
+    directory = home / ".knack" / "registries" / "apache-airflow"
+    directory.mkdir(parents=True)
+    return write_registry_file(directory).rename(directory / "registry.json")
+
+
+def test_unset_registry_env_guards_with_the_clone_home_registry(tmp_path: Path) -> None:
+    write_home_registry(tmp_path / "home")
     clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
-    done = run_pretool(json.dumps(violating_write_event("dags.py", clone)), clone)
-    assert (done.returncode, done.stdout) == (0, b"")
-    assert b"KNACK_REGISTRY" in done.stderr
+    event = json.dumps(violating_write_event("dags.py", clone))
+    done = run_pretool(event, clone, {"HOME": str(tmp_path / "home")})
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
+
+
+def test_unset_registry_env_without_a_home_registry_is_silent(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    event = json.dumps(violating_write_event("dags.py", clone))
+    done = run_pretool(event, clone, {"HOME": str(tmp_path / "home")})
+    assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
+    assert not (tmp_path / "home" / ".knack").exists()
+
+
+def test_unset_registry_env_outside_a_clone_is_silent(tmp_path: Path) -> None:
+    write_home_registry(tmp_path / "home")
+    event = json.dumps(violating_write_event("dags.py", tmp_path))
+    done = run_pretool(event, tmp_path, {"HOME": str(tmp_path / "home")})
+    assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
 
 
 def test_missing_registry_file_fails_open_and_logs_to_home(tmp_path: Path) -> None:

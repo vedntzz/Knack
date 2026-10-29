@@ -6,7 +6,7 @@
   "decided_by": "stegololz",
   "source_url": "https://github.com/apache/airflow/pull/75774",
   "quote": "put `timeout=self.timeout` on the sleep re-defer only",
-  "status": "Inferred",
+  "status": "Confirmed",
   "rejected_alternative": "sliding re-defer timeout that put timeout=self.timeout on the sleep re-defer only",
   "seeded": false,
   "model": "muse-spark-1.3"
