@@ -1,28 +1,32 @@
-# Precision spike: how much of an airflow ref does each compiled rule flag?
-import argparse, json, subprocess
+# Precision spike: how much of a repo ref does each compiled rule flag?
+import json, subprocess
 from pathlib import Path
 
+from batch_repo import Batch, default_branch, repo_parser
 from knack.guard.runner import AST_GREP, SUCCESS_EXIT_CODES
 
-RULES = Path(__file__).parent / "batch" / "rules"
-REPO = "https://github.com/apache/airflow.git"
+
+def parse_args(argv=None):
+    parser = repo_parser("scan a repo ref with every compiled rule")
+    parser.add_argument("--ref", help="branch or tag to scan (default: the repo's default branch)")
+    return parser.parse_args(argv)
 
 
-def parse_ref():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ref", default="main", help="airflow branch or tag to scan")
-    return parser.parse_args().ref
+def resolve_ref(batch, ref):
+    # an explicit --ref wins and skips the API call
+    return ref or default_branch(batch)
 
 
-def clone_dir(ref):
-    # one folder per ref so a cached main clone is never rescanned as another ref
-    return Path(f"/tmp/airflow-{ref.replace('/', '-')}")
+def clone_dir(batch, ref):
+    # one folder per repo and ref so a cached main clone is never rescanned as another ref
+    return Path(f"/tmp/{batch.slug}-{ref.replace('/', '-')}")
 
 
-def shallow_clone(ref, clone):
-    # reuse an existing clone so reruns don't download airflow again
+def shallow_clone(batch, ref, clone):
+    # reuse an existing clone so reruns don't download the repo again
     if not (clone / ".git").exists():
-        subprocess.run(["git", "clone", "--depth", "1", "--branch", ref, REPO, str(clone)], check=True)
+        argv = ["git", "clone", "--depth", "1", "--branch", ref, batch.clone_url, str(clone)]
+        subprocess.run(argv, check=True)
 
 
 def scan_tree(rule_path, clone):
@@ -47,11 +51,13 @@ def report(rule_path, matches, clone):
 
 
 if __name__ == "__main__":
-    ref = parse_ref()
-    clone = clone_dir(ref)
-    shallow_clone(ref, clone)
-    print(f"scanning airflow @ {ref} ({clone})")
-    for rule_path in sorted(RULES.glob("*.yml")):
+    args = parse_args()
+    batch = Batch(args.repo)
+    ref = resolve_ref(batch, args.ref)
+    clone = clone_dir(batch, ref)
+    shallow_clone(batch, ref, clone)
+    print(f"scanning {batch.repo} @ {ref} ({clone})")
+    for rule_path in sorted(batch.rules.glob("*.yml")):
         try:
             report(rule_path, scan_tree(rule_path, clone), clone)
         except Exception as error:  # one broken rule should not hide the others

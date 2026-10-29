@@ -10,7 +10,7 @@ from knack.roots.seed import EXTRACTION_MODEL, main, roots_from_extraction
 from knack.roots.store import load_roots, RootStoreError
 
 REPO = Path(__file__).parents[2]
-DECISIONS = REPO / "spikes" / "batch" / "decisions.jsonl"
+DECISIONS = REPO / "spikes" / "batch" / "apache-airflow" / "decisions.jsonl"
 CONFIRMED_75025 = REPO / "data" / "roots" / "airflow" / "75025.json"
 SEEDED_PRS = ["75774", "74150", "75271", "75734"]
 TITLE = "Fix MSGraphSensor timeout being reset on every re-defer"
