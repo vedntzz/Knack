@@ -14,8 +14,10 @@ A deterministic guard then blocks any agent edit that breaks a rule, citing who 
 uv venv && uv pip install --python .venv/bin/python -e ".[dev]"
 ```
 
-The Muse Code hook in `.muse/hooks.json` runs `.venv/bin/python` from the repo root,
-so the virtual environment must live at `.venv` in the repository root.
+Both hooks read one registry from `KNACK_REGISTRY`: the repo it guards (`owner/name`),
+its `roots_dir`, and `rules` entries of `rule` plus `root_ids` (see `data/registry/airflow.json`).
+They stay silent unless the session's `git remote get-url origin` is that repo.
+The walk index is cached at `~/.knack/cache/<owner-name>/<HEAD>.json`.
 
 ## Status
 
