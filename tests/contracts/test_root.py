@@ -45,8 +45,28 @@ def test_defaults_rejected_alternative_none_and_seeded_false() -> None:
     assert root.seeded is False
 
 
-def test_defaults_model_none_for_human_sourced_roots() -> None:
-    assert Root.model_validate(valid_root_data()).model is None
+def test_defaults_models_empty_for_human_sourced_roots() -> None:
+    assert Root.model_validate(valid_root_data()).models == []
+
+
+@pytest.mark.parametrize("status", ["Corroborated", "Uncorroborated"])
+def test_corroboration_statuses_parse(status: str) -> None:
+    assert Root.model_validate({**valid_root_data(), "status": status}).status == status
+
+
+def test_models_lists_every_extractor_that_found_the_root() -> None:
+    data = {**valid_root_data(), "models": ["muse-spark-1.3", "spark-open"]}
+    assert Root.model_validate(data).models == ["muse-spark-1.3", "spark-open"]
+
+
+def test_old_model_field_is_read_into_models() -> None:
+    root = Root.model_validate({**valid_root_data(), "model": "muse-spark-1.3"})
+    assert root.models == ["muse-spark-1.3"]
+    assert "model" not in root.model_dump()
+
+
+def test_old_null_model_reads_as_no_models() -> None:
+    assert Root.model_validate({**valid_root_data(), "model": None}).models == []
 
 
 def test_mutation_raises() -> None:

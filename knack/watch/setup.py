@@ -6,15 +6,19 @@ from knack.walk.registry import home_registry_dir, Registry
 from knack.watch.install import add_muse_hook, install_post_merge, WatchInstallError
 from knack.watch.state import write_seen
 
+CORROBORATE_NOTE = "  corroborate: a second extractor reads every PR"
 
-def install_watch(cwd: Path, registry: Path | None, muse_settings: Path) -> list[str]:
+
+def install_watch(
+    cwd: Path, registry: Path | None, muse_settings: Path, corroborate: bool = False
+) -> list[str]:
     # Both hooks, then a baseline at HEAD so earlier history is never replayed.
     root, repo = _clone(cwd)
     path = _checked(registry or home_registry_dir(repo) / "registry.json", repo)
-    hook = install_post_merge(root, path, sys.executable)
-    added = add_muse_hook(muse_settings, path, sys.executable)
+    hook = install_post_merge(root, path, sys.executable, corroborate)
+    added = add_muse_hook(muse_settings, path, sys.executable, corroborate)
     lines = _report(hook, added, muse_settings, _baseline(root, path))
-    return [f"knack watch {repo}", *lines]
+    return [f"knack watch {repo}", *lines, *([CORROBORATE_NOTE] if corroborate else [])]
 
 
 def _clone(cwd: Path) -> tuple[Path, str]:

@@ -12,7 +12,13 @@ FunctionKey = tuple[Path, str]
 Hit = tuple[int, list[str]]
 Risk = Literal["high", "medium", "low"]
 TICKET_TOKEN = re.compile(r"[\w./-]+")
-STATUS_RANK = {"Confirmed": 0, "Inferred": 1, "Unknown": 2}
+STATUS_RANK = {
+    "Confirmed": 0,
+    "Corroborated": 1,
+    "Inferred": 2,
+    "Uncorroborated": 3,
+    "Unknown": 4,
+}
 
 
 def walk(
@@ -74,7 +80,7 @@ def _hits_in_file(path: Path, registry: list[RegistryEntry]) -> list[Hit]:
 def _roots_in_span(
     function: IndexedFunction, hits: list[Hit], by_id: dict[str, Root]
 ) -> list[Root]:
-    # Strongest first: Confirmed before Inferred, then lowest id.
+    # Strongest first: Confirmed, Corroborated, Inferred, Uncorroborated, then lowest id.
     in_span = [ids for line, ids in hits if function.line <= line <= function.end_line]
     known = {root_id for ids in in_span for root_id in ids if root_id in by_id}
     return sorted((by_id[root_id] for root_id in known), key=_strength)

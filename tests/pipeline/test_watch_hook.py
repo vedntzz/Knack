@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from conftest import (
     clean_tree,
+    EXTRACTIONS,
     FakeGitHub,
     FakeSpark,
     git,
@@ -17,6 +18,7 @@ from conftest import (
 from knack.watch import hook
 from knack.watch.install import install_post_merge
 from knack.watch.state import read_seen, write_seen
+from test_corroborate import FakeSparkOpen
 from test_watch_run import head, write_registry
 
 Spawned = list[tuple[list[str], Path, Path]]
@@ -75,8 +77,12 @@ def registry(repo: Path) -> Path:
     return repo.parent / "reg" / "registry.json"
 
 
+def post_merge_args(repo: Path) -> list[str]:
+    return ["post-merge", "--registry", str(registry(repo))]
+
+
 def post_merge(repo: Path) -> int:
-    return hook.main(["post-merge", "--registry", str(registry(repo))])
+    return hook.main(post_merge_args(repo))
 
 
 def tool_batch(repo: Path, stdin_text: str) -> int:
@@ -94,6 +100,18 @@ def test_post_merge_runs_in_the_foreground_with_the_log(
     assert post_merge(repo) == 0
     out = capsys.readouterr().out
     assert "knack watch acme/widgets: 1 merged PR: #9" in out and "[5/5] install" in out
+
+
+def test_post_merge_corroborate_reads_with_both_extractors(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    second = FakeSparkOpen({**EXTRACTIONS})
+    trio = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]), second)
+    monkeypatch.setattr(hook, "corroborating_clients", lambda: trio)
+    monkeypatch.chdir(repo)
+    merge_pr(repo)
+    assert hook.main([*post_merge_args(repo), "--corroborate"]) == 0
+    assert "1 corroborated, 0 uncorroborated" in capsys.readouterr().out
 
 
 def test_post_merge_without_tokens_explains_and_exits_0(
@@ -122,6 +140,16 @@ def test_tool_batch_with_a_pending_merge_starts_a_background_run(
     ]
     assert cwd == repo and log == repo.parent / "reg" / "watch.log"
     assert capsys.readouterr() == ("", "")
+
+
+def test_tool_batch_passes_corroborate_to_the_background_run(
+    repo: Path, spawned: Spawned
+) -> None:
+    merge_pr(repo)
+    args = ["tool-batch", "--registry", str(registry(repo)), "--corroborate"]
+    stdin = io.StringIO(captured("ptb_shell.json", repo))
+    assert hook.main(args, stdin) == 0
+    assert spawned[0][0][-1] == "--corroborate"
 
 
 def test_tool_batch_with_nothing_new_returns_without_spawning(

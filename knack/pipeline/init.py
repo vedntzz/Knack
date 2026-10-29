@@ -13,8 +13,9 @@ def run_init(
     spark: Spark,
     log: Log = print,
     old_ref: str | None = None,
+    second: Spark | None = None,
 ) -> Path:
     # select -> extract -> roots -> compile+prove -> install; a fresh registry.
-    run = Run(github, spark, repo, out, log, old_ref=old_ref)
+    run = Run(github, spark, repo, out, log, old_ref=old_ref, second=second)
     log(f"knack init {repo}")
     return finish(run, select_prs(github, repo, limit), keep=[])

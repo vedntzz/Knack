@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from conftest import (
     clean_tree,
+    EXTRACTIONS,
     FakeGitHub,
     FakeSpark,
     git,
@@ -19,12 +20,14 @@ from knack.roots.corrections import (
     few_shot_block,
     recent_corrections,
 )
+from knack.roots.store import load_roots
 from knack.walk.registry import load_registry, Registry, RegistryEntry
 from knack.watch.run import run_pending
 from knack.watch.state import read_seen, watch_lock, write_seen
+from test_corroborate import FakeSparkOpen
 from test_init import rejection, root
 
-Clients = Callable[[], tuple[GitHub, Spark]]
+Clients = Callable[[], tuple[GitHub, Spark] | tuple[GitHub, Spark, Spark]]
 
 
 class Setup:
@@ -157,3 +160,12 @@ def test_watch_runs_teach_the_extract_prompt_from_corrections(
     extract = [p for p in setup.spark.prompts if p.startswith("You are reading")]
     lessons = few_shot_block(recent_corrections(corrections))
     assert extract and "misread" in lessons and all(lessons in p for p in extract)
+
+
+def test_clients_with_a_second_extractor_corroborate_the_run(setup: Setup) -> None:
+    second = FakeSparkOpen({**EXTRACTIONS})
+    merge_pr(setup.repo)
+    setup.run(lambda: (setup.github, setup.spark, second))
+    roots = load_roots(setup.out / "roots")
+    assert [(r.id, r.status) for r in roots] == [("widgets-9-1", "Corroborated")]
+    assert any("1 corroborated, 0 uncorroborated" in line for line in setup.lines)

@@ -16,34 +16,40 @@ class WatchInstallError(Exception):
     pass
 
 
-def install_post_merge(root: Path, registry: Path, python: str) -> Path:
+def install_post_merge(
+    root: Path, registry: Path, python: str, corroborate: bool = False
+) -> Path:
     # Ours is replaced on reinstall; someone else's hook is never touched.
     path = _hooks_dir(root) / "post-merge"
-    _refuse_foreign(path, _hook_command(python, "post-merge", registry))
+    command = _hook_command(python, "post-merge", registry, corroborate)
+    _refuse_foreign(path, command)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_post_merge_script(python, registry), encoding="utf-8")
+    path.write_text(_post_merge_script(command), encoding="utf-8")
     path.chmod(0o755)
     return path
 
 
-def add_muse_hook(settings: Path, registry: Path, python: str) -> bool:
+def add_muse_hook(
+    settings: Path, registry: Path, python: str, corroborate: bool = False
+) -> bool:
     # False when the same command is already there; other hooks are kept as they are.
     data = _read_settings(settings)
-    added = _add_command(data, muse_command(python, registry))
-    if added:
+    dropped = _drop_command(data, muse_command(python, registry, not corroborate))
+    added = _add_command(data, muse_command(python, registry, corroborate))
+    if added or dropped:
         _write_settings(settings, data)
     return added
 
 
-def muse_command(python: str, registry: Path) -> str:
+def muse_command(python: str, registry: Path, corroborate: bool = False) -> str:
     # The same sh -c '... || true' shape as the guard hooks: a crash never blocks.
-    inner = f"{_hook_command(python, 'tool-batch', registry)} || true"
+    inner = f"{_hook_command(python, 'tool-batch', registry, corroborate)} || true"
     return f"sh -c {shlex.quote(inner)}"
 
 
-def _hook_command(python: str, mode: str, registry: Path) -> str:
+def _hook_command(python: str, mode: str, registry: Path, corroborate: bool) -> str:
     argv = [*_pinned(python), "-m", HOOK_MODULE, mode, "--registry", str(registry)]
-    return shlex.join(argv)
+    return shlex.join(argv + (["--corroborate"] if corroborate else []))
 
 
 def _pinned(python: str) -> list[str]:
@@ -53,11 +59,9 @@ def _pinned(python: str) -> list[str]:
     return ["/usr/bin/arch", f"-{platform.machine()}", python]
 
 
-def _post_merge_script(python: str, registry: Path) -> str:
+def _post_merge_script(command: str) -> str:
     note = f"{MARKER}: runs knack on PRs this merge brought in; never fails the merge."
-    return (
-        f"#!/bin/sh\n{note}\n{_hook_command(python, 'post-merge', registry)} || true\n"
-    )
+    return f"#!/bin/sh\n{note}\n{command} || true\n"
 
 
 def _hooks_dir(root: Path) -> Path:
@@ -85,6 +89,14 @@ def _add_command(data: dict[str, Any], command: str) -> bool:
         return False
     batch.append({"hooks": [{"type": "command", "command": command}]})
     return True
+
+
+def _drop_command(data: dict[str, Any], command: str) -> bool:
+    # Our hook with the other --corroborate setting goes, so one run fires per batch.
+    batch: list[Any] = data.get("hooks", {}).get(MUSE_EVENT, [])
+    before = len(batch)
+    batch[:] = [entry for entry in batch if not _has_command([entry], command)]
+    return len(batch) != before
 
 
 def _has_command(batch: list[Any], command: str) -> bool:

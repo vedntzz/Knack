@@ -9,5 +9,7 @@
   "status": "Inferred",
   "rejected_alternative": "run on asyncio's default executor",
   "seeded": false,
-  "model": "muse-spark-1.3"
+  "models": [
+    "muse-spark-1.3"
+  ]
 }

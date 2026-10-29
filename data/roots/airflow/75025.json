@@ -8,5 +8,6 @@
   "quote": "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.",
   "status": "Confirmed",
   "rejected_alternative": "Alias state and start_date onto DagRun.state and DagRun.start_date.",
-  "seeded": false
+  "seeded": false,
+  "models": []
 }

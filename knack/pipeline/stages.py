@@ -6,6 +6,7 @@ from typing import Any
 
 from knack.contracts.models import Root
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, with_rule_id
+from knack.pipeline.corroborate import corroborated_roots
 from knack.pipeline.extract import extract_all
 from knack.pipeline.models import Compiled, Decision, Extraction, PullRequest, Selection
 from knack.pipeline.ports import GitHub, Spark
@@ -18,6 +19,7 @@ from knack.pipeline.progress import (
     old_release_line,
     outcome_line,
     roots_line,
+    second_line,
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
@@ -42,6 +44,14 @@ class Run:
     tree: Path | None = None
     # The release every proof must also stay clean on; None picks one per PR.
     old_ref: str | None = None
+    # The partner extractor that corroborates every root; None reads once.
+    second: Spark | None = None
+
+
+@dataclass(frozen=True)
+class SecondReading:
+    model: str
+    by_number: dict[int, Extraction]
 
 
 @dataclass(frozen=True)
@@ -70,7 +80,8 @@ def finish(run: Run, selection: Selection, keep: list[RegistryEntry]) -> Path:
     # extract -> roots -> compile+prove -> install, after either kind of select.
     run.log(select_line(selection))
     extractions = _extract_stage(run, selection.prs)
-    roots = _roots_stage(run, extractions)
+    second = _second_stage(run, selection.prs)
+    roots = _roots_stage(run, extractions, second)
     compiled = _compile_stage(run, selection.prs, extractions, roots)
     return _install_stage(run, compiled, keep)
 
@@ -79,25 +90,48 @@ def _extract_stage(run: Run, prs: list[PullRequest]) -> list[Extraction]:
     run.log(extract_header(len(prs)))
     # The last few human corrections teach this run's extract prompt.
     report = partial(_log_extracted, run.log)
-    lessons = few_shot_block(recent_corrections(corrections_path()))
-    stage = extract_all(run.github, run.spark, run.repo, prs, report, lessons)
+    stage = extract_all(run.github, run.spark, run.repo, prs, report, _lessons())
     run.log(extract_totals_line(stage))
     return stage.extractions
+
+
+def _second_stage(run: Run, prs: list[PullRequest]) -> SecondReading | None:
+    # The partner reads the same PRs; a PR it fails on keeps its roots Inferred.
+    if run.second is None:
+        return None
+    stage = extract_all(run.github, run.second, run.repo, prs, few_shot=_lessons())
+    run.log(second_line(run.second.model, stage))
+    return SecondReading(run.second.model, {e.number: e for e in stage.extractions})
+
+
+def _lessons() -> str:
+    return few_shot_block(recent_corrections(corrections_path()))
 
 
 def _log_extracted(log: Log, number: int, extraction: Extraction | None) -> None:
     log(extracted_line(number, extraction))
 
 
-def _roots_stage(run: Run, extractions: list[Extraction]) -> list[Root]:
-    # New roots are Inferred; reviewed ones on disk stay, and rejected ones back no rule.
-    roots = [r for e in extractions for r in roots_for(run.repo, e, run.spark.model)]
+def _roots_stage(
+    run: Run, extractions: list[Extraction], second: SecondReading | None
+) -> list[Root]:
+    # New roots carry machine labels; reviewed ones on disk stay, rejected ones back no rule.
+    roots = [r for e in extractions for r in _roots_of(run, e, second)]
     reviewed = reviewed_roots(run.out / "roots")
     written = install_roots(roots, run.out / "roots")
-    run.log(
-        roots_line(len(written), [reviewed[r.id] for r in roots if r.id in reviewed])
-    )
+    kept = [reviewed[r.id] for r in roots if r.id in reviewed]
+    run.log(roots_line(written, kept, corroborating=second is not None))
     return [r for r in roots if reviewed.get(r.id, r).status != "Unknown"]
+
+
+def _roots_of(
+    run: Run, extraction: Extraction, second: SecondReading | None
+) -> list[Root]:
+    if second is None:
+        return roots_for(run.repo, extraction, run.spark.model)
+    other = second.by_number.get(extraction.number)
+    models = (run.spark.model, second.model)
+    return corroborated_roots(run.repo, extraction, other, models)
 
 
 def _compile_stage(

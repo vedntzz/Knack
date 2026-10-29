@@ -7,8 +7,12 @@ from typing import Any, cast, TextIO
 
 from knack.guard.check import log_error_quietly
 from knack.hooks.scope import event_cwd, home_error_log
-from knack.pipeline.clients import live_clients, MissingCredentials
-from knack.watch.run import pending_root, run_pending
+from knack.pipeline.clients import (
+    corroborating_clients,
+    live_clients,
+    MissingCredentials,
+)
+from knack.watch.run import Clients, pending_root, run_pending
 
 HOOK_MODULE = "knack.watch.hook"
 WATCH_LOG = "watch.log"
@@ -26,9 +30,10 @@ def main(argv: list[str] | None = None, stdin: TextIO = sys.stdin) -> int:
     return 0
 
 
-def post_merge_argv(registry_path: Path) -> list[str]:
+def post_merge_argv(registry_path: Path, corroborate: bool = False) -> list[str]:
     python = [sys.executable, "-m", HOOK_MODULE]
-    return python + ["post-merge", "--registry", str(registry_path)]
+    flag = ["--corroborate"] if corroborate else []
+    return python + ["post-merge", "--registry", str(registry_path), *flag]
 
 
 def spawn_background(argv: list[str], cwd: Path, log_path: Path) -> None:
@@ -42,26 +47,32 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=f"python -m {HOOK_MODULE}")
     parser.add_argument("mode", choices=["post-merge", "tool-batch"])
     parser.add_argument("--registry", type=Path, required=True)
+    parser.add_argument("--corroborate", action="store_true")
     return parser
 
 
 def _dispatch(args: argparse.Namespace, stdin: TextIO) -> None:
     # post-merge runs here, in the terminal; tool-batch hands the run to the background.
     if args.mode == "post-merge":
-        run_pending(Path.cwd(), args.registry, live_clients, _say)
+        run_pending(Path.cwd(), args.registry, _clients(args.corroborate), _say)
         return
-    _tool_batch(json.loads(stdin.read()), args.registry)
+    _tool_batch(json.loads(stdin.read()), args.registry, args.corroborate)
 
 
-def _tool_batch(event: dict[str, Any], registry_path: Path) -> None:
+def _clients(corroborate: bool) -> Clients:
+    return corroborating_clients if corroborate else live_clients
+
+
+def _tool_batch(
+    event: dict[str, Any], registry_path: Path, corroborate: bool = False
+) -> None:
     # Most batches are file edits or Muse's own bookkeeping: those return before git.
     if not ran_shell(event):
         return
     root = pending_root(event_cwd(event), registry_path)
     if root is not None:
-        spawn_background(
-            post_merge_argv(registry_path), root, registry_path.parent / WATCH_LOG
-        )
+        argv = post_merge_argv(registry_path, corroborate)
+        spawn_background(argv, root, registry_path.parent / WATCH_LOG)
 
 
 def ran_shell(event: dict[str, Any]) -> bool:

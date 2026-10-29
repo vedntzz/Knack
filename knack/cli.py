@@ -16,6 +16,7 @@ from knack.pipeline.clients import (
     EXTRACTORS,
     live_clients,
     MissingCredentials,
+    partner_client,
 )
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import run_init
@@ -44,6 +45,9 @@ from knack.watch.setup import install_watch
 GUARD_LOG = Path(".knack/guard_errors.log")
 REPO_PATTERN = re.compile(r"[\w.-]+/[\w.-]+")
 DEFAULT_PRS = 50
+OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
+CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too"
+Extractors = tuple[GitHubApi, Spark, Spark | None]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -97,8 +101,8 @@ def _add_init_arguments(init: argparse.ArgumentParser) -> None:
     init.add_argument("--out", type=Path)
     choices, default = list(EXTRACTORS), DEFAULT_EXTRACTOR
     init.add_argument("--extractor", choices=choices, default=default)
-    help = "release tag rules must not flag; defaults to the previous minor release"
-    init.add_argument("--old-ref", help=help)
+    init.add_argument("--old-ref", help=OLD_REF_HELP)
+    init.add_argument("--corroborate", action="store_true", help=CORROBORATE_HELP)
 
 
 def _owner_name(value: str) -> str:
@@ -109,18 +113,20 @@ def _owner_name(value: str) -> str:
 
 
 def _init_command(args: argparse.Namespace) -> int:
-    clients = _clients_or_explain(args.extractor)
+    clients = _clients_or_explain(args.extractor, args.corroborate)
     if clients is None:
         return 2
-    out = args.out or home_registry_dir(args.repo)
-    run_init(args.repo, args.prs, out, *clients, old_ref=args.old_ref)
+    out, (github, spark, second) = args.out or home_registry_dir(args.repo), clients
+    repo, ref = args.repo, args.old_ref
+    run_init(repo, args.prs, out, github, spark, old_ref=ref, second=second)
     return 0
 
 
-def _clients_or_explain(extractor: str) -> tuple[GitHubApi, Spark] | None:
+def _clients_or_explain(extractor: str, corroborate: bool) -> Extractors | None:
     # Missing tokens are operator error: a message and exit 2, no traceback.
     try:
-        return live_clients(extractor)
+        github, spark = live_clients(extractor)
+        return github, spark, partner_client(extractor) if corroborate else None
     except MissingCredentials as error:
         print(f"knack init: {error}", file=sys.stderr)
         return None
@@ -130,17 +136,23 @@ def _add_watch_arguments(watch: argparse.ArgumentParser) -> None:
     muse = Path.home() / ".config" / "muse" / "settings.json"
     watch.add_argument("--registry", type=Path)
     watch.add_argument("--muse-settings", type=Path, default=muse)
+    watch.add_argument("--corroborate", action="store_true", help=CORROBORATE_HELP)
 
 
 def _watch_command(args: argparse.Namespace) -> int:
     # Install problems (no registry, someone else's hook) exit 2 with a reason.
     try:
-        lines = install_watch(Path.cwd(), args.registry, args.muse_settings)
+        lines = _install_watch(args)
     except WatchInstallError as error:
         print(f"knack watch: {error}", file=sys.stderr)
         return 2
     print("\n".join(lines))
     return 0
+
+
+def _install_watch(args: argparse.Namespace) -> list[str]:
+    settings, corroborate = args.muse_settings, args.corroborate
+    return install_watch(Path.cwd(), args.registry, settings, corroborate)
 
 
 def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:

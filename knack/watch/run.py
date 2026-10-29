@@ -9,7 +9,8 @@ from knack.walk.registry import Registry
 from knack.watch.merged import pending_prs
 from knack.watch.state import read_seen, watch_lock, write_seen
 
-Clients = Callable[[], tuple[GitHub, Spark]]
+# A third client, when given, is the partner extractor that corroborates.
+Clients = Callable[[], tuple[GitHub, Spark] | tuple[GitHub, Spark, Spark]]
 Clone = tuple[Path, str]
 
 
@@ -65,6 +66,7 @@ def _run_numbers(
     # Tokens are only needed, and checked, once there is a merged PR to run.
     if not numbers:
         return None
-    github, spark = clients()
+    github, spark, *second = clients()
     log(merged_line(clone[1], numbers))
-    return run_merged(registry_path, numbers, clone[0], github, spark, log)
+    partner = second[0] if second else None
+    return run_merged(registry_path, numbers, clone[0], github, spark, log, partner)

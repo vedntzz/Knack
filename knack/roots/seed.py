@@ -55,7 +55,7 @@ def _root(number: int, n: int, title: str, pair: Pair) -> Root:
     cited = _citation(number, n, title)
     decided = {field: decision[key] for field, key in DECISION_FIELDS.items()}
     rejected = {field: alternative[key] for field, key in ALTERNATIVE_FIELDS.items()}
-    labels = {"status": "Inferred", "model": EXTRACTION_MODEL}
+    labels = {"status": "Inferred", "models": [EXTRACTION_MODEL]}
     return Root.model_validate({**cited, **decided, **rejected, **labels})
 
 
