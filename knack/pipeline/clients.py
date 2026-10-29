@@ -26,14 +26,28 @@ def live_clients(extractor: str = DEFAULT_EXTRACTOR) -> tuple[GitHubApi, Spark]:
 
 
 def partner_client(extractor: str) -> Spark:
-    key_env, spark = EXTRACTORS[PARTNERS[extractor]]
-    return spark(_required_env(key_env))
+    return _client(PARTNERS[extractor])
+
+
+def adversary_client(extractor: str, adversary: str | None) -> Spark | None:
+    # A named adversary needs its key; by default the partner, or None (the compiler).
+    if adversary is not None:
+        return _client(adversary)
+    try:
+        return partner_client(extractor)
+    except MissingCredentials:
+        return None
 
 
 def corroborating_clients(
     extractor: str = DEFAULT_EXTRACTOR,
 ) -> tuple[GitHubApi, Spark, Spark]:
     return (*live_clients(extractor), partner_client(extractor))
+
+
+def _client(extractor: str) -> Spark:
+    key_env, spark = EXTRACTORS[extractor]
+    return spark(_required_env(key_env))
 
 
 def _required_env(name: str) -> str:

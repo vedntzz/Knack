@@ -2,11 +2,12 @@ import json
 from pathlib import Path
 
 import pytest
-from conftest import COMPLIANT, GATHER_DECISION, VIOLATIONS
+from conftest import COMPLIANT, GATHER_DECISION, VARIANTS, VIOLATIONS
 from knack.pipeline.models import Decision
 from knack.pipeline.variants import (
     generate_variants,
     parse_variants,
+    variant_authors,
     variant_files,
     variant_prompt,
 )
@@ -86,3 +87,27 @@ def test_violation_fixtures_parse() -> None:
         len(parse_variants(json.dumps({**GOOD, "violations": VIOLATIONS})).violations)
         == 3
     )
+
+
+def test_a_cached_set_written_by_another_model_is_rewritten(tmp_path: Path) -> None:
+    variant_files(tmp_path, "prompt", ScriptedSpark(json.dumps(GOOD)))
+    other = ScriptedSpark(VARIANTS)
+    other.model = "other-model"
+    sides = variant_files(tmp_path, "prompt", other)
+    assert len(other.prompts) == 1
+    assert sides["variant-violation"]["violation_1.py"].read_text() == VIOLATIONS[0]
+    assert set(variant_authors(tmp_path).values()) == {"other-model"}
+
+
+def test_a_cached_set_with_no_recorded_author_is_rewritten(tmp_path: Path) -> None:
+    for name in ("violation_1.py", "compliant_1.py"):
+        (tmp_path / name).write_text("old = 1\n")
+    spark = ScriptedSpark(json.dumps(GOOD))
+    variant_files(tmp_path, "prompt", spark)
+    assert len(spark.prompts) == 1 and variant_authors(tmp_path) == {
+        name: "scripted"
+        for name in [
+            *(f"violation_{i}.py" for i in (1, 2, 3)),
+            *(f"compliant_{i}.py" for i in (1, 2, 3)),
+        ]
+    }

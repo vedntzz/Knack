@@ -5,7 +5,12 @@ from conftest import clean_tree, FakeGitHub, FakeSpark, STRUCTURAL
 from knack import cli
 from knack.contracts.models import Root
 from knack.pipeline import spark_open
-from knack.pipeline.clients import live_clients, MissingCredentials, partner_client
+from knack.pipeline.clients import (
+    adversary_client,
+    live_clients,
+    MissingCredentials,
+    partner_client,
+)
 from knack.pipeline.spark import SparkApi
 from knack.pipeline.spark_open import SparkOpenApi
 from knack.walk.registry import load_registry, Registry
@@ -19,6 +24,9 @@ class FakeSparkOpen(FakeSpark):
 def fakes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[str]:
     # Records the extractor asked for; spark-open answers under its own model id.
     asked: list[str] = []
+    # No partner key, so the default adversary never builds a live client.
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
 
     def clients(extractor: str) -> tuple[FakeGitHub, FakeSpark]:
         asked.append(extractor)
@@ -205,3 +213,81 @@ def test_init_merges_into_its_own_repo_whatever_the_case(tmp_path: Path) -> None
     registry_of(tmp_path / "reg", "Acme/Widgets")
     argv = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "reg")]
     assert cli.main(argv) == 0
+
+
+def test_the_default_adversary_is_the_compilers_partner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MODEL_API_KEY", "k")
+    monkeypatch.setenv("BASETEN_API_KEY", "b")
+    assert isinstance(adversary_client("spark", None), SparkOpenApi)
+    assert isinstance(adversary_client("spark-open", None), SparkApi)
+
+
+def test_no_partner_key_means_no_adversary(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    assert adversary_client("spark", None) is None
+
+
+def test_a_named_adversary_needs_its_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    with pytest.raises(MissingCredentials):
+        adversary_client("spark", "spark-open")
+
+
+def test_a_named_adversary_may_be_the_compiler_itself(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MODEL_API_KEY", "k")
+    assert isinstance(adversary_client("spark", "spark"), SparkApi)
+
+
+def test_init_adversary_flag_hands_the_variant_writer_to_the_pipeline(
+    fakes: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    asked: list[tuple[str, str | None]] = []
+
+    def adversary(extractor: str, named: str | None) -> FakeSparkOpen:
+        asked.append((extractor, named))
+        return FakeSparkOpen([STRUCTURAL])
+
+    monkeypatch.setattr(cli, "adversary_client", adversary)
+    args = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "r")]
+    assert cli.main([*args, "--adversary", "spark-open"]) == 0
+    assert asked == [("spark", "spark-open")]
+    printed = capsys.readouterr().out
+    assert (
+        f"  adversary: {spark_open.MODEL} writes variants, fake-spark compiles"
+        in printed
+    )
+    assert f"  #9 held-out by {spark_open.MODEL}: " in printed
+
+
+@pytest.mark.usefixtures("fakes")
+def test_init_without_the_partner_key_warns_and_uses_the_compiler(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    args = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "r")]
+    assert cli.main(args) == 0
+    printed = capsys.readouterr().out
+    assert "  warning: variants written by fake-spark, the compiler itself" in printed
+
+
+def test_a_named_adversary_without_its_key_exits_2(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+    monkeypatch.setenv("MODEL_API_KEY", "k")
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    args = ["init", "--repo", "acme/widgets", "--adversary", "spark-open"]
+    assert cli.main(args) == 2
+    assert "BASETEN_API_KEY" in capsys.readouterr().err
+
+
+def test_an_unknown_adversary_is_a_usage_error() -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["init", "--repo", "acme/widgets", "--adversary", "gpt"])
+    assert raised.value.code == 2

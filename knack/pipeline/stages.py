@@ -8,13 +8,16 @@ from knack.contracts.models import Root
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, with_rule_id
 from knack.pipeline.corroborate import corroborated_roots
 from knack.pipeline.extract import extract_all
+from knack.pipeline.heldout import HeldOut, HELDOUT_DIR, not_run, score_heldout
 from knack.pipeline.models import Compiled, Decision, Extraction, PullRequest, Selection
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.progress import (
+    adversary_line,
     compile_line,
     extract_header,
     extract_totals_line,
     extracted_line,
+    heldout_line,
     install_line,
     old_release_line,
     outcome_line,
@@ -47,6 +50,8 @@ class Run:
     old_ref: str | None = None
     # The partner extractor that corroborates every root; None reads once.
     second: Spark | None = None
+    # The model that writes variants; None means the compiler, with a warning.
+    adversary: Spark | None = None
 
 
 @dataclass(frozen=True)
@@ -151,12 +156,21 @@ def _compile_stage(
 ) -> list[Compiled]:
     # The default branch is cloned only when some PR has a rule to prove.
     targets = _targets(prs, extractions, roots)
-    run.log(compile_line(len(targets)))
+    _log_compile_header(run, len(targets))
     if not targets:
         return []
     tags = {} if run.old_ref else run.github.tags(run.repo)
     trees = Trees(_prepare(run), tags)
     return [_compile_logged(run, target, trees) for target in targets]
+
+
+def _log_compile_header(run: Run, targets: int) -> None:
+    run.log(compile_line(targets))
+    run.log(adversary_line(run.spark.model, _writer(run).model))
+
+
+def _writer(run: Run) -> Spark:
+    return run.adversary or run.spark
 
 
 def _targets(
@@ -193,25 +207,59 @@ def _old_release(run: Run, pr: PullRequest, tags: dict[str, str]) -> dict[str, A
 def _compile_logged(run: Run, target: Target, trees: Trees) -> Compiled:
     compiled = _compile_safely(run, target, trees)
     run.log(outcome_line(compiled))
+    if compiled.heldout is not None:
+        run.log(heldout_line(compiled.number, compiled.heldout))
     return compiled
 
 
 def _compile_safely(run: Run, target: Target, trees: Trees) -> Compiled:
     # One PR's network or model failure is reported, never fatal to the run.
     try:
-        return _record(run, target, _compile_pr(run, target, trees))
+        prompt, attempt = _compile_pr(run, target, trees)
+        compiled = _record(run, target, attempt)
     except Exception as error:
         return _failed(target, error)
+    return _with_heldout(run, compiled, prompt)
 
 
-def _compile_pr(run: Run, target: Target, trees: Trees) -> Attempt:
-    work = run.out / "work" / str(target.pr.number)
+def _compile_pr(run: Run, target: Target, trees: Trees) -> tuple[str, Attempt]:
+    # Returns the variant prompt too, so the held-out set is asked the same way.
+    work = _work(run, target.pr.number)
     base, head = _side(run, target, "base", work), _side(run, target, "head", work)
-    before, after = joined_source(base), joined_source(head)
-    variants = _variants(run, target.decision, (before, after), work)
-    sides = verifier_sides(target.pr.number, base, head, work, variants)
-    case = _case(run, target.pr, trees, sides)
-    return compile_rule(run.spark, case, compile_prompt(target.decision, before, after))
+    code = joined_source(base), joined_source(head)
+    prompt = variant_prompt(target.decision, *code)
+    case = _case(run, target.pr, trees, _sides(run, target, prompt, (base, head)))
+    return prompt, compile_rule(run.spark, case, compile_prompt(target.decision, *code))
+
+
+def _work(run: Run, number: int) -> Path:
+    return run.out / "work" / str(number)
+
+
+def _sides(
+    run: Run, target: Target, prompt: str, code: tuple[dict[str, Path], dict[str, Path]]
+) -> Sides:
+    work = _work(run, target.pr.number)
+    variants = variant_files(work / "variants", prompt, _writer(run))
+    return verifier_sides(target.pr.number, *code, work, variants)
+
+
+def _with_heldout(run: Run, compiled: Compiled, prompt: str) -> Compiled:
+    # Scored after the last attempt, so the compiler never sees the held-out set.
+    if compiled.rule is None:
+        return compiled
+    heldout = _heldout_safely(run, compiled.number, compiled.rule, prompt)
+    return compiled.model_copy(update={"heldout": heldout})
+
+
+def _heldout_safely(run: Run, number: int, rule: Path, prompt: str) -> HeldOut:
+    # Held-out only reports: its failure is "not run" and never discards the rule.
+    writer = _writer(run)
+    try:
+        sides = variant_files(_work(run, number) / HELDOUT_DIR, prompt, writer)
+        return score_heldout(rule.read_text(encoding="utf-8"), sides, writer.model)
+    except Exception as error:
+        return not_run(writer.model, error)
 
 
 def _case(run: Run, pr: PullRequest, trees: Trees, sides: Sides) -> ProofCase:
@@ -221,11 +269,6 @@ def _case(run: Run, pr: PullRequest, trees: Trees, sides: Sides) -> ProofCase:
 
 def _side(run: Run, target: Target, side: str, work: Path) -> dict[str, Path]:
     return fetch_side(run.github, run.repo, target.pr, side, work)
-
-
-def _variants(run: Run, decision: Decision, code: tuple[str, str], work: Path) -> Sides:
-    prompt = variant_prompt(decision, *code)
-    return variant_files(work / "variants", prompt, run.spark)
 
 
 def _record(run: Run, target: Target, attempt: Attempt) -> Compiled:

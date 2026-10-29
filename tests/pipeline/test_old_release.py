@@ -80,7 +80,8 @@ def test_the_compile_stage_logs_each_prs_detected_release(tmp_path: Path) -> Non
     lines, _, _ = init(tmp_path, {"0.115.0": {}})
     start = lines.index("[4/5] compile  1 PRs with a verbatim rejected alternative")
     expected = "  #9 old release: 0.115.0 (last release before merge 2026-10-01)"
-    assert lines[start + 1] == expected
+    assert lines[start + 1].startswith("  warning: variants written by fake-spark")
+    assert lines[start + 2] == expected
 
 
 def test_a_release_tagged_after_the_merge_is_never_the_old_release(
@@ -106,15 +107,23 @@ def test_cli_old_ref_reaches_init(
     seen: list[str | None] = []
 
     def fake_init(
-        *args: object, old_ref: str | None = None, second: object = None
+        *args: object,
+        old_ref: str | None = None,
+        second: object = None,
+        adversary: object = None,
     ) -> None:
         seen.append(old_ref)
 
     monkeypatch.setattr(cli, "live_clients", no_clients)
+    monkeypatch.setattr(cli, "adversary_client", no_adversary)
     monkeypatch.setattr(cli, "run_init", fake_init)
     args = ["init", "--repo", "acme/widgets", "--out", str(tmp_path)]
     assert cli.main(args) == 0 and cli.main([*args, "--old-ref", "0.114.0"]) == 0
     assert seen == [None, "0.114.0"]
+
+
+def no_adversary(extractor: str, adversary: str | None) -> None:
+    return None
 
 
 def no_clients(extractor: str) -> tuple[None, None]:

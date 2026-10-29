@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from knack.contracts.models import Root
+from knack.pipeline.heldout import HeldOut
 from knack.pipeline.models import Compiled, Extraction, ExtractStage, Selection
 
 
@@ -88,3 +89,21 @@ def _written_text(written: list[Root], corroborating: bool) -> str:
 
 def _counted(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def adversary_line(compiler: str, adversary: str) -> str:
+    # Variants from the compiler's own model only test it against its own ideas.
+    if adversary == compiler:
+        own = f"variants written by {compiler}, the compiler itself"
+        return f"  warning: {own}; no cross-model adversary"
+    return f"  adversary: {adversary} writes variants, {compiler} compiles"
+
+
+def heldout_line(number: int, heldout: HeldOut) -> str:
+    # Indented under the rule's outcome line; a set that could not run says so.
+    if heldout.error is not None:
+        return f"  #{number} held-out: not run ({heldout.error})"
+    caught = f"{heldout.caught}/{heldout.violations} violations caught"
+    allowed = f"{heldout.allowed}/{heldout.compliant} compliant allowed"
+    verdict = "pass" if heldout.passed else "fail"
+    return f"  #{number} held-out by {heldout.author}: {caught}, {allowed} ({verdict})"

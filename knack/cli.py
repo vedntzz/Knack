@@ -12,6 +12,7 @@ from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
 from knack.pipeline.clients import (
+    adversary_client,
     DEFAULT_EXTRACTOR,
     EXTRACTORS,
     live_clients,
@@ -47,7 +48,11 @@ REPO_PATTERN = re.compile(r"[\w.-]+/[\w.-]+")
 DEFAULT_PRS = 50
 OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
 CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too"
-Extractors = tuple[GitHubApi, Spark, Spark | None]
+ADVERSARY_HELP = (
+    "model that writes variants; defaults to the other extractor if its key is set"
+)
+# github, compiler, corroborating partner, variant writer.
+Extractors = tuple[GitHubApi, Spark, Spark | None, Spark | None]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -99,10 +104,16 @@ def _add_init_arguments(init: argparse.ArgumentParser) -> None:
     init.add_argument("--repo", type=_owner_name, required=True)
     init.add_argument("--prs", type=int, default=DEFAULT_PRS)
     init.add_argument("--out", type=Path)
+    _add_model_arguments(init)
+    init.add_argument("--old-ref", help=OLD_REF_HELP)
+
+
+def _add_model_arguments(init: argparse.ArgumentParser) -> None:
+    # Which model extracts and compiles, which corroborates, which writes variants.
     choices, default = list(EXTRACTORS), DEFAULT_EXTRACTOR
     init.add_argument("--extractor", choices=choices, default=default)
-    init.add_argument("--old-ref", help=OLD_REF_HELP)
     init.add_argument("--corroborate", action="store_true", help=CORROBORATE_HELP)
+    init.add_argument("--adversary", choices=choices, help=ADVERSARY_HELP)
 
 
 def _owner_name(value: str) -> str:
@@ -113,13 +124,13 @@ def _owner_name(value: str) -> str:
 
 
 def _init_command(args: argparse.Namespace) -> int:
-    clients = _clients_or_explain(args.extractor, args.corroborate)
+    clients = _clients_or_explain(args)
     if clients is None:
         return 2
-    out, (github, spark, second) = args.out or home_registry_dir(args.repo), clients
-    repo, ref = args.repo, args.old_ref
-    init = partial(run_init, repo, args.prs, out, github, spark)
-    return _run_or_explain(partial(init, old_ref=ref, second=second))
+    github, spark, second, adversary = clients
+    out, ref = args.out or home_registry_dir(args.repo), args.old_ref
+    init = partial(run_init, args.repo, args.prs, out, github, spark, old_ref=ref)
+    return _run_or_explain(partial(init, second=second, adversary=adversary))
 
 
 def _run_or_explain(init: Callable[[], Path]) -> int:
@@ -132,11 +143,12 @@ def _run_or_explain(init: Callable[[], Path]) -> int:
     return 0
 
 
-def _clients_or_explain(extractor: str, corroborate: bool) -> Extractors | None:
+def _clients_or_explain(args: argparse.Namespace) -> Extractors | None:
     # Missing tokens are operator error: a message and exit 2, no traceback.
     try:
-        github, spark = live_clients(extractor)
-        return github, spark, partner_client(extractor) if corroborate else None
+        github, spark = live_clients(args.extractor)
+        second = partner_client(args.extractor) if args.corroborate else None
+        return github, spark, second, adversary_client(args.extractor, args.adversary)
     except MissingCredentials as error:
         print(f"knack init: {error}", file=sys.stderr)
         return None
