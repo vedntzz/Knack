@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15139-1",
+  "title": "⬆️ Increase lower bound to `pydantic >=2.9.0.` and fix the test suite",
+  "decision": "fix these tests instead, allowing multiple versions of the schema",
+  "why": "Bumping to lower bound 2.11 feels a bit much right now",
+  "decided_by": "svlandeg",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15139",
+  "quote": "Bumping to lower bound 2.11 feels a bit much right now, so I've opted to fix these tests instead, allowing multiple versions of the schema.",
+  "status": "Inferred",
+  "rejected_alternative": "Bumping to lower bound 2.11",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

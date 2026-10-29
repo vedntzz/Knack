@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15937-1",
+  "title": "🐛 Fix `status_code` being ignored for SSE and JSONL streaming endpoints",
+  "decision": "Apply the same `_build_response_args()` path to the SSE and JSONL branches",
+  "why": "SSE and JSONL streaming endpoints ignore declared and dependency-set status codes while raw streaming already handles both via `_build_response_args()`, and default behavior is unchanged because the temporary response starts with status_code = None",
+  "decided_by": "SAURABHSALVE",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15937",
+  "quote": "instead of introducing new logic.",
+  "status": "Inferred",
+  "rejected_alternative": "introducing new logic",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

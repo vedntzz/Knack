@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15967-2",
+  "title": "📝 Fix links in docs",
+  "decision": "Get this one in and check the other two links later",
+  "why": "to get this one in now and check later",
+  "decided_by": "tiangolo",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15967",
+  "quote": "**2 more links to fix:**",
+  "status": "Inferred",
+  "rejected_alternative": "2 more links to fix",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

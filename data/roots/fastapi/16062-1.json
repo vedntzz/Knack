@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-16062-1",
+  "title": "♻️ Update the lru_cache limit for dependencies to account for large apps",
+  "decision": "Update the lru_cache limit for dependencies to account for large apps",
+  "why": "Some users reported a number of dependencies larger than 1024, this should account for larger apps.",
+  "decided_by": "tiangolo",
+  "source_url": "https://github.com/fastapi/fastapi/pull/16062",
+  "quote": "I'll wait to see if anyone requests an even larger bump, for now this should work.",
+  "status": "Inferred",
+  "rejected_alternative": "an even larger bump",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

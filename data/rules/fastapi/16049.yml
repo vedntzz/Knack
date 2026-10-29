@@ -1,0 +1,21 @@
+id: fastapi-16049
+language: python
+severity: error
+message: Dependant must stay plain data, use helper functions instead of cached attributes.
+rule:
+  any:
+    - pattern: $O.oauth_scopes
+    - pattern: $O.cache_key
+    - pattern: $O._uses_scopes
+    - pattern: $O._is_security_scheme
+    - pattern: $O._security_scheme
+    - pattern: $O._security_dependencies
+    - pattern: $O.is_gen_callable
+    - pattern: $O.is_async_gen_callable
+    - pattern: $O.is_coroutine_callable
+    - pattern: $O.computed_scope
+    - all:
+        - pattern: "@cached_property\ndef $F($$$):\n  $$$"
+        - inside:
+            stopBy: end
+            pattern: "class Dependant:\n  $$$"

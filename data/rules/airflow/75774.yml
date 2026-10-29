@@ -1,79 +1,20 @@
 id: airflow-75774
 language: python
 severity: error
-message: MSGraphSensor must record sensor_started_at on first execute and carry it through re-defers with remaining timeout, raising AirflowSensorTimeout past deadline
+message: Carry sensor start time through re-defers with remaining timeout instead of sliding or missing deadline.
 rule:
-  any:
-    - all:
-        - pattern: self.defer($$$)
-        - inside:
-            pattern: |-
-              class MSGraphSensor($$$):
-                $$$
-            stopBy: end
+  all:
+    - pattern: self.defer($$$)
+    - not:
+        pattern: self.defer($$$, kwargs=$K, $$$)
+    - any:
         - has:
+            stopBy: end
             pattern: MSGraphTrigger($$$)
-            stopBy: end
-        - not:
-            has:
-              regex: sensor_started_at
-              stopBy: end
-    - all:
-        - pattern: self.defer($$$)
-        - inside:
-            pattern: |-
-              class MSGraphSensor($$$):
-                $$$
-            stopBy: end
         - has:
+            stopBy: end
             pattern: TimeDeltaTrigger($$$)
-            stopBy: end
-        - not:
-            has:
-              regex: sensor_started_at
-              stopBy: end
-    - all:
-        - pattern: self.defer($$$)
-        - inside:
-            pattern: |-
-              class MSGraphSensor($$$):
-                $$$
-            stopBy: end
-        - has:
-            pattern: TimeDeltaTrigger($$$)
-            stopBy: end
-        - has:
-            regex: self\.timeout
-            stopBy: end
-    - all:
-        - pattern: self.defer($$$)
-        - inside:
-            pattern: |-
-              class MSGraphSensor($$$):
-                $$$
-            stopBy: end
-        - has:
-            pattern: TimeDeltaTrigger($$$)
-            stopBy: end
-        - not:
-            pattern: self.defer($$$, timeout=$TIMEOUT, $$$)
-    - all:
-        - pattern: self.defer($$$)
-        - inside:
-            pattern: |-
-              class MSGraphSensor($$$):
-                $$$
-            stopBy: end
-        - has:
-            pattern: MSGraphTrigger($$$)
-            stopBy: end
-        - not:
-            pattern: self.defer($$$, timeout=$TIMEOUT, $$$)
-    - all:
-        - pattern: |-
-            class MSGraphSensor($$$):
-              $$$
-        - not:
-            has:
-              regex: AirflowSensorTimeout
-              stopBy: end
+    - inside:
+        stopBy: end
+        kind: class_definition
+        regex: MSGraphSensor

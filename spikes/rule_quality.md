@@ -43,6 +43,42 @@ reads, no extra columns as sort keys), the compiler writes a structural rule.
 When it says *use the thing this PR added*, the compiler anchors on the PR's
 new names. That rule passes the PR's own head and does not generalize.
 
+## Rule of thumb: a Confirmed rule has 0 false positives on every check
+
+A rule backed by a Confirmed root blocks, so it must allow every compliant
+file on every check: the PR's head, `main`, the held-out branch, the old
+release, and the same-model and cross-model compliant variants. Generality
+comes second. A memorized rule with 0 false positives can back a Confirmed
+root. A general rule with even one false positive cannot, however many
+violations it catches.
+
+Applied to #75025 (root `airflow-75025-1`, Confirmed):
+
+| Rule | Cross-model held-out | False positives |
+|---|---|---|
+| `data/rules/airflow/75025.yml` (hand-repaired, installed) | 0/3 caught, 3/3 allowed | 0 (also 0 on v2-10-stable) |
+| `data/rules/airflow/75025.v4.yml` (v4, not installed) | 1/3 caught, 2/3 allowed | 1 compliant variant flagged |
+
+The v4 rule generalizes better but blocks a compliant file, so the installed
+rule stays the hand-repaired one. The registry does not load `75025.v4.yml`.
+
+Applied to #75774 (root `airflow-75774-1`, Confirmed): the installed v4 rule
+`data/rules/airflow/75774.yml` allows 3/3 cross-model compliant variants. On
+Airflow `v2-10-stable` (shallow clone at `12a124a`, 2025-02-24) it has 2 hits,
+both in `airflow/providers/microsoft/azure/sensors/msgraph.py`, and no other
+file matches:
+
+| Line | What matched | Compared with PR #75774 | Verdict |
+|---|---|---|---|
+| 109 | `execute()`: `self.defer(trigger=MSGraphTrigger(..., timeout=self.timeout, ...))`, no `timeout=` on the defer, no `sensor_started_at` | Same as base `execute()`; head defers with `sensor_started_at` and the remaining time, and stops passing the sensor timeout to the trigger | true violation, pre-decision |
+| 172 | `execute_complete()`: `self.defer(trigger=TimeDeltaTrigger(self.retry_delay), ...)`, no `timeout=`, no `sensor_started_at` | Older than base: base adds `timeout=timedelta(seconds=self.timeout)` (the rejected sliding timeout); v2-10 has no deadline at all (the rejected alternative of `airflow-75774-2`) | true violation, pre-decision |
+
+False positives: **0**, so the rule passes the rule of thumb and stays
+installed. The old rule's third hit (line 39, the class never raises
+`AirflowSensorTimeout`) is gone because v4 has no class-level check. That is
+one fewer true violation reported, not a false positive. The class is still
+flagged through both of its defers.
+
 ## Known limitation: #16049 matches `cache_key` by name
 
 The #16049 rule is a list of the 10 attribute names `Dependant` had in base

@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15967-1",
+  "title": "📝 Fix links in docs",
+  "decision": "Fix links in docs that return 404, point to incorrect content, or redirect, fixing only part of redirects",
+  "why": "Stopped to prevent the diff of this PR to become too big",
+  "decided_by": "YuriiMotov",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15967",
+  "quote": "Let me know if you prefer to fix them all.",
+  "status": "Inferred",
+  "rejected_alternative": "fix them all",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

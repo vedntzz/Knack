@@ -1,0 +1,25 @@
+id: fastapi-15515
+language: python
+severity: error
+message: Use _split_sse_lines that normalizes CRLF and lone CR to LF then splits on LF for SSE data and comment instead of splitlines() or Unicode line-break split.
+rule:
+  all:
+    - any:
+        - pattern: $X.splitlines($$$)
+        - pattern: re.split($$$)
+        - pattern: regex.split($$$)
+    - inside:
+        stopBy: end
+        all:
+          - kind: function_definition
+          - has:
+              stopBy: end
+              any:
+                - pattern: 'f"data: {$Y}"'
+                - pattern: "f'data: {$Y}'"
+                - pattern: 'f": {$Y}"'
+                - pattern: "f': {$Y}'"
+                - pattern: '"data: " + $Y'
+                - pattern: "'data: ' + $Y"
+                - pattern: '": " + $Y'
+                - pattern: "': ' + $Y"

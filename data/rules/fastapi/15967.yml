@@ -1,0 +1,18 @@
+id: fastapi-15967
+language: python
+severity: error
+message: Partial redirect fix only; do not enforce exhaustive fix-them-all canonicalization and avoid old www.starlette.dev applications link.
+rule:
+  any:
+    - all:
+        - kind: string
+        - regex: www\.starlette\.dev/applications/
+    - all:
+        - kind: string
+        - regex: fix them all
+    - all:
+        - kind: string
+        - regex: remaining redirects
+    - all:
+        - kind: string
+        - regex: every redirect must be canonicalized

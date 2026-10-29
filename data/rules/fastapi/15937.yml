@@ -1,0 +1,18 @@
+id: fastapi-15937
+language: python
+severity: error
+message: SSE and JSONL StreamingResponse must reuse _build_response_args() path instead of manual status handling
+rule:
+  all:
+    - pattern: StreamingResponse($$$)
+    - any:
+        - has:
+            stopBy: end
+            regex: text/event-stream
+        - has:
+            stopBy: end
+            regex: application/jsonl
+    - not:
+        has:
+          stopBy: end
+          regex: '[*][*]'
