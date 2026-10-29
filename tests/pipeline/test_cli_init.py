@@ -3,14 +3,30 @@ from pathlib import Path
 import pytest
 from conftest import clean_tree, FakeGitHub, FakeSpark, STRUCTURAL
 from knack import cli
+from knack.contracts.models import Root
+from knack.pipeline import spark_open
 from knack.pipeline.clients import live_clients, MissingCredentials
+from knack.pipeline.spark import SparkApi
+from knack.pipeline.spark_open import SparkOpenApi
 from knack.walk.registry import load_registry
 
 
+class FakeSparkOpen(FakeSpark):
+    model = spark_open.MODEL
+
+
 @pytest.fixture
-def fakes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    pair = (FakeGitHub(clean_tree(tmp_path)), FakeSpark([STRUCTURAL]))
-    monkeypatch.setattr(cli, "live_clients", lambda: pair)
+def fakes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> list[str]:
+    # Records the extractor asked for; spark-open answers under its own model id.
+    asked: list[str] = []
+
+    def clients(extractor: str) -> tuple[FakeGitHub, FakeSpark]:
+        asked.append(extractor)
+        spark = FakeSparkOpen if extractor == "spark-open" else FakeSpark
+        return FakeGitHub(clean_tree(tmp_path)), spark([STRUCTURAL])
+
+    monkeypatch.setattr(cli, "live_clients", clients)
+    return asked
 
 
 @pytest.mark.usefixtures("fakes")
@@ -65,3 +81,54 @@ def test_missing_credentials_exit_2_with_a_message(
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     assert cli.main(["init", "--repo", "acme/widgets"]) == 2
     assert "MODEL_API_KEY" in capsys.readouterr().err
+
+
+def test_init_extracts_with_spark_by_default(fakes: list[str], tmp_path: Path) -> None:
+    assert (
+        cli.main(["init", "--repo", "acme/widgets", "--out", str(tmp_path / "r")]) == 0
+    )
+    assert fakes == ["spark"]
+
+
+def test_spark_open_roots_record_the_spark_open_model(
+    fakes: list[str], tmp_path: Path
+) -> None:
+    args = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "r")]
+    assert cli.main([*args, "--extractor", "spark-open"]) == 0
+    roots = (tmp_path / "r" / "roots").glob("*.json")
+    models = {Root.model_validate_json(path.read_text()).model for path in roots}
+    assert fakes == ["spark-open"] and models == {spark_open.MODEL}
+
+
+def test_an_unknown_extractor_is_a_usage_error() -> None:
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["init", "--repo", "acme/widgets", "--extractor", "gpt"])
+    assert raised.value.code == 2
+
+
+def test_live_clients_default_to_spark(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+    monkeypatch.setenv("MODEL_API_KEY", "k")
+    assert isinstance(live_clients()[1], SparkApi)
+
+
+def test_spark_open_clients_use_the_baseten_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    monkeypatch.setenv("BASETEN_API_KEY", "b")
+    spark = live_clients("spark-open")[1]
+    assert (
+        isinstance(spark, SparkOpenApi) and spark.headers["Authorization"] == "Bearer b"
+    )
+
+
+def test_spark_open_without_the_baseten_key_exits_2(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    args = ["init", "--repo", "acme/widgets", "--extractor", "spark-open"]
+    assert cli.main(args) == 2
+    assert "BASETEN_API_KEY" in capsys.readouterr().err

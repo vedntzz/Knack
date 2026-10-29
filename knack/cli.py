@@ -11,10 +11,15 @@ from pydantic import ValidationError
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
-from knack.pipeline.clients import live_clients, MissingCredentials
+from knack.pipeline.clients import (
+    DEFAULT_EXTRACTOR,
+    EXTRACTORS,
+    live_clients,
+    MissingCredentials,
+)
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import run_init
-from knack.pipeline.spark import SparkApi
+from knack.pipeline.ports import Spark
 from knack.roots.correct import (
     confirm_root,
     CorrectionError,
@@ -90,6 +95,8 @@ def _add_init_arguments(init: argparse.ArgumentParser) -> None:
     init.add_argument("--repo", type=_owner_name, required=True)
     init.add_argument("--prs", type=int, default=DEFAULT_PRS)
     init.add_argument("--out", type=Path)
+    choices, default = list(EXTRACTORS), DEFAULT_EXTRACTOR
+    init.add_argument("--extractor", choices=choices, default=default)
 
 
 def _owner_name(value: str) -> str:
@@ -100,17 +107,17 @@ def _owner_name(value: str) -> str:
 
 
 def _init_command(args: argparse.Namespace) -> int:
-    clients = _clients_or_explain()
+    clients = _clients_or_explain(args.extractor)
     if clients is None:
         return 2
     run_init(args.repo, args.prs, args.out or home_registry_dir(args.repo), *clients)
     return 0
 
 
-def _clients_or_explain() -> tuple[GitHubApi, SparkApi] | None:
+def _clients_or_explain(extractor: str) -> tuple[GitHubApi, Spark] | None:
     # Missing tokens are operator error: a message and exit 2, no traceback.
     try:
-        return live_clients()
+        return live_clients(extractor)
     except MissingCredentials as error:
         print(f"knack init: {error}", file=sys.stderr)
         return None

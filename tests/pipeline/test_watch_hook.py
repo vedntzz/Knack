@@ -20,7 +20,7 @@ from knack.watch.state import read_seen, write_seen
 from test_watch_run import head, write_registry
 
 Spawned = list[tuple[list[str], Path, Path]]
-# Verbatim PostToolBatch stdin from muse exec; ptb_shell.json is line 2 with a shell call.
+# Verbatim PostToolBatch stdin from muse exec; ptb_shell.json is its bash call batch.
 FIXTURES = Path(__file__).parent / "fixtures"
 
 

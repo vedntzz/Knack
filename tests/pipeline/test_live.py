@@ -3,12 +3,13 @@ from pathlib import Path
 
 import pytest
 from knack.contracts.models import Root
-from knack.pipeline.clients import live_clients
+from knack.pipeline.clients import EXTRACTORS, live_clients
 from knack.pipeline.extract import extract_pr
 from knack.pipeline.github import API, GitHubApi, summary_from_item
 from knack.pipeline.http import request_json
 from knack.pipeline.init import run_init
 from knack.pipeline.models import Extraction, PullRequest
+from knack.pipeline.ports import Spark
 from knack.pipeline.roots import roots_for
 from knack.roots.corrections import Correction, few_shot_block
 from knack.walk.registry import load_registry
@@ -74,3 +75,53 @@ def test_live_rejected_root_is_not_extracted_again() -> None:
     print(f"#{pr.number}: {verbatim_quotes(first)} -> {verbatim_quotes(again)}")
     assert again.decisions != first.decisions
     assert root.quote not in verbatim_quotes(again)
+
+
+def rejected_alternatives(roots: list[Root]) -> list[str]:
+    return [f"{root.rejected_alternative!r} quoting {root.quote!r}" for root in roots]
+
+
+def agreement_report(by_model: dict[str, list[Root]]) -> str:
+    # Agreement is on the rejected alternative; each model may cut its quote differently.
+    lines = [model_line(model, roots) for model, roots in by_model.items()]
+    first, *rest = [alternatives(roots) for roots in by_model.values()]
+    shared = first.intersection(*rest)
+    verdict = f"yes, {sorted(shared)}" if shared else "no"
+    lines += [f"same rejected alternative: {verdict}", quote_note(by_model)]
+    return "\n".join(lines)
+
+
+def model_line(model: str, roots: list[Root]) -> str:
+    return f"#{REJECTION_PR} {model}: {rejected_alternatives(roots)}"
+
+
+def alternatives(roots: list[Root]) -> set[str]:
+    return {(root.rejected_alternative or "").strip().lower() for root in roots}
+
+
+def quote_note(by_model: dict[str, list[Root]]) -> str:
+    # Overlap means one model's verbatim quote sits inside the other's.
+    first, *rest = [[root.quote for root in roots] for roots in by_model.values()]
+    pairs = [(a, b) for other in rest for a in first for b in other]
+    overlap = any(a in b or b in a for a, b in pairs)
+    return f"quotes overlap: {'yes' if overlap else 'no'}"
+
+
+@pytest.mark.skipif(
+    not os.environ.get("BASETEN_API_KEY"), reason="needs BASETEN_API_KEY"
+)
+def test_live_spark_and_spark_open_extract_the_same_pr() -> None:
+    # One pinned PR through each extractor; reports, never asserts, whether they agree.
+    github = live_clients()[0]
+    pr, sparks = pinned_pr(github), [live_clients(name)[1] for name in EXTRACTORS]
+    by_model = {spark.model: extracted_roots(github, spark, pr) for spark in sparks}
+    print(agreement_report(by_model))
+    assert list(by_model) == ["muse-spark-1.3", "meta-models/muse-spark-open-1026"]
+    assert all(
+        root.model == model for model, roots in by_model.items() for root in roots
+    )
+
+
+def extracted_roots(github: GitHubApi, spark: Spark, pr: PullRequest) -> list[Root]:
+    extraction = extract_pr(github, spark, REJECTION_REPO, pr)
+    return roots_for(REJECTION_REPO, extraction, spark.model)
