@@ -1,0 +1,10 @@
+id: compiled-rule
+language: python
+severity: error
+message: SSE and JSONL branches must reuse _build_response_args() for status codes like raw streaming does.
+rule:
+  all:
+    - pattern: 'StreamingResponse($$$)'
+    - regex: 'text/event-stream|application/jsonl'
+    - not:
+        regex: 'response_args'

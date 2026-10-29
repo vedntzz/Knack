@@ -1,0 +1,1274 @@
+[
+  {
+    "number": 16453,
+    "title": "\ud83d\udd28 Use `gpt-6-astra` model for translations",
+    "author": "YuriiMotov",
+    "merged_at": "2026-10-02T10:23:28Z",
+    "base_sha": "80bb4b2386e936a5b3df667b726abd25bfa8c50c",
+    "head_sha": "9579674096d605f16fdaf4b466b26f8f6e08c07c",
+    "changed_files": [
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16447,
+    "title": "\u2b06 Bump the python-packages group across 1 directory with 14 updates",
+    "author": "dependabot[bot]",
+    "merged_at": "2026-10-02T09:19:17Z",
+    "base_sha": "28a206107302ee20ce6a9a876d05a258c1c8d328",
+    "head_sha": "12a5cb553fcebea661dfcd15c39113d3d28b30bc",
+    "changed_files": [
+      {
+        "filename": "fastapi/.agents/skills/fastapi/references/dependencies.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/.agents/skills/fastapi/references/streaming.md",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16285,
+    "title": "\u2b06 Bump the python-packages group across 1 directory with 15 updates",
+    "author": "dependabot[bot]",
+    "merged_at": "2026-09-01T20:59:51Z",
+    "base_sha": "965b72225a4822653359a3120f4722d7ee75a475",
+    "head_sha": "41207b444d3054a66642315b21b1e010b4bf6307",
+    "changed_files": [
+      {
+        "filename": "fastapi/cli.py",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16216,
+    "title": "\u23ea\ufe0f Restore `commit_in_place` input in `translate.yml`",
+    "author": "YuriiMotov",
+    "merged_at": "2026-08-17T19:20:03Z",
+    "base_sha": "a1fa70d4237d50aae6586a0d9b229df583463d21",
+    "head_sha": "40c91720fa5e732a02e845085033c547ddb54f98",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/translate.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16168,
+    "title": "\ud83d\udd10 Use PR Submit for translations",
+    "author": "tiangolo",
+    "merged_at": "2026-08-09T07:40:24Z",
+    "base_sha": "3abff4ec72355d9d816e60ffa6650e2c1a7ab284",
+    "head_sha": "1a4fce0896dc797cc61f5dbf392e22b6d38b2fb0",
+    "changed_files": [
+      {
+        "filename": ".github/pr-submit.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/translate.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16105,
+    "title": "\ud83d\udc1b Fix support for background tasks and headers from dependencies in `app.frontend()`",
+    "author": "tiangolo",
+    "merged_at": "2026-07-29T17:04:36Z",
+    "base_sha": "1d211b9c1009d577f39fa2b19b10d9a93a72a0ed",
+    "head_sha": "4cc32869cd52574eeb631cf4c257822ce6b0be8f",
+    "changed_files": [
+      {
+        "filename": "docs/en/docs/tutorial/frontend.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_frontend.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16102,
+    "title": "\u2728 Add `app.frontend(check_dir=\"auto\")`, to make local development more convenient with `fastapi dev`",
+    "author": "tiangolo",
+    "merged_at": "2026-07-29T14:31:29Z",
+    "base_sha": "628663f4f899c465da423bce681c7adf9a218948",
+    "head_sha": "7abcdfbb09d4d276f06f694dce068d6db3669cbd",
+    "changed_files": [
+      {
+        "filename": "docs/en/docs/tutorial/frontend.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/applications.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_frontend.py",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15937,
+    "title": "\ud83d\udc1b Fix `status_code` being ignored for SSE and JSONL streaming endpoints",
+    "author": "SAURABHSALVE",
+    "merged_at": "2026-07-28T15:25:12Z",
+    "base_sha": "b1346bb142c8154950953255eea535e5a83d62eb",
+    "head_sha": "8938eda5e9841ea460c8447cfb6759fef3b4fc30",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_stream_status_code.py",
+        "status": "added"
+      }
+    ]
+  },
+  {
+    "number": 15613,
+    "title": "\ud83d\udcdd Fix `format_sse_event` docstring rendering of `\\n\\n` terminator",
+    "author": "AshNicolus",
+    "merged_at": "2026-07-28T15:14:58Z",
+    "base_sha": "5f255058f448419ac5e175ecc597b2fc154e4ae8",
+    "head_sha": "4da32afcd0ad2c8ea2c23c543f4da4164a1f8683",
+    "changed_files": [
+      {
+        "filename": "fastapi/sse.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15515,
+    "title": "\ud83d\udc1b Fix line splitting in `format_sse_event` to comply with SSE spec",
+    "author": "Zawwarsami16",
+    "merged_at": "2026-07-28T14:54:54Z",
+    "base_sha": "31ce3cb8d73a6e20221315a90dd98a117f0101a0",
+    "head_sha": "871cfe7ea8cb922902ed9e140ec40db2722caf4a",
+    "changed_files": [
+      {
+        "filename": "fastapi/sse.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_sse.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15093,
+    "title": "\ud83d\udc1b Fix `response_model_*` params ignored for non-generator endpoints with `Iterable[..]` return type",
+    "author": "YuriiMotov",
+    "merged_at": "2026-07-28T14:22:06Z",
+    "base_sha": "584efa0981d9136512706d90d78e771842d589a5",
+    "head_sha": "680578ecdda574d633947b1810c3b679d1e5b156",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_skip_defaults.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 14874,
+    "title": "\ud83d\udc1b Fix handling sequences with nested Annotated types",
+    "author": "YuriiMotov",
+    "merged_at": "2026-07-28T14:04:16Z",
+    "base_sha": "d3cd6054e4b5500deb5af7bece94d66a7ce1a70a",
+    "head_sha": "a07ede237c7ed28fece1082635e59da98f4e98ab",
+    "changed_files": [
+      {
+        "filename": "fastapi/_compat/shared.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_nested_annotated_in_sequence.py",
+        "status": "added"
+      }
+    ]
+  },
+  {
+    "number": 16043,
+    "title": "\ud83d\udc1b Fix `exclude_defaults` not propagated to dict keys and values in `jsonable_encoder`",
+    "author": "MBGrao",
+    "merged_at": "2026-07-28T12:28:19Z",
+    "base_sha": "5e8b7f1cb5bf4a54ca8b9ff6f7dfce3c56cfe186",
+    "head_sha": "cc0fe856a426693faa750e29d1c3b73d61ec1130",
+    "changed_files": [
+      {
+        "filename": "fastapi/encoders.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_jsonable_encoder.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15077,
+    "title": "\ud83d\udc1b Fix stream item type lost when using `include_router()`",
+    "author": "alex-raw",
+    "merged_at": "2026-07-28T10:22:09Z",
+    "base_sha": "98b12fe56f97107e71a20fc1cf334ccfa590efb5",
+    "head_sha": "bdcff30ca261b51a364d8aa55f5c6bf071cce1fa",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_sse.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_stream_bare_type.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16076,
+    "title": "\u26a1\ufe0f Avoid flattening dependencies for OpenAPI",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T17:16:40Z",
+    "base_sha": "87095aa581bdd0439c68ac0ec8744f1cb6e0b8df",
+    "head_sha": "b8fe0f93c3d5986fe60ad551e3839c5d267a8d20",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/models.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/openapi/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_dependency_models.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16073,
+    "title": "\u26a1\ufe0f Avoid flattening dependencies for request parameters, mainly for OpenAPI",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T16:17:33Z",
+    "base_sha": "ac068db630b6447a90d89ae43695fc8900a3c0e6",
+    "head_sha": "ab88cd3f68a76b54bc142a2f7c21c0134fe65af2",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16071,
+    "title": "\u26a1\ufe0f Avoid flattening dependencies for body fields",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T15:52:55Z",
+    "base_sha": "7ac0f1b541b8df5921b45486a5c72a49965d00af",
+    "head_sha": "58a2c87aac368fc56713bf49610984c113013ab0",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16069,
+    "title": "\u26a1\ufe0f Skip unused dependency repeat bookkeeping",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T15:35:29Z",
+    "base_sha": "415d37fa6f5cbd2b44dabb71a443d21ff21507b2",
+    "head_sha": "8630c0209ca23751bcdd25aad3e07b8ee3cc1dac",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16067,
+    "title": "\u26a1\ufe0f Avoid repeated dependency flattening in OpenAPI",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T15:08:45Z",
+    "base_sha": "051dfeddcc1531037e23f928197a553c8732090c",
+    "head_sha": "0eb19d6567cde6409af4dcaaf5cfa125fcb5b4f7",
+    "changed_files": [
+      {
+        "filename": "fastapi/openapi/utils.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16065,
+    "title": "\u26a1\ufe0f Stop retaining flat dependency trees",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T14:06:32Z",
+    "base_sha": "2b4349d6c24326665423ce6819b402f0267cb9b9",
+    "head_sha": "485a49bae87db19e7895572e1a5fa9163797a97f",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16062,
+    "title": "\u267b\ufe0f Update the lru_cache limit for dependencies to account for large apps",
+    "author": "tiangolo",
+    "merged_at": "2026-07-27T11:18:26Z",
+    "base_sha": "255b912928904e3ba5980425a54d6837c8bd1a1c",
+    "head_sha": "d7d262b21590f1618907d6aa18317d04e853e43d",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/models.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_dependency_models.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16049,
+    "title": "\u26a1\ufe0f Reduce memory usage in dependencies",
+    "author": "tiangolo",
+    "merged_at": "2026-07-24T21:07:52Z",
+    "base_sha": "ae031be7b5a2df589f63f4d25389cf07b7b8fc86",
+    "head_sha": "0b81a548eab6b22848134261bdd45103257eeaa4",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/models.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/openapi/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_dependency_models.py",
+        "status": "added"
+      }
+    ]
+  },
+  {
+    "number": 15967,
+    "title": "\ud83d\udcdd Fix links in docs",
+    "author": "YuriiMotov",
+    "merged_at": "2026-07-24T20:29:32Z",
+    "base_sha": "513c396322664bcb3bdcb3946c440a8ed8ef080b",
+    "head_sha": "0168d7d5e6cca46e3238c670b506e41546706b49",
+    "changed_files": [
+      {
+        "filename": "README.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/data/sponsors.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/additional-responses.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/behind-a-proxy.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/dataclasses.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/events.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/generate-clients.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/middleware.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/openapi-callbacks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/response-cookies.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/response-headers.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/settings.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/templates.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/testing-events.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/testing-websockets.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/using-request-directly.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/advanced/websockets.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/alternatives.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/deployment/docker.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/deployment/manually.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/fastapi-cli.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/features.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/help-fastapi.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/history-design-future.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/how-to/custom-request-and-route.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/how-to/extending-openapi.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/how-to/graphql.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/how-to/migrate-from-pydantic-v1-to-pydantic-v2.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/index.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/project-generation.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/python-types.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/release-notes.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/background-tasks.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/body-nested-models.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/body.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/extra-data-types.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/extra-models.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/first-steps.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/handling-errors.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/middleware.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/path-params.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/query-params-str-validations.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/response-model.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/schema-extra-example.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/static-files.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/tutorial/testing.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/mkdocs.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/applications.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16046,
+    "title": "\ud83d\udc77 Add CI memory benchmark",
+    "author": "tiangolo",
+    "merged_at": "2026-07-24T20:21:58Z",
+    "base_sha": "a64dfbbd21a445288ff583d58e1f646fe6baf3af",
+    "head_sha": "6674d45c2ddf119b97db30f74c22ddb345a8951f",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/test.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/memory_benchmarks/__init__.py",
+        "status": "added"
+      },
+      {
+        "filename": "tests/memory_benchmarks/test_dependency_graph.py",
+        "status": "added"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16016,
+    "title": "\ud83d\udd25 Remove now-obsolete scripts to generate data for FastAPI People",
+    "author": "tiangolo",
+    "merged_at": "2026-07-16T18:38:36Z",
+    "base_sha": "efcf8a183026edb97e342ee3fb38a0a3416798ac",
+    "head_sha": "58c64d23e3d975cae5d5bb4fa72cd4c518f2fe7b",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/contributors.yml",
+        "status": "removed"
+      },
+      {
+        "filename": ".github/workflows/people.yml",
+        "status": "removed"
+      },
+      {
+        "filename": "scripts/contributors.py",
+        "status": "removed"
+      },
+      {
+        "filename": "scripts/people.py",
+        "status": "removed"
+      }
+    ]
+  },
+  {
+    "number": 16013,
+    "title": "\ud83d\udc1b Refactor router route building to make it thread-safe, mainly relevant for tests running in parallel threads (uncommon)",
+    "author": "tiangolo",
+    "merged_at": "2026-07-16T14:57:38Z",
+    "base_sha": "c48e67b1ce9c03fc9bd4b1ac72350e51ad5a6e8a",
+    "head_sha": "9f919ffac33a0601d4ec5b510111eddd2291dd64",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_router_include_context.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 16011,
+    "title": "\ud83d\udc1b Fix frontend fallback support for doted paths like `/users/john.doe`",
+    "author": "tiangolo",
+    "merged_at": "2026-07-16T08:59:24Z",
+    "base_sha": "9b8410bdc9fa1fd679ea7e65b926535c7045ab87",
+    "head_sha": "c2e9c94014bb54a6e3c14db1b4db378829ed4fdd",
+    "changed_files": [
+      {
+        "filename": "docs/en/docs/tutorial/frontend.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_frontend.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15995,
+    "title": "\ud83d\udcdd Fix topic repository list not being displayed and `skip_users` not being applied",
+    "author": "YuriiMotov",
+    "merged_at": "2026-07-15T14:36:37Z",
+    "base_sha": "027f27220c3ba66be6c42c95a227389b19383645",
+    "head_sha": "82bbedd43ef63c572ff951a0ca0cd0a243316365",
+    "changed_files": [
+      {
+        "filename": "docs/en/data/skip_users.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/data/topic_repos.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/external-links.md",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/docs/fastapi-people.md",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/topic_repos.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15908,
+    "title": "\u2728 Support dependencies in `app.frontend()`, e.g. for automatic cookie authentication for the frontend",
+    "author": "tiangolo",
+    "merged_at": "2026-07-01T16:12:33Z",
+    "base_sha": "122f1b58f4e0fabfefef3710a8c8247bb2bd820b",
+    "head_sha": "191fff3114bd099a088da5b22cd21a6252247619",
+    "changed_files": [
+      {
+        "filename": "docs/en/docs/tutorial/frontend.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_frontend.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15863,
+    "title": "\u267b\ufe0f Make `app.frontend()` return 404 for methods other than `GET` or `HEAD` with no static file matches",
+    "author": "tiangolo",
+    "merged_at": "2026-06-29T11:57:59Z",
+    "base_sha": "c2708d981729c96437dcc1d7cfa40cd15128bc60",
+    "head_sha": "279e2983e86478589163c574d1a1a49d9e7264d0",
+    "changed_files": [
+      {
+        "filename": "docs/en/docs/tutorial/frontend.md",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_frontend.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15852,
+    "title": "\u267b\ufe0f Refactor how sponsors data is handled for banners",
+    "author": "tiangolo",
+    "merged_at": "2026-06-27T12:47:35Z",
+    "base_sha": "b90c49aefad4958abdfbcacf9c2f816940a8f0e2",
+    "head_sha": "a31fad8669379e342c9d0f989b15429b5a0e8082",
+    "changed_files": [
+      {
+        "filename": ".pre-commit-config.yaml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/data/sponsors.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/overrides/main.html",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/en/overrides/partials/banner-sponsors.html",
+        "status": "added"
+      },
+      {
+        "filename": "scripts/docs.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15804,
+    "title": "\ud83d\udc1b Fix failing test, update format for raised errors",
+    "author": "tiangolo",
+    "merged_at": "2026-06-20T00:51:31Z",
+    "base_sha": "7cb1ab6264bc03319832f553730b511192a0c0d3",
+    "head_sha": "5105637b63072b4c0768b734815503ec0cfdd0fb",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15554,
+    "title": "\ud83c\udf10 Enable Hindi docs translations",
+    "author": "YuriiMotov",
+    "merged_at": "2026-06-19T20:16:06Z",
+    "base_sha": "1b68e378eff63dd6e5f26bbcffea364618965d25",
+    "head_sha": "7b330dfd3c7dc920abbd1cf18f9f3184cec2271b",
+    "changed_files": [
+      {
+        "filename": "docs/en/mkdocs.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "docs/hi/docs/_llm-test.md",
+        "status": "added"
+      },
+      {
+        "filename": "docs/hi/docs/index.md",
+        "status": "added"
+      },
+      {
+        "filename": "docs/hi/docs/translation-banner.md",
+        "status": "added"
+      },
+      {
+        "filename": "docs/hi/llm-prompt.md",
+        "status": "added"
+      },
+      {
+        "filename": "docs/hi/mkdocs.yml",
+        "status": "added"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/docs.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15785,
+    "title": "\u2728 Add `iter_route_contexts()` for advanced use cases that used to use `router.routes` (e.g. Jupyverse)",
+    "author": "tiangolo",
+    "merged_at": "2026-06-18T06:49:39Z",
+    "base_sha": "202b2d2f5f331db9102b5dbcef071a9e09bed10e",
+    "head_sha": "cdd2b51c2258a7581279fff99b7f4a53a2660acf",
+    "changed_files": [
+      {
+        "filename": "fastapi/openapi/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_router_include_context.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15786,
+    "title": "\ud83d\udd28 Update sponsors script to simplify previews",
+    "author": "tiangolo",
+    "merged_at": "2026-06-17T20:36:25Z",
+    "base_sha": "202b2d2f5f331db9102b5dbcef071a9e09bed10e",
+    "head_sha": "34b688a0b68eca28c285bca1835b99b1933f121e",
+    "changed_files": [
+      {
+        "filename": "docs/en/data/sponsors.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/docs.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15765,
+    "title": "\ud83d\udea8 Fix typing checks for APIRoute",
+    "author": "tiangolo",
+    "merged_at": "2026-06-15T11:19:52Z",
+    "base_sha": "e0f8cadf094bb4cb7a21e7757333d5dfbae46712",
+    "head_sha": "b516ac70b9ba7e188e616431879651d295c3edfc",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15763,
+    "title": "\ud83d\udc1b Fix bug, allow empty path in path operation in prefixless router",
+    "author": "tiangolo",
+    "merged_at": "2026-06-15T10:55:06Z",
+    "base_sha": "9a9c4ad5d06f5fe8ee6775a5aeaa2f83c854f263",
+    "head_sha": "c66d2641b3e0ccc8fd58e166b6242f70df568b2d",
+    "changed_files": [
+      {
+        "filename": "fastapi/routing.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_router_include_context.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15661,
+    "title": "\ud83d\udc77 Automate release preparation",
+    "author": "tiangolo",
+    "merged_at": "2026-05-31T16:00:39Z",
+    "base_sha": "ee22a4b8ca46dcce26c8c183afc4992a888d8be2",
+    "head_sha": "7a9d4077e1409bc782395e35cd1194b8003b273f",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/create-draft-release.yml",
+        "status": "added"
+      },
+      {
+        "filename": ".github/workflows/labeler.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/latest-changes.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/prepare-release.yml",
+        "status": "added"
+      },
+      {
+        "filename": ".github/workflows/publish.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/prepare_release.py",
+        "status": "added"
+      },
+      {
+        "filename": "tests/test_prepare_release.py",
+        "status": "added"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15603,
+    "title": "\u2705 Add `httpx2` test dependency to avoid deprecation warning",
+    "author": "YuriiMotov",
+    "merged_at": "2026-05-27T10:47:28Z",
+    "base_sha": "6cbdde231589f14df19034e528f47216b52eb755",
+    "head_sha": "b2ffee59e21899299245d528b2646c1c524c1291",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/publish.yml",
+        "status": "modified"
+      },
+      {
+        "filename": ".github/workflows/test.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_tutorial/test_header_param_models/test_tutorial001.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_tutorial/test_header_param_models/test_tutorial003.py",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15589,
+    "title": "\u267b\ufe0f Do not accept underscore headers when using `convert_underscores=True` (the default)",
+    "author": "tiangolo",
+    "merged_at": "2026-05-23T18:35:06Z",
+    "base_sha": "22b02e26f9e8c7e32bd8266e2b0ebe8bb3a0db2b",
+    "head_sha": "20f9be2eebafcfb47a48e7e6aad51527b257cad4",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_query_cookie_header_model_extra_params.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15588,
+    "title": "\u267b\ufe0f Validate Server Sent Event fields to avoid applications from sending broken data",
+    "author": "tiangolo",
+    "merged_at": "2026-05-23T17:23:05Z",
+    "base_sha": "cb83b83dcf78eab4ea17d504db5abcda705fbdc4",
+    "head_sha": "1a39e2331c55f5baffd2fa0c5c56c32e1ce7b21b",
+    "changed_files": [
+      {
+        "filename": "fastapi/sse.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_sse.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15101,
+    "title": "\u2b06\ufe0f Update Pydantic v2 code to address deprecations",
+    "author": "svlandeg",
+    "merged_at": "2026-04-23T16:40:29Z",
+    "base_sha": "cbd64b09a32681d3b0ea097608bc62eb0d1587e0",
+    "head_sha": "e0e25685acdda24e2a36faf7d435c50295fe0807",
+    "changed_files": [
+      {
+        "filename": "fastapi/_compat/__init__.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/_compat/v2.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/encoders.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_jsonable_encoder.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15174,
+    "title": "\ud83d\udd28 Tweak translation script",
+    "author": "YuriiMotov",
+    "merged_at": "2026-04-23T16:35:43Z",
+    "base_sha": "2fa00db8581bb4e74b2d00d859c8469b6da296c4",
+    "head_sha": "1931046ba1512c156d05f2b87f1fa58d66d30095",
+    "changed_files": [
+      {
+        "filename": "scripts/general-llm-prompt.md",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15088,
+    "title": "\ud83d\udd28 Exclude spam comments from statistics in `scripts/people.py`",
+    "author": "YuriiMotov",
+    "merged_at": "2026-03-23T13:51:24Z",
+    "base_sha": "11614be9021aa4ac078d4d0693a8b5250a1010d8",
+    "head_sha": "3be85e8d1fd2d9b0866263bb28e301858044bac1",
+    "changed_files": [
+      {
+        "filename": "scripts/people.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15139,
+    "title": "\u2b06\ufe0f Increase lower bound to `pydantic >=2.9.0.` and fix the test suite",
+    "author": "svlandeg",
+    "merged_at": "2026-03-23T12:36:49Z",
+    "base_sha": "64feaec80244578bbdabe51e866bcfad1df8b708",
+    "head_sha": "cf6054db5b8c1e54fce36cd3f78c08eeded92934",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/test.yml",
+        "status": "modified"
+      },
+      {
+        "filename": "pyproject.toml",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_schema_compat_pydantic_v2.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_union_body_discriminator.py",
+        "status": "modified"
+      },
+      {
+        "filename": "uv.lock",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15166,
+    "title": "\ud83d\udd28 Tweak translation workflow and translation fixer tool",
+    "author": "YuriiMotov",
+    "merged_at": "2026-03-19T17:37:41Z",
+    "base_sha": "b707bb8a70dd4ef6eeffd3255a8c76a1504bd253",
+    "head_sha": "8712af9b01b8911cda5bf1253ae1059fddc6a4e6",
+    "changed_files": [
+      {
+        "filename": "scripts/doc_parsing_utils.py",
+        "status": "modified"
+      },
+      {
+        "filename": "scripts/translate.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 15116,
+    "title": "\ud83d\udcdd Fix duplicated words in docstrings",
+    "author": "AhsanSheraz",
+    "merged_at": "2026-03-16T10:16:48Z",
+    "base_sha": "eb6851dd4bdb90dd94ed0a804972f0ef72d3dc39",
+    "head_sha": "42acf9dc5f8ce6587db5e8cca8be4ddfe554c0f2",
+    "changed_files": [
+      {
+        "filename": "fastapi/security/http.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/security/oauth2.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/security/open_id_connect_url.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_pydanticv2_dataclasses_uuid_stringified_annotations.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 14986,
+    "title": "\u267b\ufe0f Refactor logic to handle OpenAPI and Swagger UI escaping data",
+    "author": "tiangolo",
+    "merged_at": "2026-02-24T09:28:10Z",
+    "base_sha": "2f9c914d440e99fe8b62646b51e4d24c5bcd858b",
+    "head_sha": "c167c04cf08737b963f78b9b366369d72d9c5206",
+    "changed_files": [
+      {
+        "filename": "fastapi/applications.py",
+        "status": "modified"
+      },
+      {
+        "filename": "fastapi/openapi/docs.py",
+        "status": "modified"
+      },
+      {
+        "filename": "tests/test_openapi_cache_root_path.py",
+        "status": "added"
+      },
+      {
+        "filename": "tests/test_swagger_ui_escape.py",
+        "status": "added"
+      }
+    ]
+  },
+  {
+    "number": 14951,
+    "title": "\ud83d\udd28 Fix `FastAPI People` workflow",
+    "author": "YuriiMotov",
+    "merged_at": "2026-02-23T11:44:47Z",
+    "base_sha": "282612437835fd1abbc37cf77c6f4e3bc76de557",
+    "head_sha": "28d13e964767e87f56291c598624ded5e9e01999",
+    "changed_files": [
+      {
+        "filename": "scripts/people.py",
+        "status": "modified"
+      }
+    ]
+  },
+  {
+    "number": 14884,
+    "title": "\u267b\ufe0f Simplify reading files in memory, do it sequentially instead of (fake) parallel",
+    "author": "tiangolo",
+    "merged_at": "2026-02-10T11:36:54Z",
+    "base_sha": "8bdb0d22423fdfbc4e12eee1baa339ffa960471d",
+    "head_sha": "e6f56e9fc4e683e2c66266067b329c75b169db70",
+    "changed_files": [
+      {
+        "filename": "fastapi/dependencies/utils.py",
+        "status": "modified"
+      }
+    ]
+  }
+]

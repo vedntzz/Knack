@@ -1,0 +1,32 @@
+id: compiled-rule
+language: python
+severity: error
+message: Forward exclude_defaults in dict branch key/value recursion; do not change include/exclude propagation there.
+rule:
+  any:
+    - all:
+        - pattern: jsonable_encoder($$$)
+        - inside:
+            stopBy: end
+            all:
+              - kind: if_statement
+              - regex: 'isinstance\(.*dict\)'
+        - inside:
+            stopBy: end
+            all:
+              - kind: function_definition
+              - regex: 'def jsonable_encoder'
+        - any:
+            - not:
+                regex: 'exclude_defaults'
+            - regex: '\binclude\s*='
+            - regex: '\bexclude\s*='
+    - all:
+        - kind: module
+        - has:
+            stopBy: end
+            regex: 'test_encode_model_with_default'
+        - not:
+            has:
+              stopBy: end
+              regex: 'test_encode_model_with_default_in_dict_and_list'
