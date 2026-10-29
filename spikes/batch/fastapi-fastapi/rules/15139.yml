@@ -1,0 +1,42 @@
+id: compiled-rule
+language: python
+severity: error
+message: Fix tests to allow multiple schema versions with IsOneOf instead of single-version snapshot; do not bump pydantic lower bound to 2.11.
+rule:
+  any:
+    - all:
+        - kind: call
+        - pattern: snapshot($$$ARGS)
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: PlatformRole
+        - not:
+            has:
+              stopBy: end
+              all:
+                - kind: call
+                - regex: IsOneOf
+    - all:
+        - kind: call
+        - pattern: snapshot($$$ARGS)
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: save_union_body_discriminator
+        - not:
+            has:
+              stopBy: end
+              all:
+                - kind: call
+                - regex: IsOneOf
+    - all:
+        - kind: string
+        - regex: '>=.*2\.11'
+        - inside:
+            stopBy: end
+            all:
+              - kind: module
+              - regex: '[Pp]ydantic'

@@ -1,0 +1,15 @@
+id: compiled-rule
+language: python
+severity: error
+message: Dependant must remain plain data, use module helper functions instead of cached attributes.
+rule:
+  any:
+    - all:
+        - kind: function_definition
+        - regex: 'def\s+(oauth_scopes|cache_key|_uses_scopes|_is_security_scheme|_security_scheme|_security_dependencies|is_gen_callable|is_async_gen_callable|is_coroutine_callable|computed_scope)\b'
+        - inside:
+            stopBy: end
+            pattern: 'class Dependant: $BODY'
+    - all:
+        - kind: attribute
+        - regex: '\.(oauth_scopes|cache_key|_uses_scopes|_is_security_scheme|_security_scheme|_security_dependencies|is_gen_callable|is_async_gen_callable|is_coroutine_callable|computed_scope)\b'
