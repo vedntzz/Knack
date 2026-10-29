@@ -107,6 +107,12 @@ def prove(rule_yaml: str, case: ProofCase) -> Proof:
     )
 
 
+def scan_sides(rule_yaml: str, sides: Sides) -> list[SideRow]:
+    # The given files only, no tree: the held-out check scores variants alone.
+    with _rule_file(rule_yaml) as rule_path:
+        return [_scan_row(rule_path, side, path) for side, path in _files(sides)]
+
+
 def passed(proof: Proof) -> bool:
     return not failed_checks(proof)
 

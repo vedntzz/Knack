@@ -15,9 +15,11 @@ def run_init(
     log: Log = print,
     old_ref: str | None = None,
     second: Spark | None = None,
+    adversary: Spark | None = None,
 ) -> Path:
     # select -> extract -> roots -> compile+prove -> install; merged like watch.
-    run = Run(github, spark, repo, out, log, old_ref=old_ref, second=second)
+    # No tree: init clones the default branch itself.
+    run = Run(github, spark, repo, out, log, None, old_ref, second, adversary)
     keep = existing_rules(out, repo)
     log(f"knack init {repo}")
     return finish(run, select_prs(github, repo, limit), keep=keep)

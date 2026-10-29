@@ -9,6 +9,8 @@ from knack.pipeline.models import Decision
 from knack.pipeline.ports import Spark
 
 PER_KIND = 3
+# Which model wrote each variant file, beside the files.
+AUTHORS = "authors.json"
 GENERATION_ATTEMPTS = 3
 # Verifier side -> file prefix.
 KINDS = {"variant-violation": "violation", "variant-compliant": "compliant"}
@@ -75,11 +77,17 @@ def generate_variants(
     return generate_variants(spark, prompt, tries - 1)
 
 
-def variant_files(out: Path, prompt: str, spark: Spark) -> Sides:
-    # Generated once per PR and cached, so every attempt is scored on the same variants.
-    if not any(out.glob("violation_*.py")):
-        _write_variants(out, generate_variants(spark, prompt))
+def variant_files(out: Path, prompt: str, writer: Spark) -> Sides:
+    # Cached per PR and writer, so every attempt is scored on the same variants.
+    if set(variant_authors(out).values()) != {writer.model}:
+        _write_variants(out, generate_variants(writer, prompt), writer.model)
     return {side: _saved(out, prefix) for side, prefix in KINDS.items()}
+
+
+def variant_authors(out: Path) -> dict[str, str]:
+    # Empty for a set saved before authors were recorded, so it is written again.
+    path = out / AUTHORS
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
 def _require_python(source: str) -> None:
@@ -94,9 +102,15 @@ def _saved(out: Path, prefix: str) -> dict[str, Path]:
     return {path.name: path for path in sorted(out.glob(f"{prefix}_*.py"))}
 
 
-def _write_variants(out: Path, variants: Variants) -> None:
+def _write_variants(out: Path, variants: Variants, author: str) -> None:
     out.mkdir(parents=True, exist_ok=True)
+    named = _named_modules(variants)
+    for name, source in named.items():
+        (out / name).write_text(source, encoding="utf-8")
+    authors = json.dumps({name: author for name in named}, indent=2)
+    (out / AUTHORS).write_text(authors + "\n", encoding="utf-8")
+
+
+def _named_modules(variants: Variants) -> dict[str, str]:
     kinds = {"violation": variants.violations, "compliant": variants.compliant}
-    for prefix, modules in kinds.items():
-        for i, source in enumerate(modules, 1):
-            (out / f"{prefix}_{i}.py").write_text(source, encoding="utf-8")
+    return {f"{k}_{i}.py": s for k, ms in kinds.items() for i, s in enumerate(ms, 1)}

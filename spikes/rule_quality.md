@@ -119,28 +119,62 @@ Logs: `heldout_run_{airflow,fastapi}.log`.
 | v3 rules | 3/12 (#74150, #15937, #16049) | — | — |
 | v4 attempt 1 (before any variant feedback) | 2/13 (#74150, #16049) | 10/39 | 36/39 |
 | **v4 final** | **8/10 rules, 8/13 PRs** | **23/30** | **28/30** |
+| **v4 final, cross-model held-out (Spark Open)** | **7/10 rules, 7/13 PRs** | **21/30** | **26/30** |
 
-| Rule | Held-out (caught, allowed) | |
-|---|---|---|
-| #75025 | 3/3, 3/3 | pass |
-| #75271 | 3/3, 3/3 | pass |
-| #75774 | 2/3, 3/3 | pass |
-| #14884 | 2/3, 3/3 | pass |
-| #15515 | 3/3, 3/3 | pass |
-| #15937 | 3/3, 3/3 | pass |
-| #16049 | 3/3, 3/3 | pass |
-| #16062 | 2/3, 3/3 | pass |
-| #15139 | 1/3, 3/3 | **fail**: memorized operation ids |
-| #15967 | 1/3, 1/3 | **fail**: memorized URL and variant strings |
-| #74150, #75734, #16043 | — | no rule |
+| Rule | Same-model held-out (caught, allowed) | | Cross-model held-out (caught, allowed) | |
+|---|---|---|---|---|
+| #75025 | 3/3, 3/3 | pass | 1/3, 2/3 | **fail**: flags a compliant list that names `"state"`/`"start_date"` only to filter them out |
+| #75271 | 3/3, 3/3 | pass | 3/3, 3/3 | pass |
+| #75774 | 2/3, 3/3 | pass | 3/3, 3/3 | pass |
+| #14884 | 2/3, 3/3 | pass | 3/3, 3/3 | pass |
+| #15515 | 3/3, 3/3 | pass | 2/3, 3/3 | pass |
+| #15937 | 3/3, 3/3 | pass | 1/3, 3/3 | **fail**: misses 2 of Spark Open's SSE/JSONL violations |
+| #16049 | 3/3, 3/3 | pass | 2/3, 3/3 | pass |
+| #16062 | 2/3, 3/3 | pass | 3/3, 3/3 | pass |
+| #15139 | 1/3, 3/3 | **fail**: memorized operation ids | 2/3, 3/3 | pass, but see below |
+| #15967 | 1/3, 1/3 | **fail**: memorized URL and variant strings | 1/3, 0/3 | **fail** |
+| #74150, #75734, #16043 | — | no rule | — | no rule |
 
 The held-out set is not easy. Rules from before the feedback pass 2–3 of
 12–13 on it. The final rules pass 8/10, so fitting to the training variants
 mostly carried over to an independent sample. The fit that didn't carry over
 is in the two memorized rules, and that is where it should fail.
 
+### Cross-model held-out (KN-28)
+
+A third set per PR (`src/<pr>/variants-heldout-cross/`) is written by Spark
+Open (`meta-models/muse-spark-open-1026`), not by Spark, which compiled the
+rules. Each set's `authors.json` records the model. The prompt is the same
+(diffed against the retired `batch_variants.py`: identical). The pass bar is
+the same as the same-model rows: ≥2/3 violations caught and 3/3 compliant
+allowed, scored by `knack.pipeline.heldout.score_heldout`. No rule was
+recompiled. Overlap with the same-model held-out set is 0/6 identical
+modules on every PR. Script: `spikes/heldout_cross.py`. Log:
+`heldout_cross_run.log`.
+
+**7/10 cross-model against 8/10 same-model.** The pass rate barely moves. The
+rules that fail are different:
+- #75025 and #15937 pass Spark's held-out set but fail Spark Open's. #75025's
+  rule flags `"state"`/`"start_date"` literals in a list with `SortParam`. Spark
+  Open's `compliant_3.py` writes those names into a candidate list and then
+  filters them out, and the rule flags that. It also misses 2 violations.
+  #15937 catches 1 of 3 violations.
+- #15139 fails Spark's held-out set but passes Spark Open's. It passes on the
+  memorized branch, not on generality. All 3 Spark Open violations carry a
+  `2.11` pydantic version string, and the rule's `>=…2.11` regex branch
+  matches it. The rule is still memorized. The adversary happened to write
+  the same literal.
+- #15967 fails both sets.
+
+So the cross-model check is not a stricter version of the same-model check.
+It finds a different set of weak rules (#75025, #15937). A rule that passes
+both sets is better supported than one that passes either. 6 of 10 pass
+both: #75271, #75774, #14884, #15515, #16049 and #16062.
+
 Limits:
-- Both sets come from the same model and prompt. They measure generality
+- Spark and Spark Open are both Muse models, and every set uses one prompt.
+  "Cross-model" here does not mean another vendor.
+- The two same-model sets come from the same model and prompt. They measure generality
   within Spark's idea of the violation, not against code people actually
   write.
 - #16049 passes held-out 3/3, 3/3 and still gives 9 FPs on fastapi 0.115.0.

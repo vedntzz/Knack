@@ -1,6 +1,12 @@
 from knack.contracts.models import DecisionStatus, Root
+from knack.pipeline.heldout import HeldOut
 from knack.pipeline.models import Alternative, Decision, Extraction
-from knack.pipeline.progress import extracted_line, roots_line
+from knack.pipeline.progress import (
+    adversary_line,
+    extracted_line,
+    heldout_line,
+    roots_line,
+)
 
 
 def extraction(decisions: int, alternatives: int) -> Extraction:
@@ -55,4 +61,21 @@ def test_roots_line_with_corroboration_counts_both_labels() -> None:
     assert roots_line(written, [], corroborating=True) == (
         "[3/5] roots    3 roots written: 1 corroborated, 2 uncorroborated, 0 Inferred"
         " (0 Confirmed, 0 Unknown kept)"
+    )
+
+
+def test_adversary_line_names_both_models_or_warns() -> None:
+    assert adversary_line("spark", "spark-open") == (
+        "  adversary: spark-open writes variants, spark compiles"
+    )
+    assert adversary_line("spark", "spark") == (
+        "  warning: variants written by spark, the compiler itself; "
+        "no cross-model adversary"
+    )
+
+
+def test_heldout_line_reports_counts_and_verdict() -> None:
+    held = HeldOut(author="o", caught=3, violations=3, allowed=2, compliant=3)
+    assert heldout_line(75025, held) == (
+        "  #75025 held-out by o: 3/3 violations caught, 2/3 compliant allowed (fail)"
     )

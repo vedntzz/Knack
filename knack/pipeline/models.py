@@ -2,6 +2,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.pipeline.heldout import HeldOut
+
 # Spark answers may carry extra keys; we keep only the fields we cite.
 SPARK_CONFIG = ConfigDict(frozen=True, extra="ignore")
 STRICT_CONFIG = ConfigDict(frozen=True, extra="forbid")
@@ -78,3 +80,5 @@ class Compiled(BaseModel):
     root_ids: list[str]
     attempts: int
     failed_checks: list[str]
+    # Only proven rules are scored on the adversary's held-out set.
+    heldout: HeldOut | None = None

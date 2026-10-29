@@ -52,6 +52,18 @@ COMPLIANT = [
     "async def pull(srcs):\n    first = await srcs[0].read()\n    second = await srcs[1].read()\n    return first, second\n",
 ]
 VARIANTS = json.dumps({"violations": VIOLATIONS, "compliant": COMPLIANT})
+# The adversary's held-out set; STRUCTURAL catches 1 and 3, not the bare return in 2
+HELDOUT_VIOLATIONS = [
+    "import asyncio\n\nasync def sip_heldout(jars):\n    got = await asyncio.gather(*[j.read() for j in jars])\n    return got\n",
+    "import asyncio\n\nasync def gulp_heldout(jars):\n    return await asyncio.gather(*(j.read() for j in jars))\n",
+    "import asyncio\n\nasync def sup_heldout(a, b):\n    pair = await asyncio.gather(a.read(), b.read())\n    return pair\n",
+]
+HELDOUT_COMPLIANT = [
+    "async def sip_heldout(jars):\n    got = []\n    for j in jars:\n        got.append(await j.read())\n    return got\n",
+    "async def gulp_heldout(jars):\n    return [await j.read() for j in jars]\n",
+    "async def sup_heldout(a, b):\n    return await a.read(), await b.read()\n",
+]
+HELDOUT = json.dumps({"violations": HELDOUT_VIOLATIONS, "compliant": HELDOUT_COMPLIANT})
 GATHER_DECISION = {
     "decision": "Read blobs one at a time in a loop",
     "why": "gather opens every blob at once and exhausts file handles",
@@ -167,6 +179,18 @@ class FakeSpark:
 
     def compile_prompts(self) -> list[str]:
         return [p for p in self.prompts if p.startswith("You compile")]
+
+
+class FakeAdversary:
+    # Writes variants only: the training set first, then the held-out set.
+    model = "fake-adversary"
+
+    def __init__(self, *answers: str) -> None:
+        self.answers, self.prompts = list(answers or (VARIANTS, HELDOUT)), list[str]()
+
+    def ask(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self.answers[min(len(self.prompts), len(self.answers)) - 1]
 
 
 def write_tree(root: Path, files: dict[str, str]) -> Path:
