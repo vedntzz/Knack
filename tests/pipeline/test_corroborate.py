@@ -20,6 +20,7 @@ from knack.pipeline.corroborate import corroborated_roots, same_alternative
 from knack.pipeline.extract import mark_verbatim
 from knack.pipeline.init import run_init
 from knack.pipeline.models import Alternative, Decision, Extraction
+from knack.pipeline.readings import load_readings
 from knack.roots.store import load_roots
 from knack.walk.registry import load_registry
 from test_init import write_event
@@ -166,3 +167,27 @@ def test_guard_never_denies_on_a_corroborated_or_uncorroborated_root(
 ) -> None:
     registry = load_registry(corroborate(tmp_path, answer)[0])
     assert decide(write_event(BASE, tmp_path), registry, tmp_path / "g.log") is None
+
+
+def saved_alternatives(tmp_path: Path) -> dict[str, list[str]]:
+    # What each model read for #9, as saved under work/ beside the registry.
+    readings = load_readings(tmp_path / "out" / "work", 9)
+    found = {
+        m: [d.rejected_alternatives for d in e.decisions] for m, e in readings.items()
+    }
+    return {m: [a.alternative for alts in found[m] for a in alts] for m in found}
+
+
+def test_corroborate_saves_both_models_readings_of_every_pr(tmp_path: Path) -> None:
+    corroborate(tmp_path, reading(OTHER))
+    assert saved_alternatives(tmp_path) == {
+        "fake-spark": ["asyncio.gather over every read"],
+        "fake-spark-open": ["one thread per blob"],
+    }
+
+
+def test_a_pr_the_second_model_failed_on_saves_only_the_first_reading(
+    tmp_path: Path,
+) -> None:
+    corroborate(tmp_path, {**EXTRACTIONS, "Read blobs one at a time": "not json"})
+    assert list(saved_alternatives(tmp_path)) == ["fake-spark"]

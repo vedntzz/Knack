@@ -23,6 +23,7 @@ from knack.pipeline.progress import (
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
+from knack.pipeline.readings import save_readings
 from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
 from knack.pipeline.sources import fetch_side, joined_source
@@ -81,6 +82,7 @@ def finish(run: Run, selection: Selection, keep: list[RegistryEntry]) -> Path:
     run.log(select_line(selection))
     extractions = _extract_stage(run, selection.prs)
     second = _second_stage(run, selection.prs)
+    _save_stage(run, extractions, second)
     roots = _roots_stage(run, extractions, second)
     compiled = _compile_stage(run, selection.prs, extractions, roots)
     return _install_stage(run, compiled, keep)
@@ -102,6 +104,16 @@ def _second_stage(run: Run, prs: list[PullRequest]) -> SecondReading | None:
     stage = extract_all(run.github, run.second, run.repo, prs, few_shot=_lessons())
     run.log(second_line(run.second.model, stage))
     return SecondReading(run.second.model, {e.number: e for e in stage.extractions})
+
+
+def _save_stage(
+    run: Run, extractions: list[Extraction], second: SecondReading | None
+) -> None:
+    # Both readings stay on disk; a PR a model failed on has no entry for it.
+    by_model = {run.spark.model: extractions}
+    if second is not None:
+        by_model[second.model] = list(second.by_number.values())
+    save_readings(run.out / "work", by_model)
 
 
 def _lessons() -> str:

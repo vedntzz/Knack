@@ -8,7 +8,7 @@ from knack.pipeline import spark_open
 from knack.pipeline.clients import live_clients, MissingCredentials, partner_client
 from knack.pipeline.spark import SparkApi
 from knack.pipeline.spark_open import SparkOpenApi
-from knack.walk.registry import load_registry
+from knack.walk.registry import load_registry, Registry
 
 
 class FakeSparkOpen(FakeSpark):
@@ -177,3 +177,31 @@ def test_corroborate_without_the_partner_key_exits_2(
     monkeypatch.delenv("BASETEN_API_KEY", raising=False)
     assert cli.main(["init", "--repo", "acme/widgets", "--corroborate"]) == 2
     assert "BASETEN_API_KEY" in capsys.readouterr().err
+
+
+def registry_of(out: Path, repo: str) -> Path:
+    # An existing registry at --out, already guarding repo.
+    out.mkdir(parents=True)
+    registry = Registry(repo=repo, roots_dir=Path("roots"), rules=[])
+    (out / "registry.json").write_text(registry.model_dump_json())
+    return out / "registry.json"
+
+
+@pytest.mark.usefixtures("fakes")
+def test_init_refuses_an_out_registry_of_another_repo(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = registry_of(tmp_path / "reg", "acme/gadgets")
+    before = path.read_text()
+    argv = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "reg")]
+    assert cli.main(argv) == 2
+    printed = capsys.readouterr()
+    assert "acme/gadgets" in printed.err and "[1/5] select" not in printed.out
+    assert path.read_text() == before
+
+
+@pytest.mark.usefixtures("fakes")
+def test_init_merges_into_its_own_repo_whatever_the_case(tmp_path: Path) -> None:
+    registry_of(tmp_path / "reg", "Acme/Widgets")
+    argv = ["init", "--repo", "acme/widgets", "--out", str(tmp_path / "reg")]
+    assert cli.main(argv) == 0
