@@ -6,12 +6,7 @@ from typing import Any
 
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open, log_error_quietly
-from knack.hooks.scope import (
-    event_cwd,
-    home_error_log,
-    registry_path_from_env,
-    scoped_quietly,
-)
+from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
@@ -24,7 +19,7 @@ EDIT_TOOL = "edit_file"
 def run_hook(stdin_text: str) -> JsonDict | None:
     # Silent unless the event cwd is a clone of the registry's repo.
     event = json.loads(stdin_text)
-    scoped = scoped_quietly(event, registry_path_from_env())
+    scoped = scoped_quietly(event)
     if scoped is None:
         return None
     return decide(event, scoped[0], home_error_log())

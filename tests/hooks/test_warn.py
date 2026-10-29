@@ -208,11 +208,35 @@ def test_malformed_stdin_exits_zero_without_output(tmp_path: Path) -> None:
     assert (done.returncode, done.stdout) == (0, b"")
 
 
-def test_missing_registry_env_exits_zero_with_stderr_note(tmp_path: Path) -> None:
+def write_home_registry(root: Path, status: str) -> Path:
+    # The registry knack init or import puts in home for apache/airflow.
+    home = root / "home" / ".knack" / "registries" / "apache-airflow"
+    (home / "rules").mkdir(parents=True)
+    (home / "rules" / "no-forbidden.yml").write_text(FORBIDDEN_RULE)
+    write_roots(home, status)
+    rules = [{"rule": "rules/no-forbidden.yml", "root_ids": ["r-1"]}]
+    body = {"repo": "apache/airflow", "roots_dir": "roots", "rules": rules}
+    (home / "registry.json").write_text(json.dumps(body))
+    return home / "registry.json"
+
+
+def test_missing_registry_env_warns_from_the_clone_home_registry(
+    tmp_path: Path,
+) -> None:
     repo = write_repo(tmp_path)
-    done = run_warn(json.dumps(warn_event("Clean up pkg/a.py please", repo)), repo)
-    assert (done.returncode, done.stdout) == (0, b"")
-    assert b"KNACK_REGISTRY" in done.stderr
+    write_home_registry(tmp_path, "Confirmed")
+    event = json.dumps(warn_event("Clean up pkg/a.py please", repo))
+    done = run_warn(event, repo, {"HOME": str(tmp_path / "home")})
+    assert "quote r-1" in warn_context(single_line_json(done.stdout))
+
+
+def test_missing_registry_env_without_a_home_registry_is_silent(
+    tmp_path: Path,
+) -> None:
+    repo = write_repo(tmp_path)
+    event = json.dumps(warn_event("Clean up pkg/a.py please", repo))
+    done = run_warn(event, repo, {"HOME": str(tmp_path / "home")})
+    assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
 
 
 def test_output_never_contains_a_decision_key(

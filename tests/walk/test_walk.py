@@ -1,14 +1,17 @@
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
+import pytest
+from knack import cli
 from knack.contracts.models import Leaf, Root, WalkResponse
 from knack.index.build import build_index, Index
 from knack.roots.store import load_roots
-from knack.walk.registry import load_registry, RegistryEntry
+from knack.walk.registry import home_registry_dir, load_registry, RegistryEntry
 from knack.walk.walk import walk
 
 REPO = Path(__file__).parents[2]
@@ -208,3 +211,38 @@ def test_cli_walk_takes_roots_from_the_registry() -> None:
     done = run_knack([*args, "--json"])
     response = WalkResponse.model_validate(json.loads(done.stdout))
     assert (done.returncode, response.leaves[0].risk) == (0, "high")
+
+
+def airflow_clone(path: Path) -> Path:
+    # The guard fixtures as a clone of apache/airflow.
+    shutil.copytree(FIXTURES, path)
+    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    origin = "https://github.com/apache/airflow.git"
+    subprocess.run(["git", "-C", str(path), "remote", "add", "origin", origin])
+    return path
+
+
+def test_cli_walk_without_registry_uses_the_clone_home_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    home = home_registry_dir("apache/airflow")
+    home.mkdir(parents=True)
+    (home / "registry.json").write_text(load_registry(REGISTRY).model_dump_json())
+    clone = airflow_clone(tmp_path / "airflow")
+    assert cli.main(["walk", TICKET_75025, "--repo", str(clone), "--json"]) == 0
+    response = WalkResponse.model_validate_json(capsys.readouterr().out)
+    assert response.leaves[0].risk == "high"
+
+
+def test_cli_walk_without_registry_outside_a_clone_exits_2(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    assert cli.main(["walk", TICKET_75025, "--repo", str(tmp_path)]) == 2
+    err = capsys.readouterr().err
+    assert "knack walk:" in err and "--registry" in err

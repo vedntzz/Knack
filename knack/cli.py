@@ -6,8 +6,9 @@ from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from knack.contracts.models import Root, Verdict
-from knack.git import git_root, origin_repo
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
 from knack.pipeline.clients import live_clients, MissingCredentials
@@ -21,8 +22,15 @@ from knack.roots.correct import (
     reviewer_name,
 )
 from knack.roots.corrections import Correction, corrections_path
+from knack.roots.merge import import_lines, import_registry, RegistryImportError
 from knack.roots.store import load_roots, RootStoreError
-from knack.walk.registry import home_registry_dir, load_registry
+from knack.walk.registry import (
+    home_registry_dir,
+    load_registry,
+    NoCloneRegistry,
+    Registry,
+    required_clone_registry,
+)
 from knack.walk.text import format_walk
 from knack.walk.walk import walk
 from knack.watch.install import WatchInstallError
@@ -38,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {"guard": _guard_command, "walk": _walk_command}
     handlers |= {"init": _init_command, "watch": _watch_command}
     handlers |= {"confirm": _confirm_command, "reject": _reject_command}
+    handlers |= {"import": _import_command}
     return handlers[args.command](args)
 
 
@@ -52,7 +61,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders = {"guard": _add_guard_arguments, "walk": _add_walk_arguments}
     adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
-    adders |= {"confirm": _add_correct_arguments}
+    adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
     return adders | {"reject": _add_reject_arguments}
 
 
@@ -71,7 +80,8 @@ def _add_check_arguments(check: argparse.ArgumentParser) -> None:
 def _add_walk_arguments(walk_parser: argparse.ArgumentParser) -> None:
     walk_parser.add_argument("ticket")
     walk_parser.add_argument("--repo", type=Path, required=True)
-    walk_parser.add_argument("--registry", type=Path, required=True)
+    help = "defaults to the home registry of the --repo clone"
+    walk_parser.add_argument("--registry", type=Path, help=help)
     walk_parser.add_argument("--roots", type=Path)
     walk_parser.add_argument("--json", action="store_true")
 
@@ -154,30 +164,48 @@ def _correct(
 ) -> int:
     # A bad id, registry, clone or root state is operator error: a message and exit 2.
     try:
-        done = apply(registry or _clone_registry(Path.cwd()))
-    except (CorrectionError, RootStoreError) as error:
+        done = apply(registry or required_clone_registry(Path.cwd()))
+    except (CorrectionError, NoCloneRegistry, RootStoreError) as error:
         print(f"knack {name}: {error}", file=sys.stderr)
         return 2
     print(f"{done.root_id}: {done.before.status} -> {done.after.status}")
     return 0
 
 
-def _clone_registry(cwd: Path) -> Path:
-    # The registry knack init installed for this clone's origin repo.
-    root = git_root(cwd)
-    repo = origin_repo(root) if root else None
-    if repo is None:
-        raise CorrectionError(f"{cwd} is not a git clone of a repo; pass --registry")
-    return home_registry_dir(repo) / "registry.json"
+def _add_import_arguments(import_parser: argparse.ArgumentParser) -> None:
+    help = "merged into the home registry of the repo it guards"
+    import_parser.add_argument("--registry", type=Path, required=True, help=help)
+
+
+def _import_command(args: argparse.Namespace) -> int:
+    # A missing, unreadable or self import is operator error: a message and exit 2.
+    try:
+        done = import_registry(args.registry)
+    except (RegistryImportError, RootStoreError, ValidationError) as error:
+        print(f"knack import: {error}", file=sys.stderr)
+        return 2
+    print("\n".join(import_lines(done)))
+    return 0
 
 
 def _walk_command(args: argparse.Namespace) -> int:
     # --roots overrides the roots_dir the registry names.
-    registry = load_registry(args.registry)
+    registry = _walk_registry(args.registry, args.repo)
+    if registry is None:
+        return 2
     roots = load_roots(args.roots or registry.roots_dir)
     response = walk(args.ticket, build_index(args.repo), registry.rules, roots)
     print(response.model_dump_json(indent=2) if args.json else format_walk(response))
     return 0
+
+
+def _walk_registry(path: Path | None, repo: Path) -> Registry | None:
+    # No clone, or no knack init for it, is operator error: a message and exit 2.
+    try:
+        return load_registry(path or required_clone_registry(repo))
+    except (NoCloneRegistry, FileNotFoundError) as error:
+        print(f"knack walk: {error}", file=sys.stderr)
+        return None
 
 
 def _guard_command(args: argparse.Namespace) -> int:

@@ -4,7 +4,7 @@ from typing import Any
 
 from knack.contracts.models import Root, WalkResponse
 from knack.guard.check import log_error_quietly
-from knack.hooks.scope import home_error_log, registry_path_from_env, scoped_quietly
+from knack.hooks.scope import home_error_log, scoped_quietly
 from knack.index.cache import repo_index
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
@@ -16,7 +16,7 @@ JsonDict = dict[str, Any]
 def run_hook(stdin_text: str) -> JsonDict | None:
     # Silent unless the event cwd is a clone of the registry's repo.
     event = json.loads(stdin_text)
-    scoped = scoped_quietly(event, registry_path_from_env())
+    scoped = scoped_quietly(event)
     if scoped is None:
         return None
     return _warn(event, *scoped)

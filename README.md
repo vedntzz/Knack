@@ -14,9 +14,12 @@ A deterministic guard then blocks any agent edit that breaks a rule, citing who 
 uv venv && uv pip install --python .venv/bin/python -e ".[dev]"
 ```
 
-Both hooks read one registry from `KNACK_REGISTRY`: the repo it guards (`owner/name`),
-its `roots_dir`, and `rules` entries of `rule` plus `root_ids` (see `data/registry/airflow.json`).
-They stay silent unless the session's `git remote get-url origin` is that repo.
+Each repo has one home registry, `~/.knack/registries/<owner-name>/registry.json`:
+the repo it guards (`owner/name`), its `roots_dir`, and `rules` entries of `rule` plus `root_ids`.
+`knack init` and `knack watch` write it; the hooks, `walk`, `confirm` and `reject` read it
+for the clone you are in. `knack import --registry data/registry/airflow.json` merges an
+existing registry in without overwriting reviewed roots. `KNACK_REGISTRY` still overrides.
+The hooks stay silent unless the session's `git remote get-url origin` has a home registry.
 The walk index is cached at `~/.knack/cache/<owner-name>/<HEAD>.json`.
 
 ## Status

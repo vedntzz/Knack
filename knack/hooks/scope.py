@@ -4,7 +4,7 @@ from typing import Any
 
 from knack.git import git_root, origin_repo, repo_slug
 from knack.guard.check import log_error_quietly
-from knack.walk.registry import load_registry, Registry
+from knack.walk.registry import clone_home_registry, load_registry, Registry
 
 JsonDict = dict[str, Any]
 REGISTRY_ENV = "KNACK_REGISTRY"
@@ -20,12 +20,13 @@ def home_error_log() -> Path:
     return Path.home() / ".knack" / "guard_errors.log"
 
 
-def registry_path_from_env() -> Path:
-    # A missing hook env is operator error: loud on stderr, silent on stdout.
+def hook_registry_path(event: JsonDict) -> Path | None:
+    # KNACK_REGISTRY wins; unset, the clone's home registry, when one is installed.
     value = os.environ.get(REGISTRY_ENV)
-    if not value:
-        raise FileNotFoundError(f"{REGISTRY_ENV} is not set")
-    return Path(value).expanduser().resolve()
+    if value:
+        return Path(value).expanduser().resolve()
+    path = clone_home_registry(event_cwd(event))
+    return path if path is not None and path.exists() else None
 
 
 def scoped_registry(event: JsonDict, path: Path) -> tuple[Registry, Path] | None:
@@ -37,10 +38,11 @@ def scoped_registry(event: JsonDict, path: Path) -> tuple[Registry, Path] | None
     return registry, root
 
 
-def scoped_quietly(event: JsonDict, path: Path) -> tuple[Registry, Path] | None:
-    # A broken registry is our failure: logged to home, never blocking.
+def scoped_quietly(event: JsonDict) -> tuple[Registry, Path] | None:
+    # No registry for this clone is silence; a broken one is logged, never blocking.
     try:
-        return scoped_registry(event, path)
+        path = hook_registry_path(event)
+        return scoped_registry(event, path) if path else None
     except Exception as error:
         log_error_quietly(home_error_log(), error)
         return None
