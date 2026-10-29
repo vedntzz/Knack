@@ -14,9 +14,15 @@ from conftest import (
 )
 from knack.pipeline.clients import MissingCredentials
 from knack.pipeline.ports import GitHub, Spark
+from knack.roots.corrections import (
+    append_correction,
+    few_shot_block,
+    recent_corrections,
+)
 from knack.walk.registry import load_registry, Registry, RegistryEntry
 from knack.watch.run import run_pending
 from knack.watch.state import read_seen, watch_lock, write_seen
+from test_init import rejection, root
 
 Clients = Callable[[], tuple[GitHub, Spark]]
 
@@ -138,3 +144,16 @@ def test_a_run_already_in_progress_is_left_alone(setup: Setup) -> None:
         assert acquired and setup.run() is None
     assert setup.spark.prompts == []
     assert setup.run() == setup.registry
+
+
+def test_watch_runs_teach_the_extract_prompt_from_corrections(
+    setup: Setup, corrections: Path
+) -> None:
+    append_correction(
+        rejection(root("widgets-2-1", "Inferred"), "misread"), corrections
+    )
+    merge_pr(setup.repo)
+    setup.run()
+    extract = [p for p in setup.spark.prompts if p.startswith("You are reading")]
+    lessons = few_shot_block(recent_corrections(corrections))
+    assert extract and "misread" in lessons and all(lessons in p for p in extract)

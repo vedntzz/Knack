@@ -19,9 +19,10 @@ from knack.pipeline.progress import (
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
-from knack.pipeline.roots import install_roots, root_prefix, roots_for
+from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
 from knack.pipeline.sources import fetch_side, joined_source
 from knack.pipeline.variants import variant_files, variant_prompt
+from knack.roots.corrections import corrections_path, few_shot_block, recent_corrections
 from knack.walk.registry import Registry, RegistryEntry
 
 Log = Callable[[str], None]
@@ -64,8 +65,10 @@ def finish(run: Run, selection: Selection, keep: list[RegistryEntry]) -> Path:
 
 def _extract_stage(run: Run, prs: list[PullRequest]) -> list[Extraction]:
     run.log(extract_header(len(prs)))
+    # The last few human corrections teach this run's extract prompt.
     report = partial(_log_extracted, run.log)
-    stage = extract_all(run.github, run.spark, run.repo, prs, report)
+    lessons = few_shot_block(recent_corrections(corrections_path()))
+    stage = extract_all(run.github, run.spark, run.repo, prs, report, lessons)
     run.log(extract_totals_line(stage))
     return stage.extractions
 
@@ -75,11 +78,14 @@ def _log_extracted(log: Log, number: int, extraction: Extraction | None) -> None
 
 
 def _roots_stage(run: Run, extractions: list[Extraction]) -> list[Root]:
-    # Every root is Inferred; a Confirmed root already on disk is kept as is.
+    # New roots are Inferred; reviewed ones on disk stay, and rejected ones back no rule.
     roots = [r for e in extractions for r in roots_for(run.repo, e, run.spark.model)]
+    reviewed = reviewed_roots(run.out / "roots")
     written = install_roots(roots, run.out / "roots")
-    run.log(roots_line(len(written), len(roots) - len(written)))
-    return roots
+    run.log(
+        roots_line(len(written), [reviewed[r.id] for r in roots if r.id in reviewed])
+    )
+    return [r for r in roots if reviewed.get(r.id, r).status != "Unknown"]
 
 
 def _compile_stage(
@@ -99,7 +105,9 @@ def _targets(
 ) -> list[Target]:
     by_number = {pr.number: pr for pr in prs}
     found = [(e.number, verbatim_decision(e)) for e in extractions]
-    return [Target(by_number[n], d, _root_ids(roots, n, d)) for n, d in found if d]
+    targets = [Target(by_number[n], d, _root_ids(roots, n, d)) for n, d in found if d]
+    # A decision whose every root was rejected gets no rule, so none is compiled.
+    return [target for target in targets if target.root_ids]
 
 
 def _root_ids(roots: list[Root], number: int, decision: Decision) -> list[str]:

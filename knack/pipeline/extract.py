@@ -7,7 +7,7 @@ from pydantic import TypeAdapter
 from knack.pipeline.models import Decision, Extraction, ExtractStage, Post, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 
-PROMPT = """You are reading a merged pull request. Extract the engineering decisions it records,
+INSTRUCTIONS = """You are reading a merged pull request. Extract the engineering decisions it records,
 including any alternatives that were considered and NOT chosen.
 Return ONLY JSON, no prose:
 {"decisions": [{"decision": str, "why": str, "decided_by": str,
@@ -15,11 +15,13 @@ Return ONLY JSON, no prose:
 Rules: every "quote" must be copied verbatim from the text, character for character.
 If nothing was rejected, return an empty list. Do not guess.
 
-PR TEXT:
 """
+PR_HEADER = "PR TEXT:\n"
+PROMPT = INSTRUCTIONS + PR_HEADER
 DECISIONS = TypeAdapter(list[Decision])
 # Called once per PR as it finishes: (number, extraction or None when it failed).
 OnExtracted = Callable[[int, Extraction | None], None]
+Read = Callable[[PullRequest], Extraction]
 
 
 def _ignore(number: int, extraction: Extraction | None) -> None:
@@ -32,18 +34,24 @@ def extract_all(
     repo: str,
     prs: list[PullRequest],
     on_extracted: OnExtracted = _ignore,
+    few_shot: str = "",
 ) -> ExtractStage:
     # A PR whose fetch or answer fails is listed, never fatal to the run.
-    extract = partial(_extract_reported, github, spark, repo, on_extracted)
+    read = partial(extract_pr, github, spark, repo, few_shot=few_shot)
+    extract = partial(_extract_reported, read, on_extracted)
     results = [(pr.number, extract(pr)) for pr in prs]
     extractions = [e for _, e in results if e is not None]
     failed = [number for number, e in results if e is None]
     return ExtractStage(extractions=extractions, failed=failed)
 
 
-def extract_pr(github: GitHub, spark: Spark, repo: str, pr: PullRequest) -> Extraction:
+def extract_pr(
+    github: GitHub, spark: Spark, repo: str, pr: PullRequest, few_shot: str = ""
+) -> Extraction:
+    # few_shot holds past human corrections, placed before the PR text.
     text = thread_text(pr, github.posts(repo, pr.number))
-    decisions = mark_verbatim(parse_decisions(spark.ask(PROMPT + text)), text)
+    answer = spark.ask(INSTRUCTIONS + few_shot + PR_HEADER + text)
+    decisions = mark_verbatim(parse_decisions(answer), text)
     return Extraction(number=pr.number, title=pr.title, decisions=decisions)
 
 
@@ -80,17 +88,15 @@ def _marked(decision: Decision, text: str) -> Decision:
 
 
 def _extract_reported(
-    github: GitHub, spark: Spark, repo: str, on_extracted: OnExtracted, pr: PullRequest
+    read: Read, on_extracted: OnExtracted, pr: PullRequest
 ) -> Extraction | None:
-    extraction = _extract_or_none(github, spark, repo, pr)
+    extraction = _extract_or_none(read, pr)
     on_extracted(pr.number, extraction)
     return extraction
 
 
-def _extract_or_none(
-    github: GitHub, spark: Spark, repo: str, pr: PullRequest
-) -> Extraction | None:
+def _extract_or_none(read: Read, pr: PullRequest) -> Extraction | None:
     try:
-        return extract_pr(github, spark, repo, pr)
+        return read(pr)
     except Exception:
         return None

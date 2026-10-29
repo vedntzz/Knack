@@ -1,0 +1,66 @@
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+from knack.contracts.models import Root
+
+# How many past corrections the extract prompt learns from.
+RECENT_LIMIT = 5
+BLOCK_HEADER = """PAST CORRECTIONS: a reviewer checked these earlier extractions.
+Do not repeat a REJECTED one, and heed its reason. CONFIRMED ones are good examples.
+"""
+
+
+class Correction(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    root_id: str
+    action: Literal["confirm", "reject"]
+    before: Root
+    after: Root
+    reason: str | None
+    by: str
+    at: str
+
+
+def corrections_path() -> Path:
+    # One log per user, shared by every registry they correct.
+    return Path.home() / ".knack" / "corrections.jsonl"
+
+
+def append_correction(correction: Correction, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(correction.model_dump_json() + "\n")
+
+
+def recent_corrections(path: Path, limit: int = RECENT_LIMIT) -> list[Correction]:
+    # Oldest first; a damaged line is skipped so one bad write never stops init.
+    if not path.exists():
+        return []
+    parsed = [_parsed(line) for line in path.read_text("utf-8").splitlines()]
+    return [c for c in parsed if c is not None][-limit:]
+
+
+def few_shot_block(corrections: list[Correction]) -> str:
+    # Empty when there is nothing to learn from, so the prompt stays unchanged.
+    if not corrections:
+        return ""
+    return BLOCK_HEADER + "".join(_example(c) for c in corrections) + "\n"
+
+
+def _parsed(line: str) -> Correction | None:
+    try:
+        return Correction.model_validate_json(line)
+    except ValidationError:
+        return None
+
+
+def _example(correction: Correction) -> str:
+    root = correction.before
+    said = f'decision "{root.decision}"; rejected alternative '
+    said += f'"{root.rejected_alternative}"; quote "{root.quote}"'
+    if correction.action == "confirm":
+        return f"- CONFIRMED: {said}\n"
+    return f"- REJECTED (reason: {correction.reason}): {said}\n"

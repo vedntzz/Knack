@@ -15,6 +15,15 @@ def load_roots(directory: Path) -> list[Root]:
     return sorted(roots, key=lambda root: root.id)
 
 
+def find_root(directory: Path, root_id: str) -> tuple[Path, Root] | None:
+    # Root files may be named anything; the id inside the file is what counts.
+    for path in sorted(directory.glob("*.json")):
+        root = _load_root_file(path)
+        if root.id == root_id:
+            return path, root
+    return None
+
+
 def write_root(root: Root, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(root.model_dump_json(indent=2, exclude_none=True) + "\n")

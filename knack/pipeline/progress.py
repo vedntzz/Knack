@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from knack.contracts.models import Root
 from knack.pipeline.models import Compiled, Extraction, ExtractStage, Selection
 
 
@@ -34,8 +35,11 @@ def failed_text(failed: list[int]) -> str:
     return f"{len(failed)} failed: {listed}" if failed else "0 failed"
 
 
-def roots_line(written: int, kept: int) -> str:
-    return f"[3/5] roots    {written} Inferred roots written ({kept} Confirmed kept)"
+def roots_line(written: int, kept: list[Root]) -> str:
+    # kept are the human-reviewed roots init left alone.
+    confirmed = sum(root.status == "Confirmed" for root in kept)
+    counts = f"{confirmed} Confirmed, {len(kept) - confirmed} Unknown kept"
+    return f"[3/5] roots    {written} Inferred roots written ({counts})"
 
 
 def compile_line(targets: int) -> str:

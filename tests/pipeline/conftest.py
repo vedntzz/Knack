@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from knack.pipeline import stages
 from knack.pipeline.models import Post, PullSummary
 
 REPO = "acme/widgets"
@@ -221,3 +222,11 @@ def merge_pr(repo: Path, subject: str = SQUASH_SUBJECT, no_ff: bool = False) -> 
             "feature",
         )
     return git(repo, "merge", "--ff-only", "feature")
+
+
+@pytest.fixture(autouse=True)
+def corrections(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    # The pipeline never reads the real ~/.knack/corrections.jsonl in a test.
+    path = tmp_path / "corrections.jsonl"
+    monkeypatch.setattr(stages, "corrections_path", lambda: path)
+    return path
