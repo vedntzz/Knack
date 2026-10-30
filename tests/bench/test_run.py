@@ -595,10 +595,98 @@ def test_the_key_is_never_written_to_disk(
 
 
 def test_cli_without_model_api_key_exits_2(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     monkeypatch.setenv("BASETEN_API_KEY", "b")
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
-    assert main(["--arms", "veto"]) == 2
+    out = str(tmp_path / "runs.jsonl")
+    assert main(["--arms", "veto", "--out", out, "--skip-doctor"]) == 2
     assert "MODEL_API_KEY" in capsys.readouterr().err
+
+
+@dataclass
+class Launch:
+    # What main got as far as: the doctor's arguments, and the out file of any batch.
+    doctor: list[tuple[Path, Path]]
+    batches: list[Path]
+
+
+@pytest.fixture
+def launch(monkeypatch: pytest.MonkeyPatch) -> Launch:
+    # Keys set, tickets and runs faked, so main stops only where it refuses.
+    seen = Launch([], [])
+    for name in ("GITHUB_TOKEN", "BASETEN_API_KEY", "MODEL_API_KEY"):
+        monkeypatch.setenv(name, "k")
+
+    def tickets(path: Path) -> list[BenchTicket]:
+        return [ticket()]
+
+    def batch(jobs: object, run_setup: RunSetup, parallel: int, out: Path) -> None:
+        seen.batches.append(out)
+
+    monkeypatch.setattr("knack.bench.run.load_tickets", tickets)
+    monkeypatch.setattr("knack.bench.run.run_all", batch)
+    return seen
+
+
+def passing_doctor(launch: Launch, passed: bool = True) -> Callable[[Path, Path], bool]:
+    def doctor(tickets: Path, cache: Path) -> bool:
+        launch.doctor.append((tickets, cache))
+        return passed
+
+    return doctor
+
+
+def run_argv(tmp_path: Path, *extra: str) -> list[str]:
+    places = ["--out", str(tmp_path / "runs.jsonl"), "--work", str(tmp_path / "w")]
+    return [*places, "--tickets", "t.jsonl", "--cache", str(tmp_path / "c"), *extra]
+
+
+def test_run_starts_only_after_the_doctor_passes(
+    launch: Launch, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch))
+    assert main(run_argv(tmp_path)) == 0
+    assert launch.doctor == [(Path("t.jsonl"), tmp_path / "c")]
+    assert launch.batches == [tmp_path / "runs.jsonl"]
+
+
+def test_run_refuses_to_start_when_the_doctor_fails(
+    launch: Launch, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch, False))
+    assert main(run_argv(tmp_path)) == 1
+    assert (len(launch.doctor), launch.batches) == (1, [])
+
+
+def test_skip_doctor_never_runs_the_doctor(
+    launch: Launch, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch, False))
+    assert main(run_argv(tmp_path, "--skip-doctor")) == 0
+    assert (launch.doctor, len(launch.batches)) == ([], 1)
+
+
+def test_an_existing_out_file_is_refused_without_append(
+    launch: Launch,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Checked before the doctor, so a mixed batch never spends a network call.
+    (tmp_path / "runs.jsonl").write_text('{"earlier": true}\n')
+    monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch))
+    assert main(run_argv(tmp_path)) == 2
+    assert "--append" in capsys.readouterr().err
+    assert (launch.doctor, launch.batches) == ([], [])
+    assert (tmp_path / "runs.jsonl").read_text() == '{"earlier": true}\n'
+
+
+def test_append_adds_a_batch_to_an_existing_out_file(
+    launch: Launch, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    (tmp_path / "runs.jsonl").write_text('{"earlier": true}\n')
+    monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch))
+    assert main(run_argv(tmp_path, "--append")) == 0
+    assert launch.batches == [tmp_path / "runs.jsonl"]

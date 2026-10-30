@@ -22,6 +22,7 @@ from knack.bench.classify import (
     Outcome,
     RuleHit,
 )
+from knack.bench.doctor import live_doctor
 from knack.bench.muse import ExecResult, Muse, MuseCli
 from knack.bench.sandbox import BaseFiles, build_sandbox
 from knack.bench.tickets import BenchTicket, load_tickets
@@ -124,9 +125,9 @@ def append_record(out: Path, record: RunRecord) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    setup = _live_setup(args)
-    if setup is None:
-        return 2
+    setup = _ready_setup(args)
+    if not isinstance(setup, RunSetup):
+        return setup
     jobs = _jobs(load_tickets(args.tickets), args.arms, args.repeats)
     run_all(jobs, setup, args.parallel, args.out)
     return 0
@@ -236,6 +237,22 @@ def _jobs(tickets: list[BenchTicket], arms: list[str], repeats: int) -> list[Job
     return [(t, arm, f"{stamp}-{t.id}--{arm}--{n}") for t, arm, n in runs]
 
 
+def _ready_setup(args: argparse.Namespace) -> RunSetup | int:
+    # Refused before any run: a batch to mix into (2), a failed doctor (1), no keys (2).
+    if _mixes_batches(args.out, args.append):
+        return 2
+    if not (args.skip_doctor or live_doctor(args.tickets, args.cache)):
+        return 1
+    return _live_setup(args) or 2
+
+
+def _mixes_batches(out: Path, append: bool) -> bool:
+    if append or not out.exists():
+        return False
+    print(f"knack bench: {out} exists; pass --append to add to it", file=sys.stderr)
+    return True
+
+
 def _live_setup(args: argparse.Namespace) -> RunSetup | None:
     # Missing tokens are operator error: a message and exit 2, no traceback.
     missing = [name for name in TOKENS if not os.environ.get(name)]
@@ -260,7 +277,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--arms", nargs="+", choices=sorted(ARMS), default=sorted(ARMS))
     _add_counts(parser)
     _add_paths(parser)
+    _add_switches(parser)
     return parser
+
+
+def _add_switches(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--append", action="store_true", help="add to an existing --out"
+    )
+    parser.add_argument("--skip-doctor", action="store_true", help="for tests only")
 
 
 def _add_counts(parser: argparse.ArgumentParser) -> None:

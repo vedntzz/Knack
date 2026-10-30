@@ -8,7 +8,9 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from knack.bench.doctor import live_doctor
 from knack.bench.report import bench_report, ReportError
+from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
@@ -221,12 +223,21 @@ def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
     actions = bench.add_subparsers(dest="action", required=True)
     report = actions.add_parser("report")
     report.add_argument("--runs", type=Path, default=Path("bench/runs.jsonl"))
+    doctor = actions.add_parser("doctor")
+    doctor.add_argument("--tickets", type=Path, default=Path("bench/tickets.jsonl"))
+    doctor.add_argument("--cache", type=Path, default=default_cache())
 
 
 def _bench_command(args: argparse.Namespace) -> int:
+    if args.action == "doctor":
+        return 0 if live_doctor(args.tickets, args.cache) else 1
+    return _bench_report(args.runs)
+
+
+def _bench_report(runs: Path) -> int:
     # A missing or malformed runs file is operator error: a message and exit 2.
     try:
-        text = bench_report(args.runs)
+        text = bench_report(runs)
     except ReportError as error:
         print(f"knack bench report: {error}", file=sys.stderr)
         return 2

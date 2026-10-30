@@ -57,6 +57,10 @@ class GitHubApi:
             "Accept": "application/vnd.github+json",
         }
 
+    def viewer(self) -> str:
+        # The login the token authenticates as.
+        return str(self._get("/user")["login"])
+
     def merged_prs(self, repo: str) -> Iterator[PullSummary]:
         for start, end in weekly_windows(datetime.now(timezone.utc)):
             items = self._search(search_query(repo, start, end))
