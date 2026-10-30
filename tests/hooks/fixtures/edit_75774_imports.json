@@ -1,0 +1,4 @@
+{
+  "find": "from collections.abc import Callable, Sequence\nfrom datetime import timedelta\nfrom typing import TYPE_CHECKING, Any\n\nfrom airflow.providers.common.compat.sdk import AirflowException, BaseSensorOperator",
+  "replace": "import time\nfrom collections.abc import Callable, Sequence\nfrom datetime import timedelta\nfrom typing import TYPE_CHECKING, Any\n\nfrom airflow.providers.common.compat.sdk import AirflowException, BaseSensorOperator\n\ntry:\n    from airflow.providers.common.compat.sdk import AirflowSensorTimeout, AirflowSkipException\nexcept ImportError:\n    from airflow.exceptions import AirflowSensorTimeout, AirflowSkipException"
+}

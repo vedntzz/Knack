@@ -55,8 +55,15 @@ def _decide_inner(
     content = _proposed_content(event, base)
     if content is None:
         return None
-    trail = Trail(log_path, receipts, registry.repo, _target(event, base))
-    return _scan_proposal(content, _rules_with_roots(registry), trail)
+    target = _target(event, base)
+    trail = Trail(log_path, receipts, registry.repo, target)
+    proposal = (content, _current_content(Path(target)))
+    return _scan_proposal(*proposal, _rules_with_roots(registry), trail)
+
+
+def _current_content(target: Path) -> str | None:
+    # The file before this call; a new file has none, so all its matches are new.
+    return target.read_text(encoding="utf-8") if target.is_file() else None
 
 
 def _target(event: JsonDict, base: Path) -> str:
@@ -109,14 +116,16 @@ def _resolve(base: Path, value: str) -> Path:
 
 
 def _scan_proposal(
-    content: str, rules: list[RuleAndRoot], trail: Trail
+    content: str, current: str | None, rules: list[RuleAndRoot], trail: Trail
 ) -> JsonDict | None:
-    # ast-grep scans a real file; the temp copy never touches the tree.
+    # ast-grep scans real files; the temp copies never touch the tree.
     temp = _write_temp(content)
+    baseline = None if current is None else _write_temp(current)
     try:
-        return _first_deny(temp, rules, trail)
+        return _first_deny(temp, baseline, rules, trail)
     finally:
-        temp.unlink(missing_ok=True)
+        for path in (temp, baseline or temp):
+            path.unlink(missing_ok=True)
 
 
 def _write_temp(content: str) -> Path:
@@ -127,20 +136,24 @@ def _write_temp(content: str) -> Path:
     return Path(handle.name)
 
 
-def _first_deny(temp: Path, rules: list[RuleAndRoot], trail: Trail) -> JsonDict | None:
+def _first_deny(
+    temp: Path, baseline: Path | None, rules: list[RuleAndRoot], trail: Trail
+) -> JsonDict | None:
     # Rules run in registry order; every verdict is receipted; the first deny wins.
     for rule_path, root in rules:
-        verdict = _check_rule(temp, rule_path, root, trail.log)
+        verdict = _check_rule(temp, baseline, rule_path, root, trail.log)
         _receipt_quietly(trail, rule_path, root, verdict)
         if not verdict.allowed:
             return _deny(verdict.reason)
     return None
 
 
-def _check_rule(temp: Path, rule_path: Path, root: Root | None, log: Path) -> Verdict:
-    # A broken rule is logged and fails open without blinding the rest.
+def _check_rule(
+    temp: Path, baseline: Path | None, rule_path: Path, root: Root | None, log: Path
+) -> Verdict:
+    # Only matches the current file lacks can deny; a broken rule fails open alone.
     try:
-        return check_file(temp, rule_path, _rule_id(rule_path), root, log)
+        return check_file(temp, rule_path, _rule_id(rule_path), root, log, baseline)
     except Exception as error:
         return fail_open(error, log, time.perf_counter())
 

@@ -1,0 +1,15 @@
+{
+  "id": "airflow-75774-1",
+  "title": "Fix MSGraphSensor timeout being reset on every re-defer",
+  "decision": "Record start time on first execute() and carry it in next_kwargs through re-defers, deferring each request with the remaining time and raising AirflowSensorTimeout past the deadline",
+  "why": "A defer timeout is stored as utcnow() + timeout and timeout=None clears any earlier deadline; the sensor alternated between an MSGraphTrigger defer without a timeout and a TimeDeltaTrigger sleep with the full timeout so the deadline moved forward on every poll and was never reached",
+  "decided_by": "stegololz",
+  "source_url": "https://github.com/apache/airflow/pull/75774",
+  "quote": "put `timeout=self.timeout` on the sleep re-defer only",
+  "status": "Confirmed",
+  "rejected_alternative": "sliding re-defer timeout that put timeout=self.timeout on the sleep re-defer only",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

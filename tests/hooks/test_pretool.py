@@ -403,3 +403,81 @@ def test_the_hook_receipts_into_home(tmp_path: Path) -> None:
     assert SOURCE_URL in deny_reason(hook_stdout_json(done))
     receipts = tmp_path / "home" / ".knack" / "verdicts.jsonl"
     assert [r["decision"] for r in receipt_lines(receipts)] == ["deny"]
+
+
+PRE_FIX_LIST = '"next_dagrun", "state", "start_date"]'
+# Fixtures from apache/airflow PR #75774 (Apache-2.0): base msgraph.py, its rule and
+# Confirmed root, and the import edit the bench agent's fix opened with (blocked pre-KN-33).
+MSGRAPH_BASE = HOOK_FIXTURES / "msgraph_75774_base.py.txt"
+MSGRAPH_HEAD = HOOK_FIXTURES / "msgraph_75774_head.py.txt"
+
+
+def edit_event_on(target: Path, find: str, replace: str) -> dict[str, Any]:
+    event = load_event("edit_event.json")
+    event["tool_input"].update(path=target.name, find=find, replace=replace)
+    event["cwd"] = str(target.parent)
+    return event
+
+
+def write_event_on(target: Path, content: str) -> dict[str, Any]:
+    event = load_event("write_event.json")
+    event["tool_input"].update(path=target.name, content=content)
+    event["cwd"] = str(target.parent)
+    return event
+
+
+def pre_fix_file(tmp_path: Path, text: str | None = None) -> Path:
+    # A file that already holds the old violation before the agent touches it.
+    target = tmp_path / "dags.py"
+    target.write_text(text or read_guard_fixture("pre_fix.py"), encoding="utf-8")
+    return target
+
+
+def registry_75774(directory: Path) -> Registry:
+    roots = directory / "roots"
+    roots.mkdir()
+    root = json.loads((HOOK_FIXTURES / "root_75774.json").read_text())
+    (roots / f"{root['id']}.json").write_text(json.dumps(root), encoding="utf-8")
+    entry = RegistryEntry(rule=HOOK_FIXTURES / "rule_75774.yml", root_ids=[root["id"]])
+    return Registry(repo="apache/airflow", roots_dir=roots, rules=[entry])
+
+
+def msgraph_file(tmp_path: Path) -> Path:
+    target = tmp_path / "msgraph.py"
+    target.write_text(MSGRAPH_BASE.read_text(encoding="utf-8"), encoding="utf-8")
+    return target
+
+
+def test_editing_a_file_with_an_old_violation_is_allowed(tmp_path: Path) -> None:
+    event = edit_event_on(pre_fix_file(tmp_path), "def get_dags(", "def list_dags(")
+    assert decide(event, make_registry(tmp_path), tmp_path / "log") is None
+
+
+def test_rewriting_a_file_keeping_its_old_violation_is_allowed(tmp_path: Path) -> None:
+    content = read_guard_fixture("pre_fix.py") + "\n# touched\n"
+    event = write_event_on(pre_fix_file(tmp_path), content)
+    assert decide(event, make_registry(tmp_path), tmp_path / "log") is None
+
+
+def test_adding_a_new_violation_beside_an_old_one_is_denied(tmp_path: Path) -> None:
+    # "state" is already there; only the added "start_date" is cited.
+    text = read_guard_fixture("pre_fix.py").replace(
+        PRE_FIX_LIST, '"next_dagrun", "state"]'
+    )
+    target = pre_fix_file(tmp_path, text)
+    event = edit_event_on(target, '"state"]', '"state", "start_date"]')
+    reason = deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log"))
+    assert '"start_date"' in reason and '"state" (line' not in reason
+
+
+def test_the_75774_fix_opening_edit_passes(tmp_path: Path) -> None:
+    edit = json.loads((HOOK_FIXTURES / "edit_75774_imports.json").read_text())
+    event = edit_event_on(msgraph_file(tmp_path), edit["find"], edit["replace"])
+    assert decide(event, registry_75774(tmp_path), tmp_path / "log") is None
+
+
+def test_the_75774_upstream_fix_passes(tmp_path: Path) -> None:
+    event = write_event_on(
+        msgraph_file(tmp_path), MSGRAPH_HEAD.read_text(encoding="utf-8")
+    )
+    assert decide(event, registry_75774(tmp_path), tmp_path / "log") is None

@@ -93,3 +93,40 @@ def test_unwritable_log_still_allows_as_guard_error(
     )
     assert verdict.allowed is True
     assert verdict.reason.startswith("guard-error")
+
+
+def copy_of_get_dags(text: str) -> str:
+    # The pre_fix module with its violating endpoint repeated under a new name.
+    endpoint = text[text.index("def get_dags(") :]
+    return text + "\n\n" + endpoint.replace("def get_dags(", "def get_dags_again(")
+
+
+def test_baseline_matches_do_not_deny(tmp_path: Path) -> None:
+    pre_fix = FIXTURES / "pre_fix.py"
+    verdict = check_file(
+        pre_fix,
+        RULE,
+        RULE_ID,
+        make_confirmed_root(),
+        tmp_path / "log",
+        baseline=pre_fix,
+    )
+    assert verdict.allowed
+
+
+def test_a_repeat_of_a_baseline_match_is_new(tmp_path: Path) -> None:
+    # Match texts are counted: a second "state" is new even though one existed.
+    proposed = tmp_path / "proposed.py"
+    proposed.write_text(copy_of_get_dags((FIXTURES / "pre_fix.py").read_text()))
+    root, log = make_confirmed_root(), tmp_path / "log"
+    verdict = check_file(
+        proposed, RULE, RULE_ID, root, log, baseline=FIXTURES / "pre_fix.py"
+    )
+    assert not verdict.allowed and verdict.reason.count("(line") == 2
+
+
+def test_no_baseline_counts_every_match(tmp_path: Path) -> None:
+    verdict = check_file(
+        FIXTURES / "pre_fix.py", RULE, RULE_ID, make_confirmed_root(), tmp_path / "log"
+    )
+    assert not verdict.allowed
