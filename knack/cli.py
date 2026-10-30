@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from knack.bench.report import bench_report, ReportError
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
 from knack.index.build import build_index
@@ -60,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {"guard": _guard_command, "walk": _walk_command}
     handlers |= {"init": _init_command, "watch": _watch_command}
     handlers |= {"confirm": _confirm_command, "reject": _reject_command}
-    handlers |= {"import": _import_command}
+    handlers |= {"import": _import_command, "bench": _bench_command}
     return handlers[args.command](args)
 
 
@@ -76,7 +77,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders = {"guard": _add_guard_arguments, "walk": _add_walk_arguments}
     adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
     adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
-    return adders | {"reject": _add_reject_arguments}
+    return adders | {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
 
 
 def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
@@ -213,6 +214,23 @@ def _correct(
         print(f"knack {name}: {error}", file=sys.stderr)
         return 2
     print(f"{done.root_id}: {done.before.status} -> {done.after.status}")
+    return 0
+
+
+def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
+    actions = bench.add_subparsers(dest="action", required=True)
+    report = actions.add_parser("report")
+    report.add_argument("--runs", type=Path, default=Path("bench/runs.jsonl"))
+
+
+def _bench_command(args: argparse.Namespace) -> int:
+    # A missing or malformed runs file is operator error: a message and exit 2.
+    try:
+        text = bench_report(args.runs)
+    except ReportError as error:
+        print(f"knack bench report: {error}", file=sys.stderr)
+        return 2
+    print(text)
     return 0
 
 
