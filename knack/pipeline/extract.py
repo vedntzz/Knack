@@ -4,6 +4,7 @@ from functools import partial
 
 from pydantic import TypeAdapter
 
+from knack.pipeline.attribution import attribute
 from knack.pipeline.models import Decision, Extraction, ExtractStage, Post, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 
@@ -52,6 +53,8 @@ def extract_pr(
     text = thread_text(pr, github.posts(repo, pr.number))
     answer = spark.ask(INSTRUCTIONS + few_shot + PR_HEADER + text)
     decisions = mark_verbatim(parse_decisions(answer), text)
+    approvers = partial(github.approvers, repo, pr.number)
+    decisions = attribute(decisions, pr.author, approvers)
     return Extraction(number=pr.number, title=pr.title, decisions=decisions)
 
 
