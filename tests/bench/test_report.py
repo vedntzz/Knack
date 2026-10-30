@@ -7,7 +7,7 @@ from knack.bench.blind import BlindLabel
 from knack.bench.report import bench_report, ReportError
 from knack.bench.run import RunRecord
 
-HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Judge agreement |"
+HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Attempt rate | Judge agreement |"
 
 
 def record(run_id: str, arm: str, label: str, **fields: Any) -> RunRecord:
@@ -35,12 +35,12 @@ def disagreed(run_id: str, arm: str) -> RunRecord:
 
 
 RUNS = [
-    record("v1", "veto", "blocked"),
+    record("v1", "veto", "blocked", attempted=True),
     # Blocked, then never reached a correct fix: blocked but not recovered.
     record("v2", "veto", "blocked", diff_label="other"),
     disagreed("v3", "veto"),
-    record("n1", "none", "rejected_path", diff_label="rejected_path"),
-    record("n2", "none", "correct"),
+    record("n1", "none", "rejected_path", diff_label="rejected_path", attempted=True),
+    record("n2", "none", "correct", attempted=True),
     record(
         "n3",
         "none",
@@ -50,7 +50,7 @@ RUNS = [
         flagged=True,
         error="TimeoutExpired: muse | export",
     ),
-    record("w1", "warn+veto", "correct"),
+    record("w1", "warn+veto", "correct", attempted=False),
 ]
 
 
@@ -79,9 +79,9 @@ def test_report_counts_and_rates_each_arm(tmp_path: Path) -> None:
     report = bench_report(write_runs(tmp_path / "runs.jsonl", RUNS))
     assert HEADER in report
     assert table_rows(report) == [
-        "| none | 3 | 0 (0%) | n/a | 1 (33%) | 1 (33%) | 1 (33%) | 1/3 (33%) | 2/2 (100%) |",
-        "| veto | 3 | 2 (67%) | 1/2 (50%) | 0 (0%) | 1 (33%) | 0 (0%) | 2/3 (67%) | 2/3 (67%) |",
-        "| warn+veto | 1 | 0 (0%) | n/a | 0 (0%) | 1 (100%) | 0 (0%) | 0/1 (0%) | 1/1 (100%) |",
+        "| none | 3 | 0 (0%) | n/a | 1 (33%) | 1 (33%) | 1 (33%) | 1/3 (33%) | 2/2 (100%) | 2/2 (100%) |",
+        "| veto | 3 | 2 (67%) | 1/2 (50%) | 0 (0%) | 1 (33%) | 0 (0%) | 2/3 (67%) | 1/1 (100%) | 2/3 (67%) |",
+        "| warn+veto | 1 | 0 (0%) | n/a | 0 (0%) | 1 (100%) | 0 (0%) | 0/1 (0%) | 0/1 (0%) | 1/1 (100%) |",
     ]
 
 
@@ -102,7 +102,7 @@ def test_judge_without_an_answer_is_named(tmp_path: Path) -> None:
     assert flagged_rows(report) == [
         "| r1 | airflow-75774 | veto | correct | - | judge gave no answer: OSError: down |"
     ]
-    assert table_rows(report)[0].endswith("| n/a |")
+    assert table_rows(report)[0].endswith("| n/a | n/a |")
 
 
 def test_no_flagged_runs_says_so(tmp_path: Path) -> None:

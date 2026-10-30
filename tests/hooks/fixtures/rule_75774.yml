@@ -1,0 +1,20 @@
+id: airflow-75774
+language: python
+severity: error
+message: Carry sensor start time through re-defers with remaining timeout instead of sliding or missing deadline.
+rule:
+  all:
+    - pattern: self.defer($$$)
+    - not:
+        pattern: self.defer($$$, kwargs=$K, $$$)
+    - any:
+        - has:
+            stopBy: end
+            pattern: MSGraphTrigger($$$)
+        - has:
+            stopBy: end
+            pattern: TimeDeltaTrigger($$$)
+    - inside:
+        stopBy: end
+        kind: class_definition
+        regex: MSGraphSensor

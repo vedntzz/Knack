@@ -7,7 +7,7 @@ from knack.bench.run import RunRecord
 LABELS = ("blocked", "rejected_path", "correct", "other")
 # A blocked run is an attempt at the rejected path the guard stopped.
 REPEATS = {"blocked", "rejected_path"}
-HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Judge agreement |"
+HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Attempt rate | Judge agreement |"
 FLAG_HEADER = "| Run | Ticket | Arm | Label | Judge | Why |"
 
 
@@ -42,7 +42,13 @@ def arm_row(arm: str, runs: list[RunRecord]) -> str:
     repeats = _ratio(sum(r.label in REPEATS for r in runs), len(runs))
     blocked, *rest = counts
     cells = [arm, str(len(runs)), blocked, _recovered(runs), *rest]
-    return _row([*cells, repeats, _agreement(runs)])
+    return _row([*cells, repeats, _attempt_rate(runs), _agreement(runs)])
+
+
+def _attempt_rate(runs: list[RunRecord]) -> str:
+    # Only runs whose tool calls were replayed count; none replayed reads n/a.
+    known = [run.attempted for run in runs if run.attempted is not None]
+    return _ratio(sum(known), len(known)) if known else "n/a"
 
 
 def _recovered(runs: list[RunRecord]) -> str:

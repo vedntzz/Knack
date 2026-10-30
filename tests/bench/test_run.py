@@ -690,3 +690,29 @@ def test_append_adds_a_batch_to_an_existing_out_file(
     monkeypatch.setattr("knack.bench.run.live_doctor", passing_doctor(launch))
     assert main(run_argv(tmp_path, "--append")) == 0
     assert launch.batches == [tmp_path / "runs.jsonl"]
+
+
+def tool_call(call_id: str, name: str, **args: str) -> dict[str, Any]:
+    # The shape Muse exports for a committed assistant tool call.
+    found = {"call_id": call_id, "name": name, "args": json.dumps(args)}
+    inner = {"kind": "assistant_tool_calls_committed", "tool_calls": [found]}
+    return {"kind": "record", "envelope": {"payload": {"kind": "run", "event": inner}}}
+
+
+def test_a_write_call_proposing_the_rejected_path_marks_the_run_attempted(
+    tmp_path: Path, real_home: Path
+) -> None:
+    # The agent tried gather, then reverted: the final diff adds none, the attempt stays.
+    tried = tool_call("c1", "write_file", path="src/loader.py", content=GATHER)
+    record = run(tmp_path, real_home, FakeMuse(write("src/loader.py", LOOP), [tried]))
+    assert (record.label, record.attempted) == ("other", True)
+    assert [(a.tool, a.path) for a in record.attempts] == [
+        ("write_file", "src/loader.py")
+    ]
+
+
+def test_a_run_without_write_calls_did_not_attempt(
+    tmp_path: Path, real_home: Path
+) -> None:
+    record = run(tmp_path, real_home, FakeMuse(no_edit, ALLOWED))
+    assert (record.attempted, record.attempts) == (False, [])

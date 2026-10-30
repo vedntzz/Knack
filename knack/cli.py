@@ -9,7 +9,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from knack.bench.doctor import live_doctor
+from knack.bench.reclassify import reclassify
 from knack.bench.report import bench_report, ReportError
+from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
@@ -25,6 +27,7 @@ from knack.pipeline.clients import (
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import OtherRepoRegistry, run_init
 from knack.pipeline.ports import Spark
+from knack.receipts.chain import ChainReport, receipts_path, verify_chain
 from knack.roots.correct import (
     confirm_root,
     CorrectionError,
@@ -64,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers |= {"init": _init_command, "watch": _watch_command}
     handlers |= {"confirm": _confirm_command, "reject": _reject_command}
     handlers |= {"import": _import_command, "bench": _bench_command}
-    return handlers[args.command](args)
+    return (handlers | {"receipts": _receipts_command})[args.command](args)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -79,7 +82,8 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders = {"guard": _add_guard_arguments, "walk": _add_walk_arguments}
     adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
     adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
-    return adders | {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
+    adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
+    return adders | {"receipts": _add_receipts_arguments}
 
 
 def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
@@ -223,6 +227,9 @@ def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
     actions = bench.add_subparsers(dest="action", required=True)
     report = actions.add_parser("report")
     report.add_argument("--runs", type=Path, default=Path("bench/runs.jsonl"))
+    reclassify = actions.add_parser("reclassify")
+    reclassify.add_argument("--runs", type=Path, required=True)
+    reclassify.add_argument("--out", type=Path, required=True)
     doctor = actions.add_parser("doctor")
     doctor.add_argument("--tickets", type=Path, default=Path("bench/tickets.jsonl"))
     doctor.add_argument("--cache", type=Path, default=default_cache())
@@ -231,7 +238,26 @@ def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
 def _bench_command(args: argparse.Namespace) -> int:
     if args.action == "doctor":
         return 0 if live_doctor(args.tickets, args.cache) else 1
+    if args.action == "reclassify":
+        return _bench_reclassify(args.runs, args.out)
     return _bench_report(args.runs)
+
+
+def _bench_reclassify(runs: Path, out: Path) -> int:
+    # Never overwrites: an existing --out or a bad runs file is operator error, exit 2.
+    try:
+        records = _new_reclassified(runs, out)
+    except (ReportError, FileExistsError) as error:
+        print(f"knack bench reclassify: {error}", file=sys.stderr)
+        return 2
+    print(f"reclassified {len(records)} run(s) -> {out}")
+    return 0
+
+
+def _new_reclassified(runs: Path, out: Path) -> list[RunRecord]:
+    if out.exists():
+        raise FileExistsError(f"{out} exists")
+    return reclassify(runs, out)
 
 
 def _bench_report(runs: Path) -> int:
@@ -243,6 +269,37 @@ def _bench_report(runs: Path) -> int:
         return 2
     print(text)
     return 0
+
+
+def _add_receipts_arguments(receipts: argparse.ArgumentParser) -> None:
+    actions = receipts.add_subparsers(dest="action", required=True)
+    verify = actions.add_parser("verify")
+    verify.add_argument("--path", type=Path, help="defaults to ~/.knack/verdicts.jsonl")
+
+
+def _receipts_command(args: argparse.Namespace) -> int:
+    # Intact 0, broken 1; an unreadable file is operator error, exit 2.
+    path = args.path or receipts_path()
+    report = _verified_or_explain(path)
+    if report is None:
+        return 2
+    print(_chain_line(path, report.receipts, report.broken_line, report.problem))
+    return 0 if report.broken_line is None else 1
+
+
+def _verified_or_explain(path: Path) -> ChainReport | None:
+    try:
+        return verify_chain(path)
+    except (OSError, UnicodeDecodeError) as error:
+        print(f"knack receipts: {error}", file=sys.stderr)
+        return None
+
+
+def _chain_line(path: Path, count: int, broken: int | None, problem: str | None) -> str:
+    noun = "receipt" if count == 1 else "receipts"
+    if broken is None:
+        return f"{path}: {count} {noun}, chain intact"
+    return f"{path}: chain broken at line {broken}: {problem} ({count} {noun} before it verify)"
 
 
 def _add_import_arguments(import_parser: argparse.ArgumentParser) -> None:
