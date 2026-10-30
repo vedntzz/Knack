@@ -316,3 +316,90 @@ def test_import_failure_reports_to_stderr_and_exits_zero() -> None:
     done = subprocess.run(args, input=b"{}", capture_output=True, cwd=REPO_ROOT)
     assert (done.returncode, done.stdout) == (0, b"")
     assert b"knack guard-error: ModuleNotFoundError: import of pydantic" in done.stderr
+
+
+def receipt_lines(path: Path) -> list[dict[str, Any]]:
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def test_a_deny_is_receipted(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("new_dags.py", tmp_path)
+    deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log", receipts))
+    [receipt] = receipt_lines(receipts)
+    assert (receipt["decision"], receipt["repo"]) == ("deny", "apache/airflow")
+    assert (receipt["rule_id"], receipt["root_ids"]) == (
+        "no-alias-sort-keys",
+        ["root-75025"],
+    )
+    assert receipt["file"] == str(tmp_path.resolve() / "new_dags.py")
+    assert receipt["latency_ms"] > 0 and len(receipt["quote_sha256"]) == 64
+
+
+def test_an_allow_is_receipted(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = load_event("write_event.json")
+    event["tool_input"].update(path="dags.py", content=read_guard_fixture("fixed.py"))
+    event["cwd"] = str(tmp_path)
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", receipts) is None
+    assert [r["decision"] for r in receipt_lines(receipts)] == ["allow"]
+
+
+def test_an_advisory_allow_is_receipted_with_its_root(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    registry = make_registry(tmp_path, {"root-75025": "Inferred"})
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert decide(event, registry, tmp_path / "log", receipts) is None
+    [receipt] = receipt_lines(receipts)
+    assert (receipt["decision"], receipt["root_ids"]) == ("allow", ["root-75025"])
+
+
+def test_a_guard_error_is_receipted_by_rule_file_name(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    registry = make_registry(tmp_path)
+    entry = RegistryEntry(rule=tmp_path / "missing.yml", root_ids=["root-75025"])
+    registry = registry.model_copy(update={"rules": [entry]})
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert decide(event, registry, tmp_path / "log", receipts) is None
+    [receipt] = receipt_lines(receipts)
+    assert (receipt["decision"], receipt["rule_id"]) == ("guard-error", "missing.yml")
+
+
+def test_untouched_files_get_no_receipt(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = load_event("write_event.json")
+    event["tool_input"].update(path="notes.txt", content="x")
+    event["cwd"] = str(tmp_path)
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", receipts) is None
+    assert not receipts.exists()
+
+
+def test_a_failed_receipt_never_changes_the_verdict(tmp_path: Path) -> None:
+    # The receipts path is a folder, so every append fails.
+    receipts = tmp_path / "verdicts.jsonl"
+    receipts.mkdir()
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    assert SOURCE_URL in deny_reason(reason)
+    assert "verdicts.jsonl" in (tmp_path / "log").read_text()
+
+
+def test_a_crashing_receipt_never_changes_an_allow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(pretool_guard, "append_receipt", raise_error(MemoryError("x")))
+    event = load_event("write_event.json")
+    event["tool_input"].update(path="dags.py", content=read_guard_fixture("fixed.py"))
+    event["cwd"] = str(tmp_path)
+    receipts = tmp_path / "verdicts.jsonl"
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", receipts) is None
+    assert "MemoryError" in (tmp_path / "log").read_text()
+
+
+def test_the_hook_receipts_into_home(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    done = run_pretool(json.dumps(violating_write_event("dags.py", clone)), clone, env)
+    assert SOURCE_URL in deny_reason(hook_stdout_json(done))
+    receipts = tmp_path / "home" / ".knack" / "verdicts.jsonl"
+    assert [r["decision"] for r in receipt_lines(receipts)] == ["deny"]
