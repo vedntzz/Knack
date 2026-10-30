@@ -22,6 +22,10 @@ class GitHub(Protocol):
         # Reviews, then issue comments, in thread order.
         ...
 
+    def approvers(self, repo: str, number: int) -> list[str]:
+        # Logins with an APPROVED review, first approval order, each once.
+        ...
+
     def file_at(self, repo: str, sha: str, path: str) -> str | None:
         # None when the file does not exist at that sha.
         ...

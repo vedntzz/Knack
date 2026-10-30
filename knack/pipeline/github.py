@@ -86,6 +86,13 @@ class GitHubApi:
         comments = self._all(f"/repos/{repo}/issues/{number}/comments")
         return [review_post(r) for r in reviews] + [comment_post(c) for c in comments]
 
+    def approvers(self, repo: str, number: int) -> list[str]:
+        reviews = self._all(f"/repos/{repo}/pulls/{number}/reviews")
+        approved = [
+            str(r["user"]["login"]) for r in reviews if r["state"] == "APPROVED"
+        ]
+        return list(dict.fromkeys(approved))
+
     def file_at(self, repo: str, sha: str, path: str) -> str | None:
         url = f"{API}/repos/{repo}/contents/{quote(path)}?ref={sha}"
         raw = {**self.headers, "Accept": "application/vnd.github.raw"}

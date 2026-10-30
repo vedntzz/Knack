@@ -144,6 +144,9 @@ class FakeGitHub:
     def posts(self, repo: str, number: int) -> list[Post]:
         return [Post(heading="Review by maria (CHANGES_REQUESTED)", body=REVIEW)]
 
+    def approvers(self, repo: str, number: int) -> list[str]:
+        return []
+
     def file_at(self, repo: str, sha: str, path: str) -> str | None:
         sources = {"base9": {"pkg/loader.py": BASE}}
         sources["head9"] = {"pkg/loader.py": HEAD, "tests/test_loader.py": TEST_FILE}
