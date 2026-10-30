@@ -100,6 +100,15 @@ def final_diff(sandbox: Path) -> tuple[str, str, list[str]]:
     return _git(sandbox, *DIFF, base), _git(sandbox, *DIFF, "-U0", base), changed
 
 
+def base_text(sandbox: Path, path: str) -> str:
+    # A file as the first commit had it; a file the base lacked reads as empty.
+    base = _git(sandbox, "rev-list", "--max-parents=0", "HEAD").split()[0]
+    try:
+        return _git(sandbox, "show", f"{base}:{path}")
+    except subprocess.CalledProcessError:
+        return ""
+
+
 def rule_hits(
     sandbox: Path, files: list[str], rule: Path, added: dict[str, set[int]]
 ) -> list[RuleHit]:
@@ -144,9 +153,14 @@ def _span(hunk: re.Match[str]) -> range:
     return range(start, start + count)
 
 
-def _hook_terminal(record: object) -> JsonDict | None:
+def run_event(record: object) -> JsonDict:
+    # The run event inside one export record; anything malformed reads as empty.
     payload = _as_dict(_as_dict(_as_dict(record).get("envelope")).get("payload"))
-    event = _as_dict(payload.get("event"))
+    return _as_dict(payload.get("event"))
+
+
+def _hook_terminal(record: object) -> JsonDict | None:
+    event = run_event(record)
     return event if event.get("kind") == "hook_run_terminal" else None
 
 

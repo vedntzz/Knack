@@ -13,6 +13,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from knack.bench.arms import ARMS, prepare_home, registry_in
+from knack.bench.attempts import Attempt, attempt_fields, attempts_of_run
 from knack.bench.blind import BlindLabel, judge_blind
 from knack.bench.classify import (
     assess,
@@ -71,6 +72,9 @@ class RunRecord(BaseModel):
     flagged: bool = True
     # Set when the bench itself failed; the run is then "other" and flagged.
     error: str | None = None
+    # A write/edit call proposed a new rule match, blocked or not; None when not replayed.
+    attempted: bool | None = None
+    attempts: list[Attempt] = []
 
 
 @dataclass(frozen=True)
@@ -167,7 +171,13 @@ def _record(
     blind = _judge(setup.judge, ticket, outcome)
     labels = _labels(outcome, _denies(agent), blind)
     fields = _identity(ticket, arm, run_id) | _agent_fields(agent) | labels
-    return RunRecord.model_validate(fields)
+    return RunRecord.model_validate(fields | _attempt_fields(ticket, agent))
+
+
+def _attempt_fields(ticket: BenchTicket, agent: AgentRun) -> JsonDict:
+    registry = registry_in(agent.place.home, ticket.repo) / "registry.json"
+    where = (agent.export_path, agent.place.sandbox, registry)
+    return attempt_fields(attempts_of_run(*where, ticket.rule))
 
 
 def _assess(ticket: BenchTicket, place: Place) -> Outcome:
