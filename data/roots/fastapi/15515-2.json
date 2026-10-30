@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15515-2",
+  "title": "🐛 Fix line splitting in `format_sse_event` to comply with SSE spec",
+  "decision": "Add _split_sse_lines helper that normalizes CRLF and lone CR to LF then splits on LF for data and comment branches",
+  "why": "splitlines drops trailing empty strings and treats extra characters as line breaks while SSE only recognizes three terminators",
+  "decided_by": "Zawwarsami16",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15515",
+  "quote": "and from a wrong fix that splits on every Unicode line break.",
+  "status": "Inferred",
+  "rejected_alternative": "a fix that splits on every Unicode line break",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

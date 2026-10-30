@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-16049-1",
+  "title": "⚡️ Reduce memory usage in dependencies",
+  "decision": "simplify all that code and stop using those attributes, move it out of the class and into helper functions, class is just holding data",
+  "why": "the caching helpers won't help",
+  "decided_by": "tiangolo",
+  "source_url": "https://github.com/fastapi/fastapi/pull/16049",
+  "quote": "These two previous approaches were respecting the interface of a `Dependant` (thanks for that!).",
+  "status": "Inferred",
+  "rejected_alternative": "respecting the interface of a `Dependant`",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

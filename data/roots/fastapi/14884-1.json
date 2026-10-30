@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-14884-1",
+  "title": "♻️ Simplify reading files in memory, do it sequentially instead of (fake) parallel",
+  "decision": "Simplify reading files in memory, do it sequentially instead of (fake) parallel",
+  "why": "Files from a single request are read sequentially so in-memory reading won't make a difference, OS reads SpooledTemporaryFiles sequentially, and it avoids spawning many tasks at once",
+  "decided_by": "tiangolo",
+  "source_url": "https://github.com/fastapi/fastapi/pull/14884",
+  "quote": "so this parallelization doesn't really achieve anything.",
+  "status": "Inferred",
+  "rejected_alternative": "(fake) parallel",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

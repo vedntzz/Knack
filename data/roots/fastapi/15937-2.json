@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15937-2",
+  "title": "🐛 Fix `status_code` being ignored for SSE and JSONL streaming endpoints",
+  "decision": "Modify tests to remove default endpoint tests, use `@pytest.mark.parametrize`, specify `responses` for dependency routes, and test full OpenAPI schema",
+  "why": "to avoid duplication, be cleaner and closer to real use case, and avoid masking schema issues",
+  "decided_by": "YuriiMotov",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15937",
+  "quote": "it's already testes, no need to duplicate it",
+  "status": "Inferred",
+  "rejected_alternative": "keeping tests for default endpoints",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

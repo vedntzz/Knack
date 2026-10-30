@@ -1,0 +1,49 @@
+{
+  "repo": "fastapi/fastapi",
+  "roots_dir": "../roots/fastapi",
+  "rules": [
+    {
+      "rule": "../rules/fastapi/14884.yml",
+      "root_ids": [
+        "fastapi-14884-1"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/15139.yml",
+      "root_ids": [
+        "fastapi-15139-1"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/15515.yml",
+      "root_ids": [
+        "fastapi-15515-1",
+        "fastapi-15515-2"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/15937.yml",
+      "root_ids": [
+        "fastapi-15937-1"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/15967.yml",
+      "root_ids": [
+        "fastapi-15967-1"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/16049.yml",
+      "root_ids": [
+        "fastapi-16049-1"
+      ]
+    },
+    {
+      "rule": "../rules/fastapi/16062.yml",
+      "root_ids": [
+        "fastapi-16062-1"
+      ]
+    }
+  ]
+}

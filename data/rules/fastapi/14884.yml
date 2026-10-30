@@ -1,0 +1,30 @@
+id: fastapi-14884
+language: python
+severity: error
+message: Read uploaded files sequentially with await instead of (fake) parallel task-group reads.
+rule:
+  any:
+    - all:
+        - pattern: $TG.start_soon($$$ARGS)
+        - inside:
+            stopBy: end
+            kind: function_definition
+            has:
+              stopBy: end
+              pattern: $F.read
+    - all:
+        - pattern: $TK.create_task($$$ARGS)
+        - inside:
+            stopBy: end
+            kind: function_definition
+            has:
+              stopBy: end
+              pattern: $F.read
+    - all:
+        - pattern: $A.gather($$$ARGS)
+        - inside:
+            stopBy: end
+            kind: function_definition
+            has:
+              stopBy: end
+              pattern: $F.read

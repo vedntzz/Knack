@@ -1,0 +1,45 @@
+id: airflow-75025
+language: python
+severity: error
+message: Do not expose 'state'/'start_date' as sortable on DagModel; use 'last_run_state'/'last_run_start_date'.
+rule:
+  all:
+    - any:
+        - pattern: '"state"'
+        - pattern: "'state'"
+        - pattern: '"start_date"'
+        - pattern: "'start_date'"
+        - pattern: '"-state"'
+        - pattern: "'-state'"
+        - pattern: '"-start_date"'
+        - pattern: "'-start_date'"
+    - inside:
+        stopBy: end
+        any:
+          - all:
+              - pattern: '[$$$]'
+              - has:
+                  stopBy: end
+                  any:
+                    - pattern: '"dag_id"'
+                    - pattern: "'dag_id'"
+                    - pattern: '"dag_display_name"'
+                    - pattern: "'dag_display_name'"
+                    - pattern: '"next_dagrun"'
+                    - pattern: "'next_dagrun'"
+          - all:
+              - any:
+                  - pattern: '{$$$}'
+                  - pattern: '[$$$]'
+              - has:
+                  stopBy: end
+                  any:
+                    - pattern: DagRun.state
+                    - pattern: DagRun.start_date
+    - inside:
+        stopBy: end
+        all:
+          - pattern: $M
+          - has:
+              stopBy: end
+              pattern: SortParam($$$, DagModel, $$$)

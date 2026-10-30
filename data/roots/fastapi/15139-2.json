@@ -1,0 +1,15 @@
+{
+  "id": "fastapi-15139-2",
+  "title": "⬆️ Increase lower bound to `pydantic >=2.9.0.` and fix the test suite",
+  "decision": "Defer removal of `# pragma: no cover` from `evaluate_forwardref` to whichever PR merges first",
+  "why": "that PR isn't merged yet",
+  "decided_by": "svlandeg",
+  "source_url": "https://github.com/fastapi/fastapi/pull/15139",
+  "quote": "I think we can do it right in this PR)",
+  "status": "Inferred",
+  "rejected_alternative": "do removal right in this PR",
+  "seeded": false,
+  "models": [
+    "muse-spark-1.3"
+  ]
+}

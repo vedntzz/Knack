@@ -1,0 +1,33 @@
+id: fastapi-15139
+language: python
+severity: error
+message: Allow multiple OpenAPI schema versions instead of requiring a single pydantic version.
+rule:
+  any:
+    - all:
+        - pattern: snapshot($$$)
+        - has:
+            stopBy: end
+            pattern: '"openapi"'
+        - has:
+            stopBy: end
+            pattern: '"get_user_users_get"'
+        - not:
+            has:
+              stopBy: end
+              kind: call
+    - all:
+        - pattern: snapshot($$$)
+        - has:
+            stopBy: end
+            pattern: '"openapi"'
+        - has:
+            stopBy: end
+            pattern: '"save_union_body_discriminator_items__post"'
+        - not:
+            has:
+              stopBy: end
+              kind: call
+    - all:
+        - kind: string
+        - regex: (?i)pydantic.*(>=|==|~=|>).*2\.11
