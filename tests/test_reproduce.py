@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from knack.reproduce import (
     breadth_lines,
     extraction_lines,
