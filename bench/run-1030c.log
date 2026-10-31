@@ -1,0 +1,8 @@
+PASS GITHUB_TOKEN: authenticated as vedntzz
+PASS MODEL_API_KEY: muse-spark-1.3 answered
+PASS BASETEN_API_KEY: meta-models/muse-spark-open-1026 answered
+PASS muse: /Users/vedant/.local/bin/muse, Muse Code 1.4.14 (1.4.14-R7309.1)
+PASS ast-grep: ast-grep 0.51.0 at /Users/vedant/Documents/knack/.venv/bin/ast-grep
+PASS tickets: 9 ticket(s) load from bench/tickets.jsonl
+PASS sandbox: airflow-75271: 1 file(s) at 70a7816
+PASS arm home: warn+veto home prepared for apache/airflow
