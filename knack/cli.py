@@ -48,6 +48,7 @@ from knack.pipeline.clients import (
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import OtherRepoRegistry, run_init
 from knack.pipeline.ports import GitHub, Spark
+from knack.pipeline.reprove import default_variants, Reprove, reprove_registry
 from knack.receipts.chain import ChainReport, receipts_path, verify_chain
 from knack.receipts.edits import edits_dir
 from knack.roots.backfill import backfill_merged_at, missing_merged_at
@@ -114,6 +115,16 @@ BACKFILL_ERRORS = (
     ValidationError,
     OSError,
 )
+# No token, no registry, or a registry that does not parse: a message, exit 2.
+REPROVE_ERRORS = (
+    NoCloneRegistry,
+    MissingCredentials,
+    ValidationError,
+    FileNotFoundError,
+)
+VARIANTS_HELP = (
+    "folder of <pr>/ training variant sets; defaults to ../variants/<registry name>"
+)
 # github, compiler, corroborating partner, variant writer.
 Extractors = tuple[GitHubApi, Spark, Spark | None, Spark | None]
 
@@ -142,6 +153,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     return adders | {
         "receipts": _add_receipts_arguments,
         "resolve": _add_resolve_arguments,
+        "reprove": _add_reprove_arguments,
     }
 
 
@@ -496,6 +508,35 @@ def _backfill_lines(roots_dir: Path, filled: list[str]) -> list[str]:
     return lines + [f"{len(filled)} roots backfilled, {left} without a merged PR"]
 
 
+def _add_reprove_arguments(reprove: argparse.ArgumentParser) -> None:
+    reprove.description = "run every proof gate again on each installed rule, without recompiling, and store the result as its proof"
+    reprove.add_argument("--registry", type=Path, help=LOOP_REGISTRY_HELP)
+    reprove.add_argument("--variants", type=Path, help=VARIANTS_HELP)
+    reprove.add_argument("--heldout", type=Path, help=HELDOUT_HELP)
+    reprove.add_argument("--work", type=Path, help=WORK_HELP)
+
+
+def _reprove_command(args: argparse.Namespace) -> int:
+    # Every rule reproved 0; a rule or the checkout could not be reproved 1; operator error 2.
+    try:
+        missed = reprove_registry(_reprove_run(args))
+    except REPROVE_ERRORS as error:
+        return _loop_refused("reprove", str(error), 2)
+    except Exception as error:
+        return _loop_refused("reprove", f"{type(error).__name__}: {error}", 1)
+    return 1 if missed else 0
+
+
+def _reprove_run(args: argparse.Namespace) -> Reprove:
+    # The token first, so a missing one costs nothing.
+    github = github_client()
+    registry = args.registry or required_clone_registry(Path.cwd())
+    variants = args.variants or default_variants(registry)
+    places = (variants, _heldout(args, registry), _work(args, registry))
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    return Reprove(github, registry, *places, print, stamp)
+
+
 def _add_console_arguments(console: argparse.ArgumentParser) -> None:
     console.description = (
         "serve GET /verdict/<receipt-hash> and its /rulings as JSON on loopback"
@@ -724,7 +765,7 @@ def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
     handlers |= {"import": _import_command, "bench": _bench_command}
     handlers |= {"argue": _argue_command, "console": _console_command}
     handlers |= {"miss": _miss_command, "false-block": _false_block_command}
-    handlers |= {"backfill-merged": _backfill_command}
+    handlers |= {"backfill-merged": _backfill_command, "reprove": _reprove_command}
     return handlers | {"receipts": _receipts_command, "resolve": _resolve_command}
 
 

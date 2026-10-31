@@ -3,7 +3,9 @@
 # Reads committed files only; no network, no model, no home registry. Exit 0 only if every step ran.
 #
 # Inputs (all tracked by git):
-#   grid        data/registry, data/rules, data/roots, data/heldout, spikes/*compile*.log;
+#   grid        data/registry (each rule's proof, stored by `knack reprove` from the PR's
+#               base/head, data/variants, both data/heldout sets, the default branch and the
+#               previous release), data/rules, data/roots, data/heldout, spikes/*compile*.log;
 #               written to bench/PROOF-GRID.md as well as printed
 #   extraction  spikes/batch/apache-airflow/decisions.jsonl, spikes/batch/fastapi-fastapi/decisions.jsonl
 #   held-out    data/heldout (same- and cross-model sets per PR), data/registry/airflow.json,

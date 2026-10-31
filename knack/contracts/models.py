@@ -182,6 +182,8 @@ class SideProof(BaseModel):
     side: str
     files: int
     flagged: int
+    # Files ast-grep could not scan with the rule; any fails the side.
+    errors: int = 0
 
 
 class OldReleaseProof(BaseModel):
@@ -189,6 +191,7 @@ class OldReleaseProof(BaseModel):
 
     ref: str
     false_positives: int
+    error: str | None = None
 
 
 class HeldOutScore(BaseModel):
@@ -211,9 +214,18 @@ class RuleProof(BaseModel):
     pr: int
     base_sha: str
     head_sha: str
+    # Compile attempts at install; 0 when no install recorded them (knack reprove keeps it).
     attempts: int
     sides: list[SideProof]
     # Matches on the default branch outside the PR's own files.
     false_positives: int
     old_release: OldReleaseProof | None = None
     heldout: HeldOutScore | None = None
+    tree_error: str | None = None
+    # Set by knack reprove: each committed held-out set by name (same, cross).
+    heldout_sets: dict[str, HeldOutScore] = {}
+    # Proof-grid gate -> the input that does not exist, so the gate could not run.
+    not_run: dict[str, str] = {}
+    # The rule file this proof ran on; a proof of other rule text is not evidence.
+    rule_sha: str | None = None
+    reproved_at: str | None = None
