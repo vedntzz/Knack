@@ -250,14 +250,21 @@ def _correction_report(outcome: Outcome) -> int:
 
 def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
     actions = bench.add_subparsers(dest="action", required=True)
-    report = actions.add_parser("report")
-    report.add_argument("--runs", type=Path, default=Path("bench/runs.jsonl"))
+    _add_report_arguments(actions.add_parser("report"))
     reclassify = actions.add_parser("reclassify")
     reclassify.add_argument("--runs", type=Path, required=True)
     reclassify.add_argument("--out", type=Path, required=True)
-    doctor = actions.add_parser("doctor")
+    _add_doctor_arguments(actions.add_parser("doctor"))
+
+
+def _add_doctor_arguments(doctor: argparse.ArgumentParser) -> None:
     doctor.add_argument("--tickets", type=Path, default=Path("bench/tickets.jsonl"))
     doctor.add_argument("--cache", type=Path, default=default_cache())
+
+
+def _add_report_arguments(report: argparse.ArgumentParser) -> None:
+    report.add_argument("--runs", type=Path, default=Path("bench/runs.jsonl"))
+    report.add_argument("--exclude-ticket", default=None)
 
 
 def _bench_command(args: argparse.Namespace) -> int:
@@ -265,7 +272,7 @@ def _bench_command(args: argparse.Namespace) -> int:
         return 0 if live_doctor(args.tickets, args.cache) else 1
     if args.action == "reclassify":
         return _bench_reclassify(args.runs, args.out)
-    return _bench_report(args.runs)
+    return _bench_report(args.runs, args.exclude_ticket)
 
 
 def _bench_reclassify(runs: Path, out: Path) -> int:
@@ -285,10 +292,10 @@ def _new_reclassified(runs: Path, out: Path) -> list[RunRecord]:
     return reclassify(runs, out)
 
 
-def _bench_report(runs: Path) -> int:
-    # A missing or malformed runs file is operator error: a message and exit 2.
+def _bench_report(runs: Path, exclude: str | None) -> int:
+    # A bad runs file or an unknown excluded ticket is operator error: exit 2.
     try:
-        text = bench_report(runs)
+        text = bench_report(runs, exclude)
     except ReportError as error:
         print(f"knack bench report: {error}", file=sys.stderr)
         return 2
