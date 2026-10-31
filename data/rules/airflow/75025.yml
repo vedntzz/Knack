@@ -1,24 +1,56 @@
 id: airflow-75025
 language: python
 severity: error
-message: Do not expose `state`/`start_date` as DAG sort keys; neither column exists on DagModel. Remove them instead of aliasing them onto `DagRun.state`/`DagRun.start_date`.
+message: Do not expose `state` or `start_date` as DAG sort keys; neither column exists on DagModel. Use `last_run_state`/`last_run_start_date` instead, do not alias `state`/`start_date` onto DagRun.
 rule:
   any:
     - all:
-        - pattern: SortParam($$$)
-        - has:
+        - kind: string
+        - regex: "^[\"']-?(state|start_date)[\"']$"
+        - inside:
             stopBy: end
-            pattern: DagModel
-        - has:
-            stopBy: end
-            kind: string
-            regex: "^['\"]state['\"]$"
+            all:
+              - pattern: SortParam($$$)
+              - has:
+                  stopBy: end
+                  regex: DagModel
     - all:
-        - pattern: SortParam($$$)
+        - kind: pair
+        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*DagRun\\.(state|start_date)"
+    - all:
+        - kind: pair
+        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*[\"']last_run_(state|start_date)[\"']"
+    - all:
+        - kind: tuple
         - has:
-            stopBy: end
-            pattern: DagModel
-        - has:
-            stopBy: end
             kind: string
-            regex: "^['\"]start_date['\"]$"
+            regex: "^[\"'](state|start_date)[\"']$"
+        - has:
+            regex: "DagRun\\.(state|start_date)"
+    - all:
+        - pattern: getattr(DagRun, $$$)
+        - inside:
+            stopBy: end
+            regex: SortParam
+        - inside:
+            stopBy: end
+            regex: DagModel
+    - all:
+        - kind: dictionary_comprehension
+        - regex: "DagRun\\.(state|start_date)|getattr\\s*\\(\\s*DagRun"
+        - inside:
+            stopBy: end
+            regex: SortParam
+        - inside:
+            stopBy: end
+            regex: DagModel
+    - all:
+        - kind: string
+        - regex: "last_run|last_dag_run"
+        - inside:
+            stopBy: end
+            regex: "DAG1_ID"
+        - not:
+            inside:
+              stopBy: end
+              regex: "Ordering with|is disallowed"
