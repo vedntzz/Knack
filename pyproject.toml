@@ -22,6 +22,7 @@ dev = [
     "ufmt",
     "pyright",
     "requests",
+    "httpx2>=2",
     "httpx",
 ]
 
