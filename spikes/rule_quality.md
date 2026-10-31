@@ -310,6 +310,35 @@ with the full citation. The correct fix (deleting the two keys) is allowed.
 Caveat: attempt 8 was fitted to the first Spark Open set, so only the fresh
 set and Spark's held-out set count as held-out results for it.
 
+### #74150: v3 without the whole-module branch
+
+Run: `spikes/recheck_74150.py`. Log: `recheck_74150_run.log`.
+`74150.v3.yml` with branch 1 dropped (any module that has `FallbackModel` and
+`MaskingCapability` but no `await`). Branch 2, `run_in_executor(None, …)` /
+`to_thread(…)` around `get_conn`/`create_agent`/`get_connection`/`get_hook`,
+is the whole rule. No recompile. The old release is 3.3.2, the last release
+before the 2026-10-28 merge.
+
+| Check | v3 (both branches) | v3, branch 2 only |
+|---|---|---|
+| base (must flag) | 2/2 | **0/2: fail** |
+| rename-base (must flag) | 2/2 | **0/2: fail** |
+| head / rename-head (must allow) | 0/2 / 0/2 | 0/2 / 0/2 |
+| Training variants | 3/3 caught, 3/3 allowed | 3/3 caught, 3/3 allowed |
+| FPs on main / 3.3.2 | 0 / 0 | 0 / 0 |
+| Same-model held-out (Spark) | 3/3, 3/3 | 3/3, 3/3 |
+| Cross-model held-out (Spark Open) | 3/3, 3/3 | 3/3, 3/3 |
+
+The trimmed rule fails base and rename-base because the PR's base never
+contains the violation. The decision is about new async code: base has no
+`async def`, no `run_in_executor` and no `to_thread`, and the PR adds
+`aget_conn`/`acreate_agent`. Branch 1 flagged base only because the test file
+lacks `await`, which encodes what the PR had not added yet, not the rejected
+approach.
+
+Not installed: the installed `74150.yml` (v2) is unchanged. **The generality
+count stays 8 of 13.** The gate is unchanged too: base must still be flagged.
+
 ### Variant quality
 
 The first variant prompt only said "new identifiers, different structure, no

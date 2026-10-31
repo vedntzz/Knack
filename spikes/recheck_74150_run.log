@@ -1,0 +1,23 @@
+BASELINE v3 (both branches):
+  base: 2/2 files flagged
+  head: 0/2 files flagged
+  rename-base: 2/2 files flagged
+  rename-head: 0/2 files flagged
+  variant-violation: 3/3 files flagged
+  variant-compliant: 0/3 files flagged
+  main FPs: 0 | 3.3.2 FPs: 0
+  GATE held-out same-model: pass | 3/3 caught, 3/3 allowed
+  GATE held-out cross-model: pass | 3/3 caught, 3/3 allowed
+  CHECKS: all pass
+TRIMMED v3 (executor branch only):
+  base: 0/2 files flagged
+  head: 0/2 files flagged
+  rename-base: 0/2 files flagged
+  rename-head: 0/2 files flagged
+  variant-violation: 3/3 files flagged
+  variant-compliant: 0/3 files flagged
+  main FPs: 0 | 3.3.2 FPs: 0
+  GATE held-out same-model: pass | 3/3 caught, 3/3 allowed
+  GATE held-out cross-model: pass | 3/3 caught, 3/3 allowed
+  CHECKS: ['base', 'rename-base']
+RESULT: a check failed; nothing installed
