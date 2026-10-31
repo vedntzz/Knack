@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from knack.console.app import create_app
 from knack.console.links import CONSOLE_URL, verdict_url
-from knack.contracts.models import MatchedCode, Root, Verdict
+from knack.contracts.models import MatchedCode, Root, RuleProof, Verdict
 from knack.dispute.rulings import append_ruling, RulingRecord
 from knack.receipts.chain import append_receipt, guard_receipt, Receipt
 from knack.receipts.warns import record_warn
@@ -408,7 +408,8 @@ def test_dedupe_leaves_the_receipt_verified(world: World) -> None:
 
 def test_the_rules_install_proof_is_served(world: World) -> None:
     with_proof(world)
-    assert get(world, world.receipt(deny(), at(5)))["proof"] == PROOF
+    stored = RuleProof.model_validate(PROOF).model_dump(mode="json")
+    assert get(world, world.receipt(deny(), at(5)))["proof"] == stored
 
 
 def test_a_rule_installed_without_a_proof_is_null(world: World) -> None:

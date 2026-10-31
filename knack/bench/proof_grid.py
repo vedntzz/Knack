@@ -6,9 +6,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from knack.bench.heldout_pr import HeldOutPr
-from knack.contracts.models import Root, RuleProof
+from knack.contracts.models import RuleProof
 from knack.pipeline.prove import MIN_FLAGGED, MUST_FLAG
-from knack.roots.pin import pin_holds
+from knack.roots.pin import pin_holds, rule_sha
 from knack.roots.store import load_roots
 from knack.walk.registry import load_registry, Registry, RegistryEntry
 
@@ -45,9 +45,10 @@ INTRO = [
     "# Proof grid",
     "",
     "Every installed rule against each gate a rule must pass before it guards.",
-    "PASS and FAIL come from the committed record of this exact rule text: its install proof,",
-    "or a compile-log attempt whose rule is byte-identical to the installed file.",
-    "NOT RUN means no committed record shows that gate on this rule.",
+    "PASS and FAIL come from the committed record of this exact rule text: the proof stored",
+    "in its registry entry (`knack reprove` or install), or a compile-log attempt whose rule",
+    "is byte-identical to the installed file. Held-out is scored again from data/heldout.",
+    "NOT RUN means the input the gate needs does not exist; each is listed below with why.",
     "Tier is what the guard does on a new match today: block (a Confirmed root,",
     "pinned to this rule or confirmed before pins existed) or warn (anything else).",
     "",
@@ -55,6 +56,9 @@ INTRO = [
 HEADER = "| Decision | Roots | Tier | " + " | ".join(GATES) + " | Evidence |"
 SEPARATOR = "|" + "---|" * (len(GATES) + 4)
 UNRULED = "Decisions with no installed rule (never block or warn): {ids}"
+NOT_RUN_HEADING = "NOT RUN, and the input that does not exist:"
+NO_RECORD = "no committed record shows this gate on this rule text"
+NO_HELDOUT = "no held-out set is committed for this PR"
 
 
 class SideCount(BaseModel):
@@ -83,6 +87,8 @@ class Evidence(BaseModel):
     sides: dict[str, SideCount]
     tree: Mark
     release: Mark
+    # Gate -> why its input does not exist, as the proof recorded it.
+    not_run: dict[str, str] = {}
 
 
 class GridRow(BaseModel):
@@ -94,12 +100,15 @@ class GridRow(BaseModel):
     tier: Tier
     marks: dict[str, Mark]
     source: str
+    # Each NOT RUN gate and why.
+    not_run: dict[str, str]
 
 
 def grid_lines(registries: list[Path], heldout: HeldOut, logs: list[Path]) -> list[str]:
     rows = grid_rows(registries, heldout, log_attempts(logs))
     table = [HEADER, SEPARATOR, *map(_row_line, rows)]
-    return [*INTRO, *table, "", *_totals(rows), "", _unruled_line(registries)]
+    totals = [*_totals(rows), "", *_not_run_lines(rows)]
+    return [*INTRO, *table, "", *totals, "", _unruled_line(registries)]
 
 
 def grid_rows(
@@ -153,31 +162,53 @@ def _row(
     pr = entry.rule.stem.split(".")[0]
     evidence = _evidence(entry, pr, attempts)
     marks = _marks(evidence) | {"held-out": _heldout_mark(heldout.get((stem, pr)))}
-    tier = _tier(entry, load_roots(registry.roots_dir))
-    source = evidence.source if evidence else "none"
+    found = {"source": evidence.source if evidence else "none", "marks": marks}
+    found |= {"not_run": _reasons(marks, evidence)}
     cited = {"repo": registry.repo, "pr": pr, "root_ids": entry.root_ids}
-    return GridRow.model_validate(
-        cited | {"tier": tier, "marks": marks, "source": source}
-    )
+    return GridRow.model_validate(cited | found | {"tier": _tier(entry, registry)})
+
+
+def _reasons(marks: dict[str, Mark], evidence: Evidence | None) -> dict[str, str]:
+    # The proof's own reason, else none on record (or no held-out set committed).
+    recorded = evidence.not_run if evidence else {}
+    default = {gate: NO_RECORD for gate in GATES} | {"held-out": NO_HELDOUT}
+    reasons = default | recorded
+    return {gate: reasons[gate] for gate in GATES if marks[gate] == "NOT RUN"}
 
 
 def _evidence(
     entry: RegistryEntry, pr: str, attempts: list[LogAttempt]
 ) -> Evidence | None:
-    # The install proof if stored, else the latest log attempt of this exact rule text.
-    if entry.proof is not None:
+    # The stored proof of this rule text, else the latest log attempt of this exact text.
+    if entry.proof is not None and _proves_this_text(entry.proof, entry.rule):
         return _proof_evidence(entry.proof)
     body = rule_body(entry.rule.read_text(encoding="utf-8"))
     found = [a for a in attempts if a.pr == pr and a.rule == body]
     return _log_evidence(found[-1]) if found else None
 
 
+def _proves_this_text(proof: RuleProof, rule: Path) -> bool:
+    # An install proof predates pins and was written with the rule; a pin must match.
+    return proof.rule_sha is None or proof.rule_sha == rule_sha(rule)
+
+
 def _proof_evidence(proof: RuleProof) -> Evidence:
-    sides = {s.side: SideCount(files=s.files, flagged=s.flagged) for s in proof.sides}
+    sides = {s.side: s.model_dump(exclude={"side"}) for s in proof.sides}
     old = proof.old_release
-    release: Mark = "NOT RUN" if old is None else _zero(old.false_positives)
-    tree = _zero(proof.false_positives)
-    return Evidence(source="install proof", sides=sides, tree=tree, release=release)
+    release = "NOT RUN" if old is None else _clean(old.false_positives, old.error)
+    tree = _clean(proof.false_positives, proof.tree_error)
+    found = {"sides": sides, "tree": tree, "release": release, "not_run": proof.not_run}
+    return Evidence.model_validate(found | {"source": _proof_source(proof)})
+
+
+def _proof_source(proof: RuleProof) -> str:
+    stamp = proof.reproved_at
+    return f"knack reprove {stamp[:10]}" if stamp else "install proof"
+
+
+def _clean(false_positives: int, error: str | None) -> Mark:
+    # An error means the scan never finished, so it cannot pass.
+    return "FAIL" if error else _zero(false_positives)
 
 
 def _log_evidence(attempt: LogAttempt) -> Evidence:
@@ -257,8 +288,9 @@ def _heldout_mark(scored: HeldOutPr | None) -> Mark:
     return "PASS" if scored.passed("same") and scored.passed("cross") else "FAIL"
 
 
-def _tier(entry: RegistryEntry, roots: list[Root]) -> Tier:
+def _tier(entry: RegistryEntry, registry: Registry) -> Tier:
     # The guard's own test: a Confirmed root whose pin holds for this rule blocks.
+    roots = load_roots(registry.roots_dir)
     cited = [root for root in roots if root.id in entry.root_ids]
     blocks = any(r.status == "Confirmed" and pin_holds(r, entry.rule) for r in cited)
     return "block" if blocks else "warn"
@@ -277,6 +309,12 @@ def _totals(rows: list[GridRow]) -> list[str]:
 
 def _total_line(gate: str, counted: Counter[str]) -> str:
     return f"{gate}: {counted['PASS']} PASS, {counted['FAIL']} FAIL, {counted['NOT RUN']} NOT RUN"
+
+
+def _not_run_lines(rows: list[GridRow]) -> list[str]:
+    found = [(row, gate, why) for row in rows for gate, why in row.not_run.items()]
+    lines = [f"- {row.repo} #{row.pr} {gate}: {why}" for row, gate, why in found]
+    return [NOT_RUN_HEADING, *(lines or ["- none"])]
 
 
 def _unruled_line(registries: list[Path]) -> str:

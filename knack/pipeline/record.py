@@ -10,7 +10,8 @@ def rule_proof(proof: Proof, pr: PullRequest, attempts: int) -> RuleProof:
     counts = {"attempts": attempts, "false_positives": len(proof.false_positives)}
     old = _old_release(proof.old_release)
     found = {"sides": _sides(proof.rows), "old_release": old}
-    return RuleProof.model_validate({**where, **counts, **found})
+    errors = {"tree_error": proof.tree_error}
+    return RuleProof.model_validate({**where, **counts, **found, **errors})
 
 
 def with_heldout(proof: RuleProof | None, heldout: HeldOut) -> RuleProof | None:
@@ -31,13 +32,15 @@ def _sides(rows: list[SideRow]) -> list[SideProof]:
 
 def _side(name: str, rows: list[SideRow]) -> SideProof:
     flagged = sum(1 for row in rows if row.matches)
-    return SideProof(side=name, files=len(rows), flagged=flagged)
+    errors = sum(1 for row in rows if row.error)
+    return SideProof(side=name, files=len(rows), flagged=flagged, errors=errors)
 
 
 def _old_release(old: OldRelease | None) -> OldReleaseProof | None:
     if old is None:
         return None
-    return OldReleaseProof(ref=old.ref, false_positives=len(old.false_positives))
+    found = len(old.false_positives)
+    return OldReleaseProof(ref=old.ref, false_positives=found, error=old.error)
 
 
 def _number(root: Root) -> int | None:

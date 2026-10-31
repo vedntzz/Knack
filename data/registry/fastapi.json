@@ -6,44 +6,555 @@
       "rule": "../rules/fastapi/14884.yml",
       "root_ids": [
         "fastapi-14884-1"
-      ]
+      ],
+      "proof": {
+        "pr": 14884,
+        "base_sha": "8bdb0d22423fdfbc4e12eee1baa339ffa960471d",
+        "head_sha": "e6f56e9fc4e683e2c66266067b329c75b169db70",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 1,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 1,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.128.6",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "babfafe97ba9b5b96d5d940ebad890d90f53459f781b0f4410dc2b0f65eab83b",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/15139.yml",
       "root_ids": [
         "fastapi-15139-1"
-      ]
+      ],
+      "proof": {
+        "pr": 15139,
+        "base_sha": "64feaec80244578bbdabe51e866bcfad1df8b708",
+        "head_sha": "cf6054db5b8c1e54fce36cd3f78c08eeded92934",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.135.1",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 1,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "1f26b127f360e990d7cabf7588db94b9c8133c990f263ddf1a0a6812ab5f9ac7",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/15515.yml",
       "root_ids": [
         "fastapi-15515-1",
         "fastapi-15515-2"
-      ]
+      ],
+      "proof": {
+        "pr": 15515,
+        "base_sha": "31ce3cb8d73a6e20221315a90dd98a117f0101a0",
+        "head_sha": "871cfe7ea8cb922902ed9e140ec40db2722caf4a",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.140.11",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "3f9de28f7fd7bcd9e639674a0f196ab953a6bd0a5dc4d5c1f9a5c8bac4aac652",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/15937.yml",
       "root_ids": [
         "fastapi-15937-1"
-      ]
+      ],
+      "proof": {
+        "pr": 15937,
+        "base_sha": "b1346bb142c8154950953255eea535e5a83d62eb",
+        "head_sha": "8938eda5e9841ea460c8447cfb6759fef3b4fc30",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.140.12",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 1,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "b1a37c9666834b54e0f606b99c6cba7a8b316e552a88831d523569f911dcacab",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/15967.yml",
       "root_ids": [
         "fastapi-15967-1"
-      ]
+      ],
+      "proof": {
+        "pr": 15967,
+        "base_sha": "513c396322664bcb3bdcb3946c440a8ed8ef080b",
+        "head_sha": "0168d7d5e6cca46e3238c670b506e41546706b49",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 1,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 1,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 1,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.139.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 1,
+            "violations": 3,
+            "allowed": 1,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 1,
+            "violations": 3,
+            "allowed": 0,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "5422b699a11d76fe0446da9ca52260489c3be62247c2e32592beecb515d05be6",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/16049.yml",
       "root_ids": [
         "fastapi-16049-1"
-      ]
+      ],
+      "proof": {
+        "pr": 16049,
+        "base_sha": "ae031be7b5a2df589f63f4d25389cf07b7b8fc86",
+        "head_sha": "0b81a548eab6b22848134261bdd45103257eeaa4",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 4,
+            "flagged": 4,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 5,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 4,
+            "flagged": 4,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 5,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.139.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "60e9acc0c68c05eb19dc8299087477ae35b7c6cb18315748559d8431f06fba6d",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     },
     {
       "rule": "../rules/fastapi/16062.yml",
       "root_ids": [
         "fastapi-16062-1"
-      ]
+      ],
+      "proof": {
+        "pr": 16062,
+        "base_sha": "255b912928904e3ba5980425a54d6837c8bd1a1c",
+        "head_sha": "d7d262b21590f1618907d6aa18317d04e853e43d",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "0.140.0",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "b0e6b570f054b082be6a9484a30fecbca7fe65f5a1c1b0c5a96246fc39f2048c",
+        "reproved_at": "2026-10-31T23:16:43Z"
+      }
     }
   ]
 }

@@ -205,15 +205,74 @@ def test_the_grid_is_a_table_with_every_gate_tier_and_totals(tmp_path: Path) -> 
     )
 
 
+REPROVED = PROOF | {
+    "false_positives": 0,
+    "reproved_at": "2026-10-31T01:02:03Z",
+    "not_run": {"0 FP release": "no X.Y.Z release was tagged before the PR merged"},
+    "old_release": None,
+}
+
+
+def reproved(tmp_path: Path, **changes: Any) -> dict[str, Any]:
+    # A reprove result pinned to the rule text one_row writes.
+    rule = tmp_path / "pinned.yml"
+    rule.write_text(f"id: widgets-9\n{RULE_BODY}\n")
+    return REPROVED | {"rule_sha": rule_sha(rule)} | changes
+
+
+def test_a_reproved_proof_is_the_evidence_and_names_its_run(tmp_path: Path) -> None:
+    spec = {"roots": {"widgets-9-1": "Inferred"}, "proof": reproved(tmp_path)}
+    row = one_row(tmp_path, spec)
+    assert row.source == "knack reprove 2026-10-31"
+    assert row.marks["0 FP tree"] == "PASS" and row.marks["0 FP release"] == "NOT RUN"
+
+
+def test_a_proof_of_other_rule_text_is_ignored(tmp_path: Path) -> None:
+    stale = reproved(tmp_path, rule_sha="0" * 64)
+    row = one_row(tmp_path, {"roots": {"widgets-9-1": "Inferred"}, "proof": stale})
+    assert row.source == "compile_run.log #9 attempt 2"
+
+
+def test_recorded_errors_fail_their_gates(tmp_path: Path) -> None:
+    sides = [s | {"errors": 1} if s["side"] == "base" else s for s in PROOF["sides"]]
+    old = {"ref": "v1.0", "false_positives": 0, "error": "boom"}
+    proof = reproved(tmp_path, sides=sides, tree_error="boom", old_release=old)
+    row = one_row(tmp_path, {"roots": {"widgets-9-1": "Inferred"}, "proof": proof})
+    assert (row.marks["base"], row.marks["0 FP tree"]) == ("FAIL", "FAIL")
+    assert row.marks["0 FP release"] == "FAIL"
+
+
+def test_every_not_run_gate_says_why(tmp_path: Path) -> None:
+    spec = {"roots": {"widgets-9-1": "Inferred"}, "proof": reproved(tmp_path)}
+    row = one_row(tmp_path, spec)
+    assert row.not_run == {
+        "0 FP release": "no X.Y.Z release was tagged before the PR merged",
+        "held-out": "no held-out set is committed for this PR",
+    }
+
+
+def test_the_grid_lists_every_not_run_reason(tmp_path: Path) -> None:
+    spec = {"roots": {"widgets-9-1": "Inferred"}, "proof": reproved(tmp_path)}
+    path = registry(tmp_path, {"9": spec})
+    lines = grid_lines([path], {}, [log(tmp_path)])
+    reason = "no X.Y.Z release was tagged before the PR merged"
+    assert f"- acme/widgets #9 0 FP release: {reason}" in lines
+
+
 def test_the_committed_grid_has_one_row_per_installed_rule() -> None:
     rows = grid_rows(REGISTRIES, {}, log_attempts(COMPILE_LOGS))
     assert len(rows) == 12
     blocking = sorted(f"{row.repo} #{row.pr}" for row in rows if row.tier == "block")
     assert blocking == ["apache/airflow #75025", "apache/airflow #75774"]
-    by_pr = {row.pr: row for row in rows}
-    assert by_pr["75271"].marks["base"] == "PASS"
-    assert by_pr["75271"].source == "compile_run5_airflow.log #75271 attempt 5"
-    assert by_pr["74150"].source == "none"
+
+
+def test_every_committed_rule_was_reproved_and_every_not_run_is_explained() -> None:
+    rows = grid_rows(REGISTRIES, {}, log_attempts(COMPILE_LOGS))
+    assert all(row.source.startswith("knack reprove ") for row in rows)
+    for row in rows:
+        not_run = {g for g in GATES if row.marks[g] == "NOT RUN"} - {"held-out"}
+        assert not_run == set(row.not_run) - {"held-out"}
+        assert all(row.not_run.values())
 
 
 def test_the_committed_proof_grid_file_is_current() -> None:

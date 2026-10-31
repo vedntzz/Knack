@@ -2,10 +2,402 @@
   "repo": "apache/airflow",
   "roots_dir": "../roots/airflow",
   "rules": [
-    {"rule": "../rules/airflow/74150.yml", "root_ids": ["airflow-74150-1"]},
-    {"rule": "../rules/airflow/75025.yml", "root_ids": ["airflow-75025-1"]},
-    {"rule": "../rules/airflow/75271.yml", "root_ids": ["airflow-75271-1", "airflow-75271-2"]},
-    {"rule": "../rules/airflow/75734.yml", "root_ids": ["airflow-75734-1"]},
-    {"rule": "../rules/airflow/75774.yml", "root_ids": ["airflow-75774-1", "airflow-75774-2"]}
+    {
+      "rule": "../rules/airflow/74150.yml",
+      "root_ids": [
+        "airflow-74150-1"
+      ],
+      "proof": {
+        "pr": 74150,
+        "base_sha": "2f5c1c4b26b3936a51277aff3d2be78020a4a01b",
+        "head_sha": "b757231fd77f4444ce741cfbc001a2972d305844",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "3.3.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 0,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 0,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "d76cc8de2e19904a26f70af0af8a25e34a711c3ed7ec63ac07fdc2bd08550749",
+        "reproved_at": "2026-10-31T23:17:23Z"
+      }
+    },
+    {
+      "rule": "../rules/airflow/75025.yml",
+      "root_ids": [
+        "airflow-75025-1"
+      ],
+      "proof": {
+        "pr": 75025,
+        "base_sha": "935bac04f06a125aca6cc432442af2a8de5b7cc7",
+        "head_sha": "ac13d1d9f9e667a26d919c6b3762972e9c7f18dc",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 4,
+            "flagged": 4,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 4,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 4,
+            "flagged": 4,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 4,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "3.3.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "ecf207d0e1efce2759eb92b2beba21e9576eaf0c5d832ca4acdfca1079a4b0d5",
+        "reproved_at": "2026-10-31T23:17:23Z"
+      }
+    },
+    {
+      "rule": "../rules/airflow/75271.yml",
+      "root_ids": [
+        "airflow-75271-1",
+        "airflow-75271-2"
+      ],
+      "proof": {
+        "pr": 75271,
+        "base_sha": "70a781622611f09ec34f0bbc34c4f05c59ad4c67",
+        "head_sha": "91da700f20f5cad271869fb681953f6d877c75f2",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "3.3.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "a7949850fa0f3bef58cbad93d2d6b6a791ea68a3eac311feab0b57b8107e3b94",
+        "reproved_at": "2026-10-31T23:17:23Z"
+      }
+    },
+    {
+      "rule": "../rules/airflow/75734.yml",
+      "root_ids": [
+        "airflow-75734-1"
+      ],
+      "proof": {
+        "pr": 75734,
+        "base_sha": "c79293ea4b998370e034284c159931e4edc40bdf",
+        "head_sha": "42d036774b5098180d238b21e9c90b2e227ccff7",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 2,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "3.3.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 0,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 0,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "25babfa2fb51afc275f7dcb62998ecb723b27f0f664421d321863397890fd3de",
+        "reproved_at": "2026-10-31T23:17:23Z"
+      }
+    },
+    {
+      "rule": "../rules/airflow/75774.yml",
+      "root_ids": [
+        "airflow-75774-1",
+        "airflow-75774-2"
+      ],
+      "proof": {
+        "pr": 75774,
+        "base_sha": "8b5306690acb58d0584376272dfa2159aecea0dd",
+        "head_sha": "44f87164b7ac8729d67fa4823bb2df91dbcb9192",
+        "attempts": 0,
+        "sides": [
+          {
+            "side": "base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "rename-base",
+            "files": 2,
+            "flagged": 1,
+            "errors": 0
+          },
+          {
+            "side": "rename-head",
+            "files": 2,
+            "flagged": 0,
+            "errors": 0
+          },
+          {
+            "side": "variant-violation",
+            "files": 3,
+            "flagged": 3,
+            "errors": 0
+          },
+          {
+            "side": "variant-compliant",
+            "files": 3,
+            "flagged": 0,
+            "errors": 0
+          }
+        ],
+        "false_positives": 0,
+        "old_release": {
+          "ref": "3.3.2",
+          "false_positives": 0,
+          "error": null
+        },
+        "heldout": null,
+        "tree_error": null,
+        "heldout_sets": {
+          "same": {
+            "author": "same",
+            "caught": 2,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          },
+          "cross": {
+            "author": "meta-models/muse-spark-open-1026",
+            "caught": 3,
+            "violations": 3,
+            "allowed": 3,
+            "compliant": 3,
+            "error": null
+          }
+        },
+        "not_run": {},
+        "rule_sha": "1eba3b1931ed401fcb3fcd0ae259130d76858b0de50ae7f5576af0a09f70bb47",
+        "reproved_at": "2026-10-31T23:17:23Z"
+      }
+    }
   ]
 }
