@@ -5,6 +5,7 @@ from pathlib import Path
 from knack.contracts.models import Root, Verdict
 from knack.guard.runner import RuleMatch, scan_file_with_rule
 from knack.guard.verdict_builder import build_verdict
+from knack.roots.pin import pin_holds
 
 GUARD_ERROR_REASON = "guard-error"
 
@@ -21,7 +22,8 @@ def check_file(
     started = time.perf_counter()
     try:
         matches = new_matches(file_path, rule_path, baseline)
-        return build_verdict(rule_id, matches, root, _elapsed_ms(started))
+        stale = bool(matches) and root is not None and not pin_holds(root, rule_path)
+        return build_verdict(rule_id, matches, root, _elapsed_ms(started), stale)
     except Exception as error:
         # Fail open: a bug in the guard must never block an edit.
         return fail_open(error, log_path, started)

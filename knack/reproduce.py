@@ -1,16 +1,18 @@
 """Every number the README cites, recomputed from committed files only.
 
-python -m knack.reproduce {extraction,heldout,repeats,breadth}; scripts/reproduce.sh runs them all.
+python -m knack.reproduce {grid,extraction,heldout,repeats,breadth}; scripts/reproduce.sh runs them all.
 """
 
 import re
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import get_args, Literal
+from typing import get_args
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.bench.heldout_pr import HeldOutPr, Model, Score
+from knack.bench.proof_grid import grid_lines
 from knack.contracts.models import DecisionStatus
 from knack.pipeline.heldout import score_heldout
 from knack.pipeline.prove import Sides
@@ -29,20 +31,18 @@ TICKETS = REPO_ROOT / "bench" / "tickets.jsonl"
 RUNS = REPO_ROOT / "bench" / "runs-1030c.jsonl"
 # Written by `knack bench repeats` from full clones; the hunt itself is not re-run.
 REPEATS = REPO_ROOT / "bench" / "REPEATS.md"
+# Compile and recompile runs: each attempt's rule text and the proof rows it got.
+COMPILE_LOGS = sorted((REPO_ROOT / "spikes").glob("*compile*.log"))
 STATUSES: tuple[str, ...] = get_args(DecisionStatus)
 # A REPEATS.md summary row: repo, #PR, merged, scanned, repeat commits, human, bot.
 REPEATS_ROW = re.compile(
     r"^\| (\S+/\S+) \| #(\d+) \| [^|]+ \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$"
 )
 SIDES = {"violation": "variant-violation", "compliant": "variant-compliant"}
-# Same-model (Spark) and cross-model (Spark Open) held-out sets per PR.
-Model = Literal["same", "cross"]
 LABELS: dict[Model, str] = {
     "same": "generality (same-model held-out pass)",
     "cross": "cross-model held-out pass",
 }
-# (violations caught, violations, compliant allowed, compliant); None: no rule.
-Score = tuple[int, int, int, int] | None
 
 
 class Alternative(BaseModel):
@@ -64,20 +64,6 @@ class Extraction(BaseModel):
 
     number: int
     decisions: list[Decision]
-
-
-class HeldOutPr(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    repo: str
-    pr: str
-    same: Score = None
-    cross: Score = None
-
-    def passed(self, model: Model) -> bool:
-        # The held-out bar: >=2 violations caught, every compliant file allowed.
-        score = self.same if model == "same" else self.cross
-        return score is not None and score[0] >= 2 and score[2] == score[3]
 
 
 def extraction_lines(batches: list[Path]) -> list[str]:
@@ -265,8 +251,15 @@ def _require_every_rule_hunted(rows: list[HuntRow], registries: list[Path]) -> N
         raise ValueError(f"installed rule(s) never hunted: {', '.join(missing)}")
 
 
+def grid_section() -> list[str]:
+    # Held-out scores are recomputed; every other gate is read from the committed record.
+    scored = {(pr.repo, pr.pr): pr for pr in score_prs(HELDOUT, REGISTRIES)}
+    return grid_lines(REGISTRIES, scored, COMPILE_LOGS)
+
+
 def main(argv: list[str]) -> int:
     sections = {
+        "grid": grid_section,
         "extraction": lambda: extraction_lines(BATCHES),
         "heldout": lambda: heldout_lines(HELDOUT, REGISTRIES),
         "repeats": lambda: repeats_lines(REPEATS, REGISTRIES),

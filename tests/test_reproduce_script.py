@@ -6,9 +6,18 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "reproduce.sh"
 REPORT = REPO_ROOT / "bench" / "REPORT-1030c.md"
+GRID = REPO_ROOT / "bench" / "PROOF-GRID.md"
 # Sources a fresh clone does not have: ignored batch sources, caches, the home registry.
 LOCAL_ONLY = ["/src/", ".knack/", "~", "$HOME/"]
-SECTIONS = ["extraction", "held-out", "bench", "repeats", "breadth", "e2e"]
+SECTIONS = [
+    "proof grid",
+    "extraction",
+    "held-out",
+    "bench",
+    "repeats",
+    "breadth",
+    "e2e",
+]
 # A number line: the number, then the command that printed it.
 NUMBER_LINE = re.compile(r"^\S.*\d.*  \$ \S")
 
@@ -74,4 +83,9 @@ def test_reproduce_prints_every_number_beside_its_command(tmp_path: Path) -> Non
         assert NUMBER_LINE.match(line), line
     # The bench tables appear verbatim, under the command that printed them.
     assert REPORT.read_text(encoding="utf-8").strip() in out
-    assert "FAIL" not in out
+    # The grid prints first, verbatim as written to bench/PROOF-GRID.md.
+    assert out.index(GRID.read_text(encoding="utf-8").strip()) < out.index(
+        "== extraction =="
+    )
+    # A grid cell may say FAIL; a step that failed to run never may.
+    assert "FAIL  $" not in out

@@ -1,7 +1,7 @@
 import hashlib
 import os
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
@@ -34,8 +34,14 @@ class RootView(BaseModel):
     rejected_alternative: str | None
     # When the cited PR merged; None for a root stored before merge times were kept.
     merged_at: str | None
+    # How long before (or after) this verdict the cited PR merged; None without merged_at.
+    postmark: str | None
     # False when the root's quote changed since the receipt hashed it.
     quote_verified: bool
+    seeded: bool
+    # Who confirmed it and the sha256 of the rule they confirmed; None before KN-62.
+    confirmed_by: str | None
+    rule_sha: str | None
 
 
 class OtherDecision(BaseModel):
@@ -145,8 +151,31 @@ def _root_view(receipt: Receipt, registry: Registry | None) -> RootView | None:
         source_url=str(root.source_url),
         rejected_alternative=root.rejected_alternative,
         merged_at=root.merged_at,
+        postmark=_postmark(root.merged_at, receipt.time),
         quote_verified=quote == receipt.quote_sha256,
+        seeded=root.seeded,
+        confirmed_by=root.confirmed_by,
+        rule_sha=root.rule_sha,
     )
+
+
+def _postmark(merged_at: str | None, verdict_time: str) -> str | None:
+    # Calendar days in UTC, so a PR merged before the edit visibly predates it.
+    merged, decided = _parsed(merged_at or ""), _parsed(verdict_time)
+    if merged is None or decided is None:
+        return None
+    days = (decided.astimezone(UTC).date() - merged.astimezone(UTC).date()).days
+    return f"merged {merged.astimezone(UTC).date()}, {_relative(days)} this verdict"
+
+
+def _relative(days: int) -> str:
+    if days == 0:
+        return "the same day as"
+    return f"{_days(abs(days))} {'before' if days > 0 else 'after'}"
+
+
+def _days(count: int) -> str:
+    return "1 day" if count == 1 else f"{count} days"
 
 
 def _registry_of(receipt: Receipt, registry_for: RegistryFor) -> Registry | None:

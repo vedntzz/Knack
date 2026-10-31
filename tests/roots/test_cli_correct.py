@@ -6,6 +6,7 @@ from gate_fakes import FakeGitHub, FakeSpark
 from knack import cli
 from knack.pipeline.clients import MissingCredentials
 from knack.roots.corrections import Correction
+from knack.roots.pin import rule_sha
 from knack.walk.registry import home_registry_dir
 from registry_fixture import make_registry, raw_entries, status_on_disk
 
@@ -42,7 +43,10 @@ def test_confirm_flips_the_root_and_logs_to_home(
     assert cli.main(args) == 0
     assert status_on_disk(registry, "widgets-4-1") == "Confirmed"
     assert [(c.action, c.by) for c in logged(home)] == [("confirm", "maria")]
-    assert "widgets-4-1: Inferred -> Confirmed" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "widgets-4-1: Inferred -> Confirmed" in out
+    sha = rule_sha(registry.parent / "rules" / "4.yml")
+    assert f"pinned to rule {sha[:12]}" in out
 
 
 def test_reject_unknowns_the_root_drops_its_rule_and_logs_the_reason(

@@ -57,9 +57,10 @@ from knack.roots.correct import (
     reject_root,
     reviewer_name,
 )
-from knack.roots.corrections import corrections_path
+from knack.roots.corrections import Correction, corrections_path
 from knack.roots.gate import Apply, Gate, gated, Outcome, regressed_line
 from knack.roots.merge import import_lines, import_registry, RegistryImportError
+from knack.roots.resolve import resolve_deny, Resolved, ResolveError
 from knack.roots.store import load_roots, RootStoreError
 from knack.walk.registry import (
     home_registry_dir,
@@ -93,6 +94,7 @@ WORK_HELP = "defaults to ~/.knack/cache/miss/<registry>"
 RECEIPTS_HELP = "defaults to ~/.knack/verdicts.jsonl"
 RUNS_HELP = "bench run files; defaults to bench/runs*.jsonl"
 KEPT = "the old rule is kept"
+RESOLVE_REGISTRY_HELP = "defaults to the home registry of the receipt's repo"
 NO_WRITER = (
     "the fresh cross-model set needs a second model: set its key or pass --adversary"
 )
@@ -137,7 +139,10 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"argue": _add_argue_arguments, "console": _add_console_arguments}
     adders |= {"miss": _add_miss_arguments, "false-block": _add_false_block_arguments}
     adders |= {"backfill-merged": _add_backfill_arguments}
-    return adders | {"receipts": _add_receipts_arguments}
+    return adders | {
+        "receipts": _add_receipts_arguments,
+        "resolve": _add_resolve_arguments,
+    }
 
 
 def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
@@ -303,10 +308,53 @@ def _gate() -> Gate:
 def _correction_report(outcome: Outcome) -> int:
     # A rolled-back correction exits 1 and names every Confirmed root it lost.
     done, undone = outcome.correction, " rolled back" if outcome.rolled_back else ""
-    print(f"{done.root_id}: {done.before.status} -> {done.after.status}{undone}")
+    print(
+        f"{done.root_id}: {done.before.status} -> {done.after.status}{_pin_note(done)}{undone}"
+    )
     for root in outcome.lost:
         print(regressed_line(root))
     return 1 if outcome.rolled_back else 0
+
+
+def _add_resolve_arguments(resolve: argparse.ArgumentParser) -> None:
+    resolve.description = (
+        "settle a deny after ESCALATE: allow that edit, or retire the decision"
+    )
+    resolve.add_argument("receipt", help="the hash of the deny receipt")
+    resolve.add_argument("action", choices=["allow", "retire"])
+    resolve.add_argument("--reason", required=True)
+    resolve.add_argument("--by", help="who resolved; defaults to git user.name")
+    resolve.add_argument("--registry", type=Path, help=RESOLVE_REGISTRY_HELP)
+
+
+def _resolve_command(args: argparse.Namespace) -> int:
+    # A bad hash, reason, registry or root is operator error: exit 2, nothing written.
+    named = (receipts_path(), args.receipt, args.action, args.reason, _by(args))
+    try:
+        done = resolve_deny(*named, corrections_path(), args.registry)
+    except (ResolveError, RootStoreError, ValidationError, OSError) as error:
+        return _loop_refused("resolve", str(error), 2)
+    print(_resolved_line(done))
+    return 0
+
+
+def _by(args: argparse.Namespace) -> str:
+    return args.by or reviewer_name(Path.cwd())
+
+
+def _resolved_line(done: Resolved) -> str:
+    resolution, receipt = done.receipt.resolution, done.receipt
+    assert resolution is not None
+    verb = "allowed" if resolution.action == "allow" else "retired"
+    cited = f"{receipt.rule_id}, {done.correction.root_id}"
+    return f"{resolution.of[:12]}: {verb} by {resolution.by} ({cited}): {resolution.reason}"
+
+
+def _pin_note(correction: Correction) -> str:
+    sha = correction.after.rule_sha
+    return (
+        f", pinned to rule {sha[:12]}" if correction.action == "confirm" and sha else ""
+    )
 
 
 def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
@@ -677,7 +725,7 @@ def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
     handlers |= {"argue": _argue_command, "console": _console_command}
     handlers |= {"miss": _miss_command, "false-block": _false_block_command}
     handlers |= {"backfill-merged": _backfill_command}
-    return handlers | {"receipts": _receipts_command}
+    return handlers | {"receipts": _receipts_command, "resolve": _resolve_command}
 
 
 def _add_source_arguments(loop: argparse.ArgumentParser) -> None:

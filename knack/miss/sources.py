@@ -18,6 +18,7 @@ RECEIPT_HASH = re.compile(r"[0-9a-f]{64}")
 # The guard decision each kind of case disputes.
 DISPUTED = {"must-fail": "allow", "must-pass": "deny"}
 AS_JSON = "record the edit as JSON instead"
+DONE = {"allow": "allowed", "retire": "retired"}
 
 
 class MissSourceError(Exception):
@@ -83,7 +84,17 @@ def _disputed_receipt(path: Path, digest: str, kind: CaseKind) -> Receipt:
         raise MissSourceError(f"no receipt {digest[:12]} in {path}")
     if found[0].decision != DISPUTED[kind]:
         raise MissSourceError(_wrong_decision(found[0], kind))
+    _refuse_human_allow(found[0])
     return found[0]
+
+
+def _refuse_human_allow(receipt: Receipt) -> None:
+    # A person allowed this edit after ESCALATE; recompiling to deny it would undo them.
+    done = receipt.resolution
+    if done is not None:
+        raise MissSourceError(
+            f"{receipt.hash[:12]} was {DONE[done.action]} by {done.by}, not missed"
+        )
 
 
 def _repo_relative(file: str) -> str:

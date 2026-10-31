@@ -450,3 +450,53 @@ def test_the_denys_own_session_warn_wins_over_a_later_one(world: World) -> None:
 def test_a_warn_from_another_clone_is_never_served(world: World) -> None:
     record_warn(world.warns, REPO, Path("/w/other-clone"), "s-1", "elsewhere", at(3))
     assert get(world, world.receipt(deny(), at(5), session="e2e"))["warn"] is None
+
+
+def test_the_root_carries_seeded_who_confirmed_and_the_pinned_rule(
+    world: World,
+) -> None:
+    pin = {"seeded": True, "confirmed_by": "bo", "rule_sha": "a" * 64}
+    world.write_root(root_fields() | pin)
+    root = get(world, world.receipt(deny(), at(5)))["root"]
+    assert (root["seeded"], root["confirmed_by"], root["rule_sha"]) == (
+        True,
+        "bo",
+        "a" * 64,
+    )
+
+
+def test_a_root_from_before_pins_says_so(world: World) -> None:
+    root = get(world, world.receipt(deny(), at(5)))["root"]
+    assert (root["seeded"], root["confirmed_by"], root["rule_sha"]) == (
+        False,
+        None,
+        None,
+    )
+
+
+def test_the_postmark_says_how_long_before_the_verdict_the_pr_merged(
+    world: World,
+) -> None:
+    world.write_root(root_fields() | {"merged_at": MERGED_AT})
+    root = get(world, world.receipt(deny(), at(5)))["root"]
+    assert root["postmark"] == "merged 2026-10-20, 11 days before this verdict"
+
+
+def test_a_pr_merged_after_the_verdict_is_postmarked_after(world: World) -> None:
+    world.write_root(root_fields() | {"merged_at": "2026-11-01T13:00:00Z"})
+    root = get(world, world.receipt(deny(), at(5)))["root"]
+    assert root["postmark"] == "merged 2026-11-01, 1 day after this verdict"
+
+
+def test_a_pr_merged_the_same_day_is_postmarked_so(world: World) -> None:
+    world.write_root(root_fields() | {"merged_at": "2026-10-31T09:00:00Z"})
+    root = get(world, world.receipt(deny(), at(5)))["root"]
+    assert root["postmark"] == "merged 2026-10-31, the same day as this verdict"
+
+
+@pytest.mark.parametrize("merged_at", [None, "last tuesday"])
+def test_no_readable_merge_time_has_no_postmark(
+    world: World, merged_at: str | None
+) -> None:
+    world.write_root(root_fields() | {"merged_at": merged_at})
+    assert get(world, world.receipt(deny(), at(5)))["root"]["postmark"] is None

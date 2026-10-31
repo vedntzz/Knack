@@ -11,7 +11,14 @@ from knack.contracts.models import Root, Verdict
 from knack.git import current_branch
 from knack.guard.check import check_file, fail_open, log_error_quietly
 from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
-from knack.receipts.chain import append_receipt, guard_receipt, Receipt, receipts_path
+from knack.receipts.chain import (
+    append_receipt,
+    guard_receipt,
+    human_allow,
+    Receipt,
+    receipts_path,
+    Resolution,
+)
 from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
@@ -187,6 +194,7 @@ def _first_deny(
     # Rules run in registry order; every verdict is receipted; the first deny wins.
     for rule_path, root in rules:
         verdict = _check_rule(temp, baseline, rule_path, root, trail.log)
+        verdict = _unless_human_allowed(verdict, rule_path, trail)
         receipt = _receipt_quietly(trail, rule_path, root, verdict)
         if not verdict.allowed:
             return _deny(verdict.reason, receipt)
@@ -201,6 +209,26 @@ def _check_rule(
         return check_file(temp, rule_path, _rule_id(rule_path), root, log, baseline)
     except Exception as error:
         return fail_open(error, log, time.perf_counter())
+
+
+def _unless_human_allowed(verdict: Verdict, rule_path: Path, trail: Trail) -> Verdict:
+    # A deny a person resolved as allowed, for this exact edit, passes on retry.
+    if verdict.allowed or trail.receipts is None or trail.edit_sha256 is None:
+        return verdict
+    resolution = _human_allow_quietly(trail, rule_name(rule_path))
+    if resolution is None:
+        return verdict
+    reason = f"resolved: allowed by {resolution.by}: {resolution.reason}"
+    return verdict.model_copy(update={"allowed": True, "reason": reason})
+
+
+def _human_allow_quietly(trail: Trail, rule_id: str) -> Resolution | None:
+    # An unreadable chain keeps the deny: only a recorded human allow lets it through.
+    try:
+        return human_allow(trail.receipts or Path(), rule_id, trail.edit_sha256 or "")
+    except Exception as error:
+        log_error_quietly(trail.log, error)
+        return None
 
 
 def _receipt_quietly(

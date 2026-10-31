@@ -102,6 +102,7 @@ def test_hold_prints_hold_with_the_cited_quote(
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "HOLD"
     assert "We chose not to alias." in out and f'"{cited}"' in out
+    assert "knack resolve" not in out
     [prompt] = prompts
     assert RESTATES_REJECTED in prompt and QUOTE_75025 in prompt
 
@@ -117,6 +118,8 @@ def test_escalate_prints_held_for_a_person(
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "ESCALATE: held for a person"
     assert "The quotes say nothing about clients." in out
+    assert out.splitlines()[-1].startswith("To resolve: knack resolve ")
+    assert "allow|retire --reason" in out.splitlines()[-1]
 
 
 def test_the_latest_deny_picks_the_rule(

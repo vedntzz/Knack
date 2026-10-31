@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from knack.contracts.models import Root
 
+# Only these judge an extraction; allow and retire resolve a deny after ESCALATE.
+EXTRACTION_ACTIONS = ("confirm", "reject")
 # How many past corrections the extract prompt learns from.
 RECENT_LIMIT = 5
 BLOCK_HEADER = """PAST CORRECTIONS: a reviewer checked these earlier extractions.
@@ -16,12 +18,14 @@ class Correction(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     root_id: str
-    action: Literal["confirm", "reject"]
+    action: Literal["confirm", "reject", "allow", "retire"]
     before: Root
     after: Root
     reason: str | None
     by: str
     at: str
+    # The deny receipt an allow or retire resolves; None for confirm and reject.
+    receipt_hash: str | None = None
 
 
 def corrections_path() -> Path:
@@ -43,11 +47,11 @@ def remove_correction(correction: Correction, path: Path) -> None:
 
 
 def recent_corrections(path: Path, limit: int = RECENT_LIMIT) -> list[Correction]:
-    # Oldest first; a damaged line is skipped so one bad write never stops init.
+    # Oldest first; a damaged line or a resolution is skipped, so neither steers init.
     if not path.exists():
         return []
     parsed = [_parsed(line) for line in path.read_text("utf-8").splitlines()]
-    return [c for c in parsed if c is not None][-limit:]
+    return [c for c in parsed if c and c.action in EXTRACTION_ACTIONS][-limit:]
 
 
 def few_shot_block(corrections: list[Correction]) -> str:

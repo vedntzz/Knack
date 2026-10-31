@@ -8,7 +8,14 @@ from typing import Any
 import pytest
 from knack.hooks import pretool_guard
 from knack.hooks.pretool_guard import decide
+from knack.receipts.chain import (
+    append_receipt,
+    load_receipts,
+    Resolution,
+    resolution_receipt,
+)
 from knack.receipts.edits import load_edit
+from knack.roots.pin import rule_sha
 from knack.walk.registry import Registry, RegistryEntry
 
 HOOK_FIXTURES = Path(__file__).parent / "fixtures"
@@ -639,3 +646,71 @@ def test_a_failed_snapshot_never_changes_the_verdict(tmp_path: Path) -> None:
     assert SOURCE_URL in deny_reason(reason)
     [receipt] = receipt_lines(receipts)
     assert "edit_sha256" not in receipt
+
+
+def human_allowed(receipts: Path, deny_hash: str) -> None:
+    # What knack resolve <hash> allow leaves on the chain.
+    deny = next(r for r in load_receipts(receipts) if r.hash == deny_hash)
+    resolution = Resolution(of=deny.hash, action="allow", by="maria", reason="ok here")
+    append_receipt(
+        receipts, resolution_receipt(deny, resolution, "2026-10-31T09:00:00+00:00")
+    )
+
+
+def test_an_edit_a_human_allowed_passes_on_retry(tmp_path: Path) -> None:
+    receipts, registry = tmp_path / "verdicts.jsonl", make_registry(tmp_path)
+    event = violating_write_event("new_dags.py", tmp_path)
+    deny_reason(decide(event, registry, tmp_path / "log", receipts))
+    human_allowed(receipts, receipt_lines(receipts)[0]["hash"])
+    assert decide(event, registry, tmp_path / "log", receipts) is None
+    assert receipt_lines(receipts)[-1]["decision"] == "allow"
+
+
+def test_a_different_edit_is_still_denied_after_a_human_allow(tmp_path: Path) -> None:
+    receipts, registry = tmp_path / "verdicts.jsonl", make_registry(tmp_path)
+    deny_reason(
+        decide(
+            violating_write_event("a.py", tmp_path),
+            registry,
+            tmp_path / "log",
+            receipts,
+        )
+    )
+    human_allowed(receipts, receipt_lines(receipts)[0]["hash"])
+    other = violating_write_event("b.py", tmp_path)
+    assert SOURCE_URL in deny_reason(
+        decide(other, registry, tmp_path / "log", receipts)
+    )
+
+
+def test_an_unreadable_chain_never_turns_a_deny_into_an_allow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(pretool_guard, "human_allow", raise_error(OSError("disk")))
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert SOURCE_URL in deny_reason(
+        decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    )
+
+
+def pin_root(directory: Path, sha: str) -> None:
+    path = directory / "roots" / "root-75025.json"
+    root = json.loads(path.read_text()) | {"rule_sha": sha, "confirmed_by": "maria"}
+    path.write_text(json.dumps(root), encoding="utf-8")
+
+
+def test_a_root_pinned_to_the_installed_rule_denies(tmp_path: Path) -> None:
+    registry = make_registry(tmp_path)
+    pin_root(tmp_path, rule_sha(RULE))
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert SOURCE_URL in deny_reason(decide(event, registry, tmp_path / "log"))
+
+
+def test_a_rule_recompiled_after_confirmation_only_advises(tmp_path: Path) -> None:
+    receipts, registry = tmp_path / "verdicts.jsonl", make_registry(tmp_path)
+    pin_root(tmp_path, "0" * 64)
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert decide(event, registry, tmp_path / "log", receipts) is None
+    [receipt] = receipt_lines(receipts)
+    assert (receipt["decision"], receipt["root_ids"]) == ("allow", ["root-75025"])

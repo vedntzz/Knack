@@ -104,6 +104,23 @@ def test_a_receipt_without_a_snapshot_is_refused(tmp_path: Path) -> None:
         resolve(tmp_path, digest)
 
 
+def test_a_human_allow_is_never_a_miss(tmp_path: Path) -> None:
+    # A person allowed this edit after ESCALATE; teaching the rule to deny it undoes them.
+    resolution = {"of": "d" * 64, "action": "allow", "by": "maria", "reason": "ok"}
+    fields = {"time": "t", "repo": "acme/widgets", "file": str(tmp_path / "x.py")}
+    fields |= {"rule_id": "widgets-9", "root_ids": [], "decision": "allow"}
+    fields |= {
+        "quote_sha256": None,
+        "latency_ms": 0.0,
+        "edit_sha256": snapshot(tmp_path),
+    }
+    digest = append_receipt(
+        places(tmp_path).receipts, fields | {"resolution": resolution}
+    ).hash
+    with pytest.raises(MissSourceError, match="allowed by maria"):
+        resolve(tmp_path, digest)
+
+
 def test_an_unknown_receipt_hash_is_refused(tmp_path: Path) -> None:
     with pytest.raises(MissSourceError, match="no receipt"):
         resolve(tmp_path, "b" * 64)

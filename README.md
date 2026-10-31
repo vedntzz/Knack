@@ -20,19 +20,21 @@ Knack blocks AI coding agents from edits that contradict a team's recorded decis
 
 **Plain code guards.** The models are in the proof loop: they extract, compile and attack rules before install. They are not in the verdict path. A rule is installed only if it passes the held-out bar: it catches at least 2 of 3 violating variants and allows all 3 compliant ones. At edit time, a PreToolUse hook runs plain code: ast-grep plus a check for matches that are new in the edit. No model and no network are involved. The hook denies the edit with a citation. If the guard itself fails, it logs the error to `.knack/guard_errors.log` and allows the edit.
 
-**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person.
+**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain.
 
 Every decision carries one honest label, plus a `seeded` flag:
 
 | Label | Meaning | Blocks? |
 |---|---|---|
-| Confirmed | A human confirmed it (`knack confirm`) | **yes** |
+| Confirmed | A human confirmed it (`knack confirm`) | **yes**, while its rule is the version they confirmed |
 | Corroborated | Both extractors found it | no |
 | Inferred | Implied by the source, not stated | no |
 | Uncorroborated | Only one extractor found it | no |
 | Unknown | The evidence is insufficient | no |
 
 Only AST-checkable, human-confirmed rules can block: the root must be Confirmed and must have an installed ast-grep rule.
+
+Confirming pins the sha256 of the rule file. If the rule is recompiled later, it only advises until someone runs `knack confirm` again, which re-pins it. Roots confirmed before pins existed, including the 2 committed ones, carry no pin and keep blocking.
 
 `seeded` is true when a root was marked Confirmed by a script rather than a person. All 22 committed roots have `seeded=false`. The bench is different: its guard arms mark every root Confirmed with `seeded=true`, so every bench block was on a seeded root, not a human-reviewed one.
 

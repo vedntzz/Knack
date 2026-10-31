@@ -3,6 +3,8 @@
 # Reads committed files only; no network, no model, no home registry. Exit 0 only if every step ran.
 #
 # Inputs (all tracked by git):
+#   grid        data/registry, data/rules, data/roots, data/heldout, spikes/*compile*.log;
+#               written to bench/PROOF-GRID.md as well as printed
 #   extraction  spikes/batch/apache-airflow/decisions.jsonl, spikes/batch/fastapi-fastapi/decisions.jsonl
 #   held-out    data/heldout (same- and cross-model sets per PR), data/registry/airflow.json,
 #               data/registry/fastapi.json and the data/rules they install
@@ -19,6 +21,7 @@ trap 'rm -rf "$WORK"' EXIT
 RUNS="bench/runs-1030c.jsonl"
 REPORT="bench/REPORT-1030c.md"
 EXCLUDED="fastapi-16049"
+GRID="bench/PROOF-GRID.md"
 FAILED=0
 
 reproduce() { "$PY" -m knack.reproduce "$@"; }
@@ -55,6 +58,15 @@ bench_section() {
   [ "$same" = yes ] || FAILED=1
 }
 
+grid_section() {
+  local shown="python -m knack.reproduce grid"
+  reproduce grid >"$WORK/grid.md" 2>"$WORK/err" || { fail "$shown"; return 1; }
+  # A markdown table, so the command goes above it, as for the bench report.
+  echo "\$ $shown > $GRID"
+  cat "$WORK/grid.md"
+  cp "$WORK/grid.md" "$GRID"
+}
+
 e2e_section() {
   local shown="bash scripts/e2e.sh" passed total
   PYTHON="$PY" bash scripts/e2e.sh >"$WORK/e2e.out" 2>&1
@@ -70,6 +82,9 @@ e2e_section() {
 
 cd "$ROOT" || exit 1
 
+echo "== proof grid =="
+grid_section
+echo
 echo "== extraction =="
 cited "python -m knack.reproduce extraction" reproduce extraction
 echo
