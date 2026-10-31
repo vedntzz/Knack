@@ -2,13 +2,25 @@
 
 Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
+## Verify any claim in 60 seconds
+
+| Claim | Artifact | Check |
+|---|---|---|
+| 17 of 101 PRs yield 31 rejected alternatives, all verbatim | [`spikes/batch/apache-airflow/decisions.jsonl`](spikes/batch/apache-airflow/decisions.jsonl), [`spikes/batch/fastapi-fastapi/decisions.jsonl`](spikes/batch/fastapi-fastapi/decisions.jsonl) | `python -m knack.reproduce extraction` prints the 31; `jq -s '[.[]\|select([.decisions[]?.rejected_alternatives[]?]\|length>0)]\|length' spikes/batch/*/decisions.jsonl` prints the 17 |
+| 13 held-out outcomes per side: 8 pass, 3 no rule, 2 fail held-out | [`data/heldout/`](data/heldout/), [`spikes/rule_quality.md`](spikes/rule_quality.md) | `python -m knack.reproduce heldout` |
+| Only 2 of 22 roots are Confirmed, and none is seeded | [`data/roots/`](data/roots/) | `grep -h '"status"\|"seeded"' data/roots/*/*.json \| sort \| uniq -c` |
+| The guard's one real block was on fastapi #16049, the ticket excluded from the primary bench | [`bench/AUDIT-1030c.md`](bench/AUDIT-1030c.md) | search it for `16049--veto--1` |
+| The bench report regenerates byte for byte from the committed runs | [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md), [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) | `bash scripts/reproduce.sh` (the bench step diffs them) |
+
 ## How it works
 
 **Spark proposes.** Muse Spark reads a repository's merged PRs. It extracts each decision, the alternative the team rejected, who decided, and the verbatim quote. It then compiles the decision into an ast-grep rule.
 
-**Spark Open attacks.** A second model, Muse Spark Open, reads the same PRs independently. A decision that both models find is Corroborated; one that only one model finds is Uncorroborated. Spark Open also writes held-out code variants that break the decision and variants that follow it. Spark never sees those variants while it compiles.
+**Spark Open attacks.** Muse Spark Open, a second, separately run Meta model, reads the same PRs. A decision that both models find is Corroborated; one that only one model finds is Uncorroborated. Spark Open also writes held-out code variants that break the decision and variants that follow it. Spark never sees those variants while it compiles.
 
-**Code decides.** A rule is installed only if it passes the held-out bar: it catches at least 2 of 3 violating variants and allows all 3 compliant ones. At edit time, a PreToolUse hook runs plain code: ast-grep plus a check for matches that are new in the edit. No model and no network are involved. The hook denies the edit with a citation. If the guard itself fails, it logs the error to `.knack/guard_errors.log` and allows the edit.
+**Plain code guards.** The models are in the proof loop: they extract, compile and attack rules before install. They are not in the verdict path. A rule is installed only if it passes the held-out bar: it catches at least 2 of 3 violating variants and allows all 3 compliant ones. At edit time, a PreToolUse hook runs plain code: ast-grep plus a check for matches that are new in the edit. No model and no network are involved. The hook denies the edit with a citation. If the guard itself fails, it logs the error to `.knack/guard_errors.log` and allows the edit.
+
+**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person.
 
 Every decision carries one honest label, plus a `seeded` flag:
 
@@ -20,7 +32,11 @@ Every decision carries one honest label, plus a `seeded` flag:
 | Uncorroborated | Only one extractor found it | no |
 | Unknown | The evidence is insufficient | no |
 
-Only Confirmed decisions block.
+Only AST-checkable, human-confirmed rules can block: the root must be Confirmed and must have an installed ast-grep rule.
+
+`seeded` is true when a root was marked Confirmed by a script rather than a person. All 22 committed roots have `seeded=false`. The bench is different: its guard arms mark every root Confirmed with `seeded=true`, so every bench block was on a seeded root, not a human-reviewed one.
+
+Knack has only been run on public repos; on a private repo, `knack init` and `knack watch` would send PR text to Meta (Spark) and Baseten (Spark Open), while the guard hook stays local and uses no network.
 
 ## Reproduce every number
 
@@ -33,7 +49,7 @@ The script reads only committed files. It uses no network, no model and no home 
 
 ### Breadth [breadth]
 
-- Repositories: 2 (apache/airflow, fastapi/fastapi). PRs read: 101. Decisions extracted: 107.
+- Repositories: 2 (apache/airflow, fastapi/fastapi). PRs read: 101. Decisions extracted: 107. 17 of the 101 PRs yield 31 rejected alternatives, all verbatim (the per-PR count of 17 is read from the decisions files, not printed by the script).
 - Roots: 22. **2 are Confirmed** and 20 are Inferred, with 0 Unknown. Only those 2 roots can block anything today.
 - Installed rules: 12. Held-out PRs: 13. Bench: 9 tickets, 81 runs.
 
@@ -55,12 +71,11 @@ Same-model means Spark's variants; cross-model means Spark Open's. The bar is th
 | Violations caught | 22/36 | 23/36 |
 | Compliant allowed | 34/36 | 33/36 |
 
-The violation and compliant counts cover the 12 rules. Five PRs fail on at least one side:
+The violation and compliant counts cover the 12 installed rules. Each side has exactly 13 outcomes: 8 pass, 3 no rule, 2 fail held-out.
 
-- airflow #74150 and #75734: 0/3 caught on both sides.
-- fastapi #15967: it also blocks compliant code (same-model 1/3 allowed, cross-model 0/3).
-- fastapi #16043: no rule was installed.
-- fastapi #15139 fails same-model (1/3 caught), and #15937 fails cross-model (1/3 caught).
+- **No rule (3), both sides:** airflow #74150 and #75734 and fastapi #16043. No v4 compile passed for them ([`spikes/rule_quality.md`](spikes/rule_quality.md)). #16043 has nothing installed. #74150 and #75734 keep older rules, counted in the 12, that catch 0/3 on both sides; the script prints those two as `fail`.
+- **Fail held-out (2), same-model:** fastapi #15139 (1/3 caught) and #15967 (1/3 caught, 1/3 compliant allowed).
+- **Fail held-out (2), cross-model:** fastapi #15937 (1/3 caught) and #15967 (1/3 caught, 0/3 compliant allowed).
 
 The #15937 result is the reason for the second model. Its rule passes Spark's own variants (3/3) but catches only 1/3 of Spark Open's.
 
