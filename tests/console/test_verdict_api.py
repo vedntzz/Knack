@@ -1,12 +1,13 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from fastapi.testclient import TestClient
 from knack.console.app import create_app
 from knack.console.links import CONSOLE_URL, verdict_url
 from knack.contracts.models import MatchedCode, Root, Verdict
+from knack.dispute.rulings import append_ruling, RulingRecord
 from knack.receipts.chain import append_receipt, guard_receipt, Receipt
 from knack.receipts.warns import record_warn
 
@@ -51,6 +52,7 @@ class World:
     def __init__(self, base: Path) -> None:
         self.receipts = base / "verdicts.jsonl"
         self.warns = base / "warns.jsonl"
+        self.rulings = base / "rulings.jsonl"
         self.registry = base / "registry" / "registry.json"
         self.write_root(root_fields())
         rules = [{"rule": "rules/no-alias.yml", "root_ids": ["root-75025"]}]
@@ -87,8 +89,27 @@ class World:
     def warn(self, context: str, time: str, session: str | None = "s-1") -> None:
         record_warn(self.warns, REPO, Path(CLONE), session, context, time)
 
+    def ruling(
+        self,
+        receipt: Receipt,
+        objection: str,
+        decision: Literal["hold", "escalate"] = "hold",
+    ) -> None:
+        cited = [QUOTE] if decision == "hold" else []
+        record = RulingRecord(
+            time=at(7),
+            receipt_hash=receipt.hash,
+            objection=objection,
+            decision=decision,
+            reply="The quote answers this.",
+            cited_quotes=cited,
+            model="muse-spark-1.3",
+        )
+        append_ruling(self.rulings, record)
+
     def client(self) -> TestClient:
-        return TestClient(create_app(self.receipts, self.warns, self.registry_for))
+        app = create_app(self.receipts, self.warns, self.rulings, self.registry_for)
+        return TestClient(app)
 
     def registry_for(self, repo: str) -> Path | None:
         return self.registry if repo == REPO else None
@@ -252,3 +273,62 @@ def test_without_the_env_the_repos_home_registry_is_used(
     home.mkdir(parents=True)
     (home / "registry.json").write_text("{}")
     assert home_registry_for(REPO) == home / "registry.json"
+
+
+def get_rulings(world: World, receipt_hash: str) -> Any:
+    response = world.client().get(f"/verdict/{receipt_hash}/rulings")
+    assert response.headers["content-type"] == "application/json"
+    return response
+
+
+def test_a_denys_rulings_are_listed_in_the_order_argued(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "Alias it.")
+    world.ruling(denied, "A pinned client needs it.", "escalate")
+    response = get_rulings(world, denied.hash)
+    assert response.status_code == 200
+    first, second = response.json()
+    assert first == {
+        "time": at(7),
+        "receipt_hash": denied.hash,
+        "objection": "Alias it.",
+        "decision": "hold",
+        "reply": "The quote answers this.",
+        "cited_quotes": [QUOTE],
+        "model": "muse-spark-1.3",
+    }
+    assert (second["objection"], second["decision"]) == (
+        "A pinned client needs it.",
+        "escalate",
+    )
+
+
+def test_rulings_on_another_deny_are_left_out(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    other = world.receipt(deny('"start_date"'), at(6))
+    world.ruling(other, "Not about this deny.")
+    world.ruling(denied, "About this deny.")
+    found = get_rulings(world, denied.hash).json()
+    assert [r["objection"] for r in found] == ["About this deny."]
+
+
+def test_a_receipt_never_argued_has_no_rulings(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    response = get_rulings(world, denied.hash)
+    assert (response.status_code, response.json()) == (200, [])
+
+
+def test_rulings_for_an_unknown_hash_is_404(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "Alias it.")
+    response = get_rulings(world, "a" * 64)
+    assert response.status_code == 404
+    assert response.json() == {"detail": "no receipt with that hash"}
+
+
+def test_a_ruling_made_after_start_is_found(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    client = world.client()
+    assert client.get(f"/verdict/{denied.hash}/rulings").json() == []
+    world.ruling(denied, "Alias it.")
+    assert len(client.get(f"/verdict/{denied.hash}/rulings").json()) == 1

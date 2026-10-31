@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 from knack import cli
-from knack.receipts.chain import append_receipt
+from knack.dispute.rulings import load_rulings
+from knack.receipts.chain import append_receipt, Receipt
 
 REGISTRY = Path(__file__).parents[2] / "data" / "registry" / "airflow.json"
 AIRFLOW_URL = "https://github.com/apache/airflow.git"
@@ -35,11 +36,11 @@ def clone(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     return path.resolve()
 
 
-def receipt(home: Path, file: Path, rule_id: str, decision: str = "deny") -> None:
+def receipt(home: Path, file: Path, rule_id: str, decision: str = "deny") -> Receipt:
     fields = {"time": datetime.now(timezone.utc).isoformat(), "repo": "apache/airflow"}
     fields |= {"file": str(file), "rule_id": rule_id, "root_ids": []}
     fields |= {"decision": decision, "quote_sha256": None, "latency_ms": 1.0}
-    append_receipt(home / ".knack" / "verdicts.jsonl", fields)
+    return append_receipt(home / ".knack" / "verdicts.jsonl", fields)
 
 
 def spark_says(
@@ -59,6 +60,10 @@ def spark_says(
 
 def home_of(clone: Path) -> Path:
     return clone.parent / "home"
+
+
+def rulings_file(clone: Path) -> Path:
+    return home_of(clone) / ".knack" / "rulings.jsonl"
 
 
 def test_no_deny_receipt_explains_and_never_asks_spark(
@@ -149,6 +154,75 @@ def test_a_fabricated_quote_escalates(
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "ESCALATE: held for a person"
     assert "Aliasing is forbidden." not in out
+
+
+def test_a_hold_is_recorded_against_its_deny_receipt(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cited = "rather than aliasing them"
+    spark_says(monkeypatch, "hold", "We chose not to alias.", [cited])
+    denied = receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert (ruling.receipt_hash, ruling.objection) == (denied.hash, RESTATES_REJECTED)
+    assert (ruling.decision, ruling.reply) == ("hold", "We chose not to alias.")
+    assert (ruling.cited_quotes, ruling.model) == ([cited], "muse-spark-1.3")
+    assert ruling.time
+
+
+def test_an_escalation_spark_never_saw_records_no_model(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
+    denied = receipt(home_of(clone), clone / "pool.py", "airflow-75271")
+    assert cli.main(["argue", "Any is fine here."]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert (ruling.receipt_hash, ruling.decision) == (denied.hash, "escalate")
+    assert (ruling.model, ruling.cited_quotes) == (None, [])
+
+
+def test_a_rejected_fabrication_is_recorded_as_the_escalation(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "hold", "Never alias.", ["Aliasing is forbidden."])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert (ruling.decision, ruling.cited_quotes) == ("escalate", [])
+    assert ruling.model == "muse-spark-1.3"
+
+
+def test_each_argue_appends_one_ruling(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "escalate", "Not covered.", [])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", "first objection"]) == 0
+    assert cli.main(["argue", "second objection"]) == 0
+    objections = [r.objection for r in load_rulings(rulings_file(clone))]
+    assert objections == ["first objection", "second objection"]
+
+
+def test_nothing_to_dispute_records_nothing(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
+    assert cli.main(["argue", RESTATES_REJECTED]) == 2
+    assert not rulings_file(clone).exists()
+
+
+def test_an_unwritable_rulings_file_still_prints_the_ruling_and_exits_2(
+    clone: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    spark_says(monkeypatch, "escalate", "Not covered.", [])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    rulings_file(clone).mkdir()
+    assert cli.main(["argue", RESTATES_REJECTED]) == 2
+    captured = capsys.readouterr()
+    assert captured.out.splitlines()[0] == "ESCALATE: held for a person"
+    assert "knack argue:" in captured.err
 
 
 @live

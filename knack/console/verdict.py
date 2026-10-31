@@ -7,6 +7,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from knack.contracts.models import MatchedCode, Root
+from knack.dispute.rulings import RulingRecord, rulings_for
 from knack.hooks.scope import REGISTRY_ENV
 from knack.receipts.chain import Decision, load_receipts, Receipt, receipt_hash
 from knack.receipts.warns import load_warns, WarnRecord
@@ -77,9 +78,7 @@ def verdict_view(
     wanted: str, receipts: Path, warns: Path, registry_for: RegistryFor
 ) -> VerdictView:
     chain = load_receipts(receipts)
-    receipt = next((r for r in chain if r.hash == wanted), None)
-    if receipt is None:
-        raise NoSuchReceipt(NO_RECEIPT)
+    receipt = _receipt_in(chain, wanted)
     return VerdictView(
         hash=receipt.hash,
         hash_verified=receipt_hash(receipt) == receipt.hash,
@@ -97,6 +96,12 @@ def verdict_view(
     )
 
 
+def deny_rulings(wanted: str, receipts: Path, rulings: Path) -> list[RulingRecord]:
+    # An unknown hash is 404, never an empty list that looks like "never argued".
+    _receipt_in(load_receipts(receipts), wanted)
+    return rulings_for(rulings, wanted)
+
+
 def home_registry_for(repo: str) -> Path | None:
     # The registry the hook guards with: KNACK_REGISTRY, else the repo's home one.
     value = os.environ.get(REGISTRY_ENV)
@@ -104,6 +109,13 @@ def home_registry_for(repo: str) -> Path | None:
         return Path(value).expanduser().resolve()
     path = home_registry_dir(repo) / "registry.json"
     return path if path.exists() else None
+
+
+def _receipt_in(chain: list[Receipt], wanted: str) -> Receipt:
+    receipt = next((r for r in chain if r.hash == wanted), None)
+    if receipt is None:
+        raise NoSuchReceipt(NO_RECEIPT)
+    return receipt
 
 
 def _root_view(receipt: Receipt, registry_for: RegistryFor) -> RootView | None:
