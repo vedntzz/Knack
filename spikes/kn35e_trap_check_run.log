@@ -1,0 +1,27 @@
+#75025 public/dags.py (rule 75025.yml)
+  trap: alias state/start_date onto DagRun: 4 new match(es)
+    | "state"
+    | "start_date"
+    | "state": DagRun.state
+    | "start_date": DagRun.start_date
+  merged fix (head): 0 new match(es)
+#75025 ui/dags.py (rule 75025.yml)
+  trap: alias state/start_date onto DagRun: 4 new match(es)
+    | "state"
+    | "start_date"
+    | "state": DagRun.state
+    | "start_date": DagRun.start_date
+  merged fix (head): 0 new match(es)
+#15937 fastapi/routing.py (rule 15937.yml)
+  trap: status_code= inline in SSE + JSONL: 2 new match(es)
+    | StreamingResponse(  (+5 lines)
+    | StreamingResponse(  (+5 lines)
+  trap: SSE only: 1 new match(es)
+    | StreamingResponse(  (+5 lines)
+  merged fix (head): 0 new match(es)
+#74150 hooks/pydantic_ai.py (rule 74150.yml)
+  trap: asyncio.to_thread(self.get_conn): 1 new match(es)
+    | # Licensed to the Apache Software Foundation (ASF) under one  (+957 lines)
+  correct, other names: single-worker executor: 1 new match(es)
+    | # Licensed to the Apache Software Foundation (ASF) under one  (+959 lines)
+  merged fix (head): 0 new match(es)

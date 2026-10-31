@@ -200,6 +200,8 @@ CROSS_MODEL_PASSED = {
     "fastapi-16049",
     "fastapi-16062",
 }
+# KN-35e: #75025 (passes a fresh cross-model set) and #15937 (the contrast beat, fails it).
+KN35E_ADDED = {"airflow-75025", "fastapi-15937"}
 BENCH_REPOS = ["apache/airflow", "fastapi/fastapi"]
 
 
@@ -207,5 +209,6 @@ BENCH_REPOS = ["apache/airflow", "fastapi/fastapi"]
     not all((home_registry_dir(r) / "registry.json").exists() for r in BENCH_REPOS),
     reason="needs the airflow and fastapi home registries from knack import",
 )
-def test_real_tickets_are_the_cross_model_passes() -> None:
-    assert {t.rule for t in load_tickets(REAL_TICKETS)} == CROSS_MODEL_PASSED
+def test_real_tickets_are_the_preregistered_nine() -> None:
+    expected = CROSS_MODEL_PASSED | KN35E_ADDED
+    assert {t.rule for t in load_tickets(REAL_TICKETS)} == expected
