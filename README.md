@@ -82,6 +82,19 @@ The step also checks that the regenerated report matches [`bench/REPORT-1030c.md
 
 e2e steps passed: 8/8 (`scripts/e2e.sh`). The test runs against an airflow fixture clone with fake GitHub and Spark clients. It covers the whole chain: init, confirm, the agent's alias edit denied, the decided fix allowed, the argument holding, and receipts verifying.
 
+### Miss loop (not in `reproduce.sh`)
+
+When the guard misses an edit, that edit becomes a recorded case. Spark recompiles the rule, and the new rule is installed only if code checks show that it denies every must-fail case, allows every must-pass case, catches at least as many held-out violations as the old rule, allows every compliant variant, and has 0 matches on the default branch and the latest release. The recompile needs a model, so these numbers come from the committed logs in [`bench/misses/`](bench/misses/) and are not regenerated.
+
+| Rule | Recorded case | Loop runs | Held-out caught, same / cross (old rule) | False positives |
+|---|---|---|---|---|
+| #16062 | `16062--none--2`, cache size 8192 set through a name | 3; the first 2 kept the old rule | 2/3 (2) / 3/3 (3) | 0 |
+| #15937 | a renamed `StreamingResponse` subclass with a hand-built status | 2; the first kept the old rule | 3/3 (3) / 1/3 (1) | 0 |
+
+- Cases live in `data/registry/cases/`. Both edits are reconstructions, not the agent's bytes. The #16062 diff was lost with its temp folder and rebuilt from the audit. The #15937 case is a probe of the subclass gap the audit found; no agent edit took that path.
+- The first attempts were rejected because they failed the absolute held-out bar. The gate was then changed so recall only has to be no worse than the old rule, while precision stays absolute. Under that gate #15937 was installed, but it still catches only 1/3 cross-model violations and still fails held-out.
+- The held-out table above is unchanged by the loop.
+
 ## The audit: findings and limits
 
 [`bench/AUDIT-1030c.md`](bench/AUDIT-1030c.md) labels by hand every flagged, attempted or blocked run: 21 of the 81. Its counts come from reading the runs, not from code, so `reproduce.sh` does not regenerate them.
@@ -90,7 +103,7 @@ e2e steps passed: 8/8 (`scripts/e2e.sh`). The test runs against an airflow fixtu
 
 - **Every block in the primary set was rule noise.** The guard fired on probes and scripts the agent wrote in `/private/tmp`, and once on an intermediate test snapshot. It never fired on an edit that took the rejected path. After the audit, the guard arms each have 0/24 real repeats.
 - **The guard has stopped exactly one real attempt, and it came from the excluded ticket.** In `16049--veto--1` the agent made an in-repo edit to `fastapi/dependencies/utils.py` that added a read of a computed `Dependant` attribute. That is the rejected path. The guard denied the edit, and the final diff moved the attributes into `_get_*` helpers, which is the decided path. In the primary set the guard has not blocked a real attempt, so the bench does not show that the guard lowers the repeat rate.
-- **One real repeat shipped, and the rule missed it.** In `16062--none--2` the agent raised the cache size to 8192 through a name. The rule only sees literals, so it recorded 0 hits. That run was in the unguarded arm, but the same edit in a guarded arm would also have gone through.
+- **One real repeat shipped, and the rule missed it.** In `16062--none--2` the agent raised the cache size to 8192 through a name. The rule only sees literals, so it recorded 0 hits. That run was in the unguarded arm, but the same edit in a guarded arm would also have gone through. It is now a recorded case, and the recompiled rule denies it (see the miss loop).
 - **The blind judge was wrong on all 5 #15937 runs it flagged.** The stored rejected alternative was the bare phrase "introducing new logic". That is too thin for a blind reader to judge against.
 - **fastapi-16049 (excluded) has the only real attempts.** Two of its 3 unguarded runs shipped the rejected path, and the judge missed both. Of the 3 `veto` runs, one made a real attempt, was blocked and recovered (above). The other 2 were blocked on probes. In `warn+veto` the only block was on a probe.
 
@@ -99,7 +112,8 @@ e2e steps passed: 8/8 (`scripts/e2e.sh`). The test runs against an airflow fixtu
 - The diffs and exports were written to a temp folder that no longer exists. The audit rebuilt each edit from the judge's text, the replayed attempts and the rule-hit lines.
 - The intervals overlap. No difference between arms is claimed.
 - There are only 2 repos and 9 tickets, and only 2 roots are Confirmed.
-- The #15937 rule misses a subclass, a media-type constant and a `**` splat. The #16062 rule misses sizes passed through a name.
+- The recompiled #15937 rule catches the renamed subclass. It still misses a `**` splat (`StreamingResponse(..., media_type="application/jsonl", **{"status_code": sc})` gets 0 matches), because it skips any call containing `**`. It also misses a media-type constant (`media_type=SSE`).
+- The recompiled #16062 rule has a broad branch: any integer of 4097 or more in a module that names the cached helpers is denied. A probe line `TIMEOUT_MS = 30000` in that module is blocked. It has 0 matches on the default branch and release 0.140.0 today, but unrelated constants in `fastapi/dependencies/models.py` can trip it.
 - The scorer counts moved code as a new match. The attempt replay does not. They disagree on `16062--warn+veto--0`.
 - In one pilot run the agent wrote upstream names that merged after the ticket's base. That looks like training-data recall.
 
