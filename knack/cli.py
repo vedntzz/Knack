@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from knack.bench.doctor import live_doctor
 from knack.bench.reclassify import reclassify
+from knack.bench.repeats import hunt_registry, repeats_markdown
 from knack.bench.report import bench_report, ReportError
 from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
@@ -264,6 +265,20 @@ def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
     reclassify.add_argument("--runs", type=Path, required=True)
     reclassify.add_argument("--out", type=Path, required=True)
     _add_doctor_arguments(actions.add_parser("doctor"))
+    _add_repeats_arguments(actions.add_parser("repeats"))
+
+
+def _add_repeats_arguments(repeats: argparse.ArgumentParser) -> None:
+    # One --target per repo: its registry file and a clone with full history.
+    repeats.add_argument(
+        "--target",
+        action="append",
+        required=True,
+        nargs=2,
+        metavar=("REGISTRY", "CLONE"),
+        type=Path,
+    )
+    repeats.add_argument("--out", type=Path, default=Path("bench/REPEATS.md"))
 
 
 def _add_doctor_arguments(doctor: argparse.ArgumentParser) -> None:
@@ -281,6 +296,8 @@ def _bench_command(args: argparse.Namespace) -> int:
         return 0 if live_doctor(args.tickets, args.cache) else 1
     if args.action == "reclassify":
         return _bench_reclassify(args.runs, args.out)
+    if args.action == "repeats":
+        return _bench_repeats(args.target, args.out)
     return _bench_report(args.runs, args.exclude_ticket)
 
 
@@ -292,6 +309,17 @@ def _bench_reclassify(runs: Path, out: Path) -> int:
         print(f"knack bench reclassify: {error}", file=sys.stderr)
         return 2
     print(f"reclassified {len(records)} run(s) -> {out}")
+    return 0
+
+
+def _bench_repeats(targets: list[list[Path]], out: Path) -> int:
+    hunts = [
+        hunt for registry, clone in targets for hunt in hunt_registry(registry, clone)
+    ]
+    out.write_text(repeats_markdown(hunts) + "\n", encoding="utf-8")
+    print(
+        f"{len(hunts)} decision(s), {sum(len(h.repeats) for h in hunts)} repeat match(es) -> {out}"
+    )
     return 0
 
 

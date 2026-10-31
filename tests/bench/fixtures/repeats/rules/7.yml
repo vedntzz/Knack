@@ -1,0 +1,6 @@
+id: demo-7
+language: python
+severity: error
+message: Never call eval; parse the value instead.
+rule:
+  pattern: eval($X)
