@@ -127,13 +127,21 @@ def _ticket(path: Path, ticket_id: str) -> BenchTicket:
 
 
 def _run_diff(record: dict[str, Any]) -> Path:
-    # The bench keeps the final diff outside the repo; an old run's may be deleted.
-    diff = Path(str(record.get("diff_path") or ""))
+    # The artifacts copy outlives the work folder; old runs only have the latter.
+    diff = _recorded_diff(record)
     if not diff.is_file():
         raise MissSourceError(
             f"bench run {record['run_id']}: its diff {diff} is gone; {AS_JSON}"
         )
     return diff
+
+
+def _recorded_diff(record: dict[str, Any]) -> Path:
+    # The first diff still on disk, else the one the error should name.
+    kept = record.get("artifacts_path")
+    found = [Path(kept) / "diff.patch"] if kept else []
+    found.append(Path(str(record.get("diff_path") or "")))
+    return next((diff for diff in found if diff.is_file()), found[0])
 
 
 def _applied(befores: dict[str, str | None], diff: Path) -> dict[str, str]:

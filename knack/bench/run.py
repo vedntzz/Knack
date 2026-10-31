@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 import tempfile
 import uuid
@@ -36,6 +37,9 @@ Label = Literal["blocked", "rejected_path", "correct", "other"]
 Job = tuple[BenchTicket, str, str]
 DEFAULT_TIMEOUT_SECONDS = 1800
 TOKENS = ("GITHUB_TOKEN", "BASETEN_API_KEY", "MODEL_API_KEY")
+# What each run leaves in its artifacts folder, which outlives the work folder.
+KEPT = ("export.json", "diff.patch", "muse.log")
+DEFAULT_ARTIFACTS = Path("bench/artifacts")
 # Fields kept from each deny, so a reader can check what the hook returned.
 EVIDENCE = ("signal", "effects", "stdout", "status", "duration_ms")
 
@@ -66,6 +70,8 @@ class RunRecord(BaseModel):
     diff_empty: bool = True
     diff_path: Path | None = None
     export_path: Path | None = None
+    # bench/artifacts/<run_id>: copies of the export, final diff and muse log.
+    artifacts_path: Path | None = None
     blind: BlindLabel | None = None
     # Whether the judge's yes/no matches diff_label; None when it gave no answer.
     agree: bool | None = None
@@ -86,6 +92,7 @@ class RunSetup:
     cache: Path
     real_home: Path
     timeout_s: float
+    artifacts: Path = DEFAULT_ARTIFACTS
 
 
 @dataclass(frozen=True)
@@ -105,12 +112,25 @@ class AgentRun:
 
 
 def run_one(ticket: BenchTicket, arm: str, run_id: str, setup: RunSetup) -> RunRecord:
-    # Sandbox, arm home, agent, export, then labels.
+    # Sandbox, arm home, agent, export, labels, then the kept artifacts.
+    place = _place(ticket, arm, run_id, setup)
+    record = _record(ticket, arm, run_id, _agent_run(ticket, place, setup), setup)
+    kept = keep_artifacts(place.run_dir, setup.artifacts / run_id)
+    return record.model_copy(update={"artifacts_path": kept})
+
+
+def _place(ticket: BenchTicket, arm: str, run_id: str, setup: RunSetup) -> Place:
     run_dir = _new_dir(setup.work / "runs" / run_id)
-    sandbox = _sandbox(ticket, setup)
-    home = _arm_home(arm, ticket, setup)
-    agent = _agent_run(ticket, Place(sandbox, home, run_dir), setup)
-    return _record(ticket, arm, run_id, agent, setup)
+    return Place(_sandbox(ticket, setup), _arm_home(arm, ticket, setup), run_dir)
+
+
+def keep_artifacts(run_dir: Path, kept: Path) -> Path:
+    # Copies whichever of the export, diff and muse log the run left.
+    kept.mkdir(parents=True, exist_ok=True)
+    for name in KEPT:
+        if (run_dir / name).is_file():
+            shutil.copy2(run_dir / name, kept / name)
+    return kept
 
 
 def run_all(jobs: list[Job], setup: RunSetup, parallel: int, out: Path) -> None:
@@ -278,7 +298,8 @@ def _setup(
     work = args.work or Path(tempfile.mkdtemp(prefix="work_"))
     github, judge = GitHubApi(github_token), SparkOpenApi(judge_key)
     clients = (github, MuseCli(api_key=model_key), judge)
-    return RunSetup(work, *clients, args.cache, Path.home(), args.timeout)
+    homes = (args.cache, Path.home(), args.timeout, args.artifacts)
+    return RunSetup(work, *clients, *homes)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -308,6 +329,7 @@ def _add_paths(parser: argparse.ArgumentParser) -> None:
     # Work defaults to a fresh temp folder: sandbox paths must not name the bench.
     parser.add_argument("--out", type=Path, default=Path("bench/runs.jsonl"))
     parser.add_argument("--work", type=Path, default=None)
+    parser.add_argument("--artifacts", type=Path, default=DEFAULT_ARTIFACTS)
     parser.add_argument(
         "--cache", type=Path, default=Path.home() / ".knack/cache/bench"
     )

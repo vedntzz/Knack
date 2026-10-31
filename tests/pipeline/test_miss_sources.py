@@ -109,9 +109,10 @@ def test_an_unknown_receipt_hash_is_refused(tmp_path: Path) -> None:
         resolve(tmp_path, "b" * 64)
 
 
-def write_run(tmp_path: Path, diff: Path) -> None:
+def write_run(tmp_path: Path, diff: Path, artifacts: Path | None = None) -> None:
     run = {"run_id": "r1", "ticket": "acme-9", "repo": "acme/widgets"}
     run |= {"rule": "widgets-9", "diff_path": str(diff)}
+    run |= {"artifacts_path": str(artifacts)} if artifacts else {}
     places(tmp_path).runs[0].write_text(json.dumps(run) + "\n")
     places(tmp_path).tickets.write_text(json.dumps(TICKET) + "\n")
 
@@ -140,6 +141,38 @@ def test_a_bench_run_becomes_a_case_from_its_ticket_base_and_diff(
 def test_a_bench_run_whose_diff_is_gone_is_refused(tmp_path: Path) -> None:
     write_run(tmp_path, tmp_path / "gone" / "diff.patch")
     with pytest.raises(MissSourceError, match="diff .* is gone"):
+        resolve(tmp_path, "r1")
+
+
+def kept_artifacts(tmp_path: Path) -> Path:
+    # The bench run's artifacts folder, holding the final diff.
+    kept = tmp_path / "artifacts" / "r1"
+    kept.mkdir(parents=True)
+    real_diff(tmp_path).rename(kept / "diff.patch")
+    return kept
+
+
+def test_a_bench_run_resolves_from_its_artifacts_once_the_work_is_gone(
+    tmp_path: Path,
+) -> None:
+    write_run(tmp_path, tmp_path / "gone" / "diff.patch", kept_artifacts(tmp_path))
+    [case] = resolve(tmp_path, "r1")
+    assert (case.before, case.after, case.source) == (BASE, AFTER, "bench run r1")
+
+
+def test_an_artifacts_diff_wins_over_the_work_diff(tmp_path: Path) -> None:
+    kept = kept_artifacts(tmp_path)
+    stale = tmp_path / "stale.patch"
+    stale.write_text("not a diff\n")
+    write_run(tmp_path, stale, kept)
+    [case] = resolve(tmp_path, "r1")
+    assert case.after == AFTER
+
+
+def test_a_bench_run_whose_artifacts_are_gone_names_them(tmp_path: Path) -> None:
+    gone = tmp_path / "artifacts" / "r1"
+    write_run(tmp_path, tmp_path / "gone" / "diff.patch", gone)
+    with pytest.raises(MissSourceError, match=f"{gone}.*is gone"):
         resolve(tmp_path, "r1")
 
 
