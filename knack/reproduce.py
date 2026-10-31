@@ -1,15 +1,17 @@
 """Every number the README cites, recomputed from committed files only.
 
-python -m knack.reproduce {extraction,heldout,breadth}; scripts/reproduce.sh runs them all.
+python -m knack.reproduce {extraction,heldout,repeats,breadth}; scripts/reproduce.sh runs them all.
 """
 
+import re
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Literal
+from typing import get_args, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.contracts.models import DecisionStatus
 from knack.pipeline.heldout import score_heldout
 from knack.pipeline.prove import Sides
 from knack.roots.store import load_roots
@@ -25,7 +27,13 @@ REGISTRIES = [
 HELDOUT = REPO_ROOT / "data" / "heldout"
 TICKETS = REPO_ROOT / "bench" / "tickets.jsonl"
 RUNS = REPO_ROOT / "bench" / "runs-1030c.jsonl"
-STATUSES = ("Confirmed", "Inferred", "Unknown")
+# Written by `knack bench repeats` from full clones; the hunt itself is not re-run.
+REPEATS = REPO_ROOT / "bench" / "REPEATS.md"
+STATUSES: tuple[str, ...] = get_args(DecisionStatus)
+# A REPEATS.md summary row: repo, #PR, merged, scanned, repeat commits, human, bot.
+REPEATS_ROW = re.compile(
+    r"^\| (\S+/\S+) \| #(\d+) \| [^|]+ \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$"
+)
 SIDES = {"violation": "variant-violation", "compliant": "variant-compliant"}
 # Same-model (Spark) and cross-model (Spark Open) held-out sets per PR.
 Model = Literal["same", "cross"]
@@ -219,10 +227,49 @@ def _line_count(path: Path) -> int:
     )
 
 
+class HuntRow(BaseModel):
+    # One decision's line in the REPEATS.md summary table.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    repo: str
+    pr: str
+    scanned: int
+    repeats: int
+    human: int
+    bot: int
+
+
+def repeats_lines(repeats: Path, registries: list[Path]) -> list[str]:
+    rows = _hunt_rows(repeats)
+    _require_every_rule_hunted(rows, registries)
+    human, bot = sum(r.human for r in rows), sum(r.bot for r in rows)
+    return [
+        f"decisions hunted: {len(rows)} (every installed rule)",
+        f"commits scanned after a decision: {sum(r.scanned for r in rows)}",
+        f"repeat commits: {sum(r.repeats for r in rows)} ({human} human, {bot} bot)",
+    ]
+
+
+def _hunt_rows(path: Path) -> list[HuntRow]:
+    found = map(REPEATS_ROW.match, path.read_text(encoding="utf-8").splitlines())
+    fields = ("repo", "pr", "scanned", "repeats", "human", "bot")
+    return [HuntRow.model_validate(dict(zip(fields, m.groups()))) for m in found if m]
+
+
+def _require_every_rule_hunted(rows: list[HuntRow], registries: list[Path]) -> None:
+    hunted = {(row.repo, row.pr) for row in rows}
+    loaded = [load_registry(path) for path in registries]
+    installed = {(reg.repo, e.rule.stem) for reg in loaded for e in reg.rules}
+    missing = [f"{repo} #{pr}" for repo, pr in sorted(installed - hunted)]
+    if missing:
+        raise ValueError(f"installed rule(s) never hunted: {', '.join(missing)}")
+
+
 def main(argv: list[str]) -> int:
     sections = {
         "extraction": lambda: extraction_lines(BATCHES),
         "heldout": lambda: heldout_lines(HELDOUT, REGISTRIES),
+        "repeats": lambda: repeats_lines(REPEATS, REGISTRIES),
         "breadth": lambda: breadth_lines(BATCHES, REGISTRIES, HELDOUT, TICKETS, RUNS),
     }
     if len(argv) != 1 or argv[0] not in sections:

@@ -7,6 +7,7 @@
 #   held-out    data/heldout (same- and cross-model sets per PR), data/registry/airflow.json,
 #               data/registry/fastapi.json and the data/rules they install
 #   bench       bench/runs-1030c.jsonl, checked against bench/REPORT-1030c.md
+#   repeats     bench/REPEATS.md (the hunt needs full clones, so its record is read, not re-run)
 #   breadth     the above plus data/roots, bench/tickets.jsonl
 #   e2e         scripts/e2e.sh and its committed scripts/fixtures
 set -u -o pipefail
@@ -77,6 +78,9 @@ cited "python -m knack.reproduce heldout" reproduce heldout
 echo
 echo "== bench =="
 bench_section
+echo
+echo "== repeats =="
+cited "python -m knack.reproduce repeats" reproduce repeats
 echo
 echo "== breadth =="
 cited "python -m knack.reproduce breadth" reproduce breadth

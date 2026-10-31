@@ -2,11 +2,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from knack.reproduce import (
     breadth_lines,
     extraction_lines,
     heldout_lines,
     HeldOutPr,
+    repeats_lines,
     score_prs,
 )
 
@@ -128,9 +131,80 @@ def test_breadth_names_repos_prs_decisions_roots_rules_and_bench() -> None:
         "repos: 2",
         "PRs read: 101",
         "decisions extracted: 107",
-        "roots: 22 (2 Confirmed, 20 Inferred, 0 Unknown)",
+        "roots: 22 (2 Confirmed, 0 Corroborated, 20 Inferred, 0 Uncorroborated, 0 Unknown)",
         "installed rules: 12",
         "held-out PRs: 13",
         "bench tickets: 9",
         "bench runs: 81",
+    ]
+
+
+def write_root(roots: Path, root_id: str, status: str) -> None:
+    root = {
+        "id": root_id, "title": "t", "decision": "d", "why": "w",
+        "decided_by": "a", "source_url": "https://github.com/o/n/pull/1",
+        "quote": "q", "status": status,
+    }  # fmt: skip
+    (roots / f"{root_id}.json").write_text(json.dumps(root))
+
+
+def test_breadth_counts_every_status_including_corroborated_ones(
+    tmp_path: Path,
+) -> None:
+    registry = write_registry(tmp_path, {})
+    statuses = ["Confirmed", "Corroborated", "Corroborated", "Uncorroborated"]
+    for i, status in enumerate(statuses):
+        write_root(tmp_path / "roots", f"r-{i}", status)
+    empty = tmp_path / "empty.jsonl"
+    empty.write_text("")
+    lines = breadth_lines([], [registry], tmp_path, empty, empty)
+    assert (
+        "roots: 4 (1 Confirmed, 2 Corroborated, 0 Inferred, 1 Uncorroborated, 0 Unknown)"
+        in lines
+    )
+
+
+REPEATS_HEAD = """# Repeats after each decision
+
+| Repo | Decision | Merged | Commits scanned | Repeat commits | Human | Bot |
+|---|---|---|---|---|---|---|
+"""
+
+
+def write_repeats(tmp_path: Path, rows: list[str]) -> Path:
+    path = tmp_path / "REPEATS.md"
+    path.write_text(REPEATS_HEAD + "\n".join(rows) + "\n\n## o/n #1: d\n")
+    return path
+
+
+def test_repeats_totals_commits_scanned_and_repeats_by_human_and_bot(
+    tmp_path: Path,
+) -> None:
+    registry = write_registry(tmp_path, {"1": RULE, "2": RULE})
+    rows = [
+        "| o/n | #1 | 2026-10-01 | 40 | 2 | 1 | 1 |",
+        "| o/n | #2 | 2026-10-02 | 7 | 0 | 0 | 0 |",
+    ]
+    assert repeats_lines(write_repeats(tmp_path, rows), [registry]) == [
+        "decisions hunted: 2 (every installed rule)",
+        "commits scanned after a decision: 47",
+        "repeat commits: 2 (1 human, 1 bot)",
+    ]
+
+
+def test_repeats_fails_when_an_installed_rule_was_never_hunted(
+    tmp_path: Path,
+) -> None:
+    registry = write_registry(tmp_path, {"1": RULE, "2": RULE})
+    rows = ["| o/n | #1 | 2026-10-01 | 40 | 0 | 0 | 0 |"]
+    with pytest.raises(ValueError, match="o/n #2"):
+        repeats_lines(write_repeats(tmp_path, rows), [registry])
+
+
+def test_repeats_on_the_committed_record_finds_none_in_12_decisions() -> None:
+    lines = repeats_lines(REPO_ROOT / "bench" / "REPEATS.md", REGISTRIES)
+    assert lines == [
+        "decisions hunted: 12 (every installed rule)",
+        "commits scanned after a decision: 5068",
+        "repeat commits: 0 (0 human, 0 bot)",
     ]
