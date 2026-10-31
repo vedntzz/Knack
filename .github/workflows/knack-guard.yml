@@ -22,10 +22,10 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        # Deleted files are skipped; guard fixtures violate the rule on purpose.
+        # Deleted files are skipped; fixtures (scripts/fixtures/, tests/**/fixtures/) violate the rule on purpose.
         run: |
           git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- '*.py' \
-            | grep -v '^tests/guard/fixtures/' > changed_py.txt || true
+            | grep -Ev '^(scripts/fixtures/|tests/(.*/)?fixtures/)' > changed_py.txt || true
           cat changed_py.txt
       - name: Knack guard check
         run: |
