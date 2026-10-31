@@ -35,6 +35,13 @@ def append_correction(correction: Correction, path: Path) -> None:
         handle.write(correction.model_dump_json() + "\n")
 
 
+def remove_correction(correction: Correction, path: Path) -> None:
+    # Undoes append_correction; every other line stays exactly as written.
+    line = correction.model_dump_json()
+    kept = [other for other in path.read_text("utf-8").splitlines() if other != line]
+    path.write_text("".join(f"{other}\n" for other in kept), encoding="utf-8")
+
+
 def recent_corrections(path: Path, limit: int = RECENT_LIMIT) -> list[Correction]:
     # Oldest first; a damaged line is skipped so one bad write never stops init.
     if not path.exists():

@@ -70,7 +70,8 @@ def test_a_rule_written_by_watch_is_enforced_by_the_pretool_hook(
     # Inferred until a human confirms it: advises, never blocks.
     assert pretool(repo, home).stdout == b""
     monkeypatch.chdir(repo)
-    assert cli.main(["confirm", "widgets-9-1", "--by", "maria"]) == 0
+    # The regression gate has its own tests; this one is about the hook.
+    assert cli.main(["confirm", "widgets-9-1", "--by", "maria", "--no-gate"]) == 0
     output = json.loads(pretool(repo, home).stdout)["hookSpecificOutput"]
     assert output["permissionDecision"] == "deny"
     assert (
