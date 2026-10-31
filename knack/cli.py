@@ -1,4 +1,5 @@
 import argparse
+import os
 import re
 import sys
 import time
@@ -15,6 +16,7 @@ from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.guard.check import check_file, fail_open
+from knack.guard.pr_comment import comment_on_block
 from knack.index.build import build_index
 from knack.pipeline.clients import (
     adversary_client,
@@ -91,6 +93,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
 def _add_guard_arguments(guard: argparse.ArgumentParser) -> None:
     actions = guard.add_subparsers(dest="action", required=True)
     _add_check_arguments(actions.add_parser("check"))
+    _add_comment_arguments(actions.add_parser("comment"))
 
 
 def _add_check_arguments(check: argparse.ArgumentParser) -> None:
@@ -98,6 +101,12 @@ def _add_check_arguments(check: argparse.ArgumentParser) -> None:
     check.add_argument("--rule", type=Path, required=True)
     check.add_argument("--root", type=Path, required=True)
     check.add_argument("--json", action="store_true")
+
+
+def _add_comment_arguments(comment: argparse.ArgumentParser) -> None:
+    comment.add_argument("file", type=Path)
+    comment.add_argument("--rule", type=Path, required=True)
+    comment.add_argument("--root", type=Path, required=True)
 
 
 def _add_walk_arguments(walk_parser: argparse.ArgumentParser) -> None:
@@ -371,9 +380,22 @@ def _walk_registry(path: Path | None, repo: Path) -> Registry | None:
 
 
 def _guard_command(args: argparse.Namespace) -> int:
+    if args.action == "comment":
+        return _guard_comment(args)
     verdict = _guard_check(args.file, args.rule, args.root)
     print(verdict.model_dump_json() if args.json else verdict.reason)
     return 0 if verdict.allowed else 1
+
+
+def _guard_comment(args: argparse.Namespace) -> int:
+    # Best effort: any failure is reported and exits 0, so it never fails CI.
+    paths = (args.file, args.rule, args.root)
+    try:
+        posted = comment_on_block(*paths, os.environ, GUARD_LOG)
+        print(f"knack guard comment: {posted} posted on {args.file}")
+    except Exception as error:
+        print(f"knack guard comment: {type(error).__name__}: {error}", file=sys.stderr)
+    return 0
 
 
 def _guard_check(file_path: Path, rule_path: Path, root_path: Path) -> Verdict:

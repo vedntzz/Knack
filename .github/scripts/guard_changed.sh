@@ -11,6 +11,10 @@ blocked=0
 for file in "$@"; do
   echo "== $file"
   # knack exits 1 only on a block; guard errors fail open with exit 0.
-  "$knack" guard check "$file" --rule "$rule" --root "$root" || blocked=1
+  if ! "$knack" guard check "$file" --rule "$rule" --root "$root"; then
+    blocked=1
+    # A review comment on each blocked line; best effort, never changes the exit.
+    "$knack" guard comment "$file" --rule "$rule" --root "$root" || true
+  fi
 done
 exit "$blocked"

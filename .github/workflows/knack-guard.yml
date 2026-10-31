@@ -3,6 +3,12 @@ name: Knack guard
 on:
   pull_request:
 
+# pull-requests: write lets GITHUB_TOKEN post review comments on a block.
+# Fork PRs get a read-only token; commenting then fails and the job is unchanged.
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   guard:
     runs-on: ubuntu-latest
@@ -28,6 +34,10 @@ jobs:
             | grep -Ev '^(scripts/fixtures/|tests/(.*/)?fixtures/)' > changed_py.txt || true
           cat changed_py.txt
       - name: Knack guard check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mapfile -t files < changed_py.txt
           bash .github/scripts/guard_changed.sh \
