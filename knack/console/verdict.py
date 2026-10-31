@@ -6,17 +6,19 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from knack.contracts.models import MatchedCode, Root
+from knack.contracts.models import MatchedCode, Root, RuleProof
 from knack.dispute.rulings import RulingRecord, rulings_for
+from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import REGISTRY_ENV
 from knack.receipts.chain import Decision, load_receipts, Receipt, receipt_hash
 from knack.receipts.warns import load_warns, WarnRecord
 from knack.roots.store import load_roots
-from knack.walk.registry import home_registry_dir, load_registry
+from knack.walk.registry import home_registry_dir, load_registry, Registry
 
 # The registry file that guards a repo, or None when it has none.
 RegistryFor = Callable[[str], Path | None]
 NO_RECEIPT = "no receipt with that hash"
+TimedWarn = tuple[datetime, WarnRecord]
 
 
 class RootView(BaseModel):
@@ -30,6 +32,8 @@ class RootView(BaseModel):
     quote: str
     source_url: str
     rejected_alternative: str | None
+    # When the cited PR merged; None for a root stored before merge times were kept.
+    merged_at: str | None
     # False when the root's quote changed since the receipt hashed it.
     quote_verified: bool
 
@@ -49,6 +53,8 @@ class WarnView(BaseModel):
 
     time: str
     context: str
+    # False when the warn came from another session in the clone, e.g. a replayed deny.
+    same_session: bool
 
 
 class VerdictView(BaseModel):
@@ -64,8 +70,11 @@ class VerdictView(BaseModel):
     rule_id: str
     outcome: Decision
     latency_ms: float
+    # One entry per line range; the receipt itself keeps every match.
     matched: list[MatchedCode]
     root: RootView | None
+    # What the rule was proven on at install; None when none was stored.
+    proof: RuleProof | None
     other_decisions: list[OtherDecision]
     warn: WarnView | None
 
@@ -79,6 +88,7 @@ def verdict_view(
 ) -> VerdictView:
     chain = load_receipts(receipts)
     receipt = _receipt_in(chain, wanted)
+    registry = _registry_of(receipt, registry_for)
     return VerdictView(
         hash=receipt.hash,
         hash_verified=receipt_hash(receipt) == receipt.hash,
@@ -89,8 +99,9 @@ def verdict_view(
         rule_id=receipt.rule_id,
         outcome=receipt.decision,
         latency_ms=receipt.latency_ms,
-        matched=receipt.matched or [],
-        root=_root_view(receipt, registry_for),
+        matched=_one_per_line_range(receipt.matched or []),
+        root=_root_view(receipt, registry),
+        proof=_proof_of(receipt, registry),
         other_decisions=_others_on_branch(receipt, chain),
         warn=_warn_before(receipt, load_warns(warns)),
     )
@@ -118,9 +129,9 @@ def _receipt_in(chain: list[Receipt], wanted: str) -> Receipt:
     return receipt
 
 
-def _root_view(receipt: Receipt, registry_for: RegistryFor) -> RootView | None:
+def _root_view(receipt: Receipt, registry: Registry | None) -> RootView | None:
     # The root as it reads now; quote_verified says if it still reads as receipted.
-    root = _cited_root(receipt, registry_for)
+    root = _cited_root(receipt, registry)
     if root is None:
         return None
     quote = hashlib.sha256(root.quote.encode("utf-8")).hexdigest()
@@ -133,17 +144,37 @@ def _root_view(receipt: Receipt, registry_for: RegistryFor) -> RootView | None:
         quote=root.quote,
         source_url=str(root.source_url),
         rejected_alternative=root.rejected_alternative,
+        merged_at=root.merged_at,
         quote_verified=quote == receipt.quote_sha256,
     )
 
 
-def _cited_root(receipt: Receipt, registry_for: RegistryFor) -> Root | None:
-    # A receipt cites at most one root; a root gone from the store is None.
+def _registry_of(receipt: Receipt, registry_for: RegistryFor) -> Registry | None:
     path = registry_for(receipt.repo)
-    if path is None or not path.exists() or not receipt.root_ids:
+    return load_registry(path) if path is not None and path.exists() else None
+
+
+def _cited_root(receipt: Receipt, registry: Registry | None) -> Root | None:
+    # A receipt cites at most one root; a root gone from the store is None.
+    if registry is None or not receipt.root_ids:
         return None
-    by_id = {root.id: root for root in load_roots(load_registry(path).roots_dir)}
+    by_id = {root.id: root for root in load_roots(registry.roots_dir)}
     return by_id.get(receipt.root_ids[0])
+
+
+def _proof_of(receipt: Receipt, registry: Registry | None) -> RuleProof | None:
+    # The installed rule whose id the receipt names; a rule since removed has none.
+    entries = registry.rules if registry else []
+    found = (e for e in entries if rule_name(e.rule) == receipt.rule_id)
+    return next((entry.proof for entry in found), None)
+
+
+def _one_per_line_range(matched: list[MatchedCode]) -> list[MatchedCode]:
+    # Nested or repeated matches over the same lines show once, first one kept.
+    by_range: dict[tuple[int, int], MatchedCode] = {}
+    for match in matched:
+        by_range.setdefault((match.line, match.line + match.text.count("\n")), match)
+    return list(by_range.values())
 
 
 def _others_on_branch(receipt: Receipt, chain: list[Receipt]) -> list[OtherDecision]:
@@ -167,23 +198,34 @@ def _same_branch(receipt: Receipt, other: Receipt) -> bool:
 
 
 def _warn_before(receipt: Receipt, warns: list[WarnRecord]) -> WarnView | None:
-    # The latest warning the agent had in this clone and session when it was denied.
+    # The session's latest warn before the deny, else the clone's (a replayed deny).
+    earlier = _clone_warns_before(receipt, warns)
+    ours = [pair for pair in earlier if _same_session(receipt, pair[1])]
+    last = max(ours or earlier, key=lambda pair: pair[0], default=None)
+    return None if last is None else _warn_view(receipt, last[1])
+
+
+def _clone_warns_before(receipt: Receipt, warns: list[WarnRecord]) -> list[TimedWarn]:
+    # Warns in the receipt's clone at or before its time; unparseable times never match.
     decided = _parsed(receipt.time)
     if decided is None:
-        return None
-    timed = [(_parsed(w.time), w) for w in warns if _warned_this_agent(receipt, w)]
-    before = [(at, w) for at, w in timed if at is not None and at <= decided]
-    if not before:
-        return None
-    last = max(before, key=lambda pair: pair[0])[1]
-    return WarnView(time=last.time, context=last.context)
+        return []
+    timed = [(_parsed(w.time), w) for w in warns if _in_clone(receipt, w)]
+    return [(at, w) for at, w in timed if at is not None and at <= decided]
 
 
-def _warned_this_agent(receipt: Receipt, warn: WarnRecord) -> bool:
-    # A receipt from before sessions were recorded takes any warn in its clone.
-    if receipt.repo != warn.repo or not Path(receipt.file).is_relative_to(warn.root):
-        return False
-    return receipt.session_id is None or warn.session_id == receipt.session_id
+def _in_clone(receipt: Receipt, warn: WarnRecord) -> bool:
+    same_repo = receipt.repo == warn.repo
+    return same_repo and Path(receipt.file).is_relative_to(warn.root)
+
+
+def _same_session(receipt: Receipt, warn: WarnRecord) -> bool:
+    return receipt.session_id is not None and warn.session_id == receipt.session_id
+
+
+def _warn_view(receipt: Receipt, warn: WarnRecord) -> WarnView:
+    same = _same_session(receipt, warn)
+    return WarnView(time=warn.time, context=warn.context, same_session=same)
 
 
 def _parsed(time: str) -> datetime | None:

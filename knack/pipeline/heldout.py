@@ -1,22 +1,10 @@
-from pydantic import BaseModel, ConfigDict
-
+from knack.contracts.models import HeldOutScore
 from knack.pipeline.prove import MIN_FLAGGED, scan_sides, SideRow, Sides
 
 HELDOUT_DIR = "variants-heldout"
 
 
-class HeldOut(BaseModel):
-    # A rule's score on variants the compiler never saw; a metric, never a label.
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    author: str
-    caught: int = 0
-    violations: int = 0
-    allowed: int = 0
-    compliant: int = 0
-    # Set when the held-out set could not be written or scanned: not run, not 0%.
-    error: str | None = None
-
+class HeldOut(HeldOutScore):
     @property
     def passed(self) -> bool:
         # The training variants' bar: >=2 violations caught, every compliant allowed.

@@ -200,7 +200,11 @@ def test_the_warn_is_the_sessions_latest_before_the_deny(world: World) -> None:
     denied = world.receipt(deny(), at(5))
     world.warn("a later warning", at(6))
     warn = get(world, denied)["warn"]
-    assert warn == {"time": at(3), "context": "the warning the agent had"}
+    assert warn == {
+        "time": at(3),
+        "context": "the warning the agent had",
+        "same_session": True,
+    }
 
 
 def test_no_warn_before_the_deny_is_null(world: World) -> None:
@@ -332,3 +336,117 @@ def test_a_ruling_made_after_start_is_found(world: World) -> None:
     assert client.get(f"/verdict/{denied.hash}/rulings").json() == []
     world.ruling(denied, "Alias it.")
     assert len(client.get(f"/verdict/{denied.hash}/rulings").json()) == 1
+
+
+MERGED_AT = "2026-10-20T08:00:00Z"
+PROOF = {
+    "pr": 75025,
+    "base_sha": "b" * 40,
+    "head_sha": "h" * 40,
+    "attempts": 2,
+    "sides": [
+        {"side": "base", "files": 1, "flagged": 1},
+        {"side": "head", "files": 1, "flagged": 0},
+    ],
+    "false_positives": 0,
+    "old_release": {"ref": "3.1.0", "false_positives": 0},
+    "heldout": {
+        "author": "spark-open",
+        "caught": 3,
+        "violations": 3,
+        "allowed": 2,
+        "compliant": 3,
+        "error": None,
+    },
+}
+
+
+def with_proof(world: World, proof: dict[str, Any] | None = PROOF) -> None:
+    # The rule file names its id; its entry carries the proof install stored.
+    rules = world.registry.parent / "rules"
+    rules.mkdir(exist_ok=True)
+    (rules / "no-alias.yml").write_text(f"id: {RULE}\nlanguage: python\n")
+    body = json.loads(world.registry.read_text())
+    body["rules"][0]["proof"] = proof
+    world.registry.write_text(json.dumps(body))
+
+
+def test_the_root_carries_when_its_pr_merged(world: World) -> None:
+    world.write_root(root_fields() | {"merged_at": MERGED_AT})
+    assert get(world, world.receipt(deny(), at(5)))["root"]["merged_at"] == MERGED_AT
+
+
+def test_a_root_from_before_merged_at_was_stored_is_null(world: World) -> None:
+    assert get(world, world.receipt(deny(), at(5)))["root"]["merged_at"] is None
+
+
+def deny_matching(*matched: MatchedCode) -> Verdict:
+    return deny().model_copy(update={"matched": list(matched)})
+
+
+def test_matched_entries_are_one_per_line_range(world: World) -> None:
+    verdict = deny_matching(
+        MatchedCode(line=23, text='"state"'),
+        MatchedCode(line=23, text='"start_date"'),
+        MatchedCode(line=23, text='sort = ["state",\n    "start_date"]'),
+        MatchedCode(line=24, text='"start_date"'),
+        MatchedCode(line=23, text='sort = ["state",\n    "end_date"]'),
+    )
+    matched = get(world, world.receipt(verdict, at(5)))["matched"]
+    assert matched == [
+        {"line": 23, "text": '"state"'},
+        {"line": 23, "text": 'sort = ["state",\n    "start_date"]'},
+        {"line": 24, "text": '"start_date"'},
+    ]
+
+
+def test_dedupe_leaves_the_receipt_verified(world: World) -> None:
+    twice = MatchedCode(line=23, text='"state"')
+    body = get(world, world.receipt(deny_matching(twice, twice), at(5)))
+    assert (len(body["matched"]), body["hash_verified"]) == (1, True)
+
+
+def test_the_rules_install_proof_is_served(world: World) -> None:
+    with_proof(world)
+    assert get(world, world.receipt(deny(), at(5)))["proof"] == PROOF
+
+
+def test_a_rule_installed_without_a_proof_is_null(world: World) -> None:
+    with_proof(world, None)
+    assert get(world, world.receipt(deny(), at(5)))["proof"] is None
+
+
+def test_a_rule_gone_from_the_registry_has_no_proof(world: World) -> None:
+    with_proof(world)
+    receipt = world.receipt(deny(), at(5), rule="retired-rule")
+    assert get(world, receipt)["proof"] is None
+
+
+def test_a_repo_with_no_registry_has_no_proof(world: World) -> None:
+    receipt = world.receipt(allow(), at(5), repo="someone/else")
+    assert get(world, receipt)["proof"] is None
+
+
+def test_a_replayed_deny_takes_the_clones_latest_warn(world: World) -> None:
+    world.warn("older warning", at(1))
+    world.warn("the warning the agent had", at(3))
+    replayed = world.receipt(deny(), at(5), session="e2e-replay")
+    world.warn("a later warning", at(6))
+    warn = get(world, replayed)["warn"]
+    assert warn == {
+        "time": at(3),
+        "context": "the warning the agent had",
+        "same_session": False,
+    }
+
+
+def test_the_denys_own_session_warn_wins_over_a_later_one(world: World) -> None:
+    world.warn("this session's warning", at(1))
+    world.warn("another session's warning", at(3), session="s-2")
+    warn = get(world, world.receipt(deny(), at(5)))["warn"]
+    assert (warn["context"], warn["same_session"]) == ("this session's warning", True)
+
+
+def test_a_warn_from_another_clone_is_never_served(world: World) -> None:
+    record_warn(world.warns, REPO, Path("/w/other-clone"), "s-1", "elsewhere", at(3))
+    assert get(world, world.receipt(deny(), at(5), session="e2e"))["warn"] is None

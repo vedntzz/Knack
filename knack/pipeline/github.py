@@ -73,6 +73,11 @@ class GitHubApi:
         pr = self._get(f"/repos/{repo}/pulls/{number}")
         return summary_from_item({**pr, "pull_request": {"merged_at": pr["merged_at"]}})
 
+    def merged_at(self, repo: str, number: int) -> str | None:
+        # None when the PR was closed without merging.
+        merged = self._get(f"/repos/{repo}/pulls/{number}")["merged_at"]
+        return str(merged) if merged else None
+
     def changed_files(self, repo: str, number: int) -> list[str]:
         files = self._all(f"/repos/{repo}/pulls/{number}/files")
         return [str(f["filename"]) for f in files]
