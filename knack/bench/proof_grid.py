@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
 
@@ -161,14 +162,14 @@ def _row(
 ) -> GridRow:
     pr = entry.rule.stem.split(".")[0]
     evidence = _evidence(entry, pr, attempts)
-    marks = _marks(evidence) | {"held-out": _heldout_mark(heldout.get((stem, pr)))}
+    marks = _marks(evidence, _heldout_mark(heldout.get((stem, pr))))
     found = {"source": evidence.source if evidence else "none", "marks": marks}
     found |= {"not_run": _reasons(marks, evidence)}
     cited = {"repo": registry.repo, "pr": pr, "root_ids": entry.root_ids}
     return GridRow.model_validate(cited | found | {"tier": _tier(entry, registry)})
 
 
-def _reasons(marks: dict[str, Mark], evidence: Evidence | None) -> dict[str, str]:
+def _reasons(marks: Mapping[str, Mark], evidence: Evidence | None) -> dict[str, str]:
     # The proof's own reason, else none on record (or no held-out set committed).
     recorded = evidence.not_run if evidence else {}
     default = {gate: NO_RECORD for gate in GATES} | {"held-out": NO_HELDOUT}
@@ -256,9 +257,10 @@ def _result(named: str) -> str:
     return "flagged" if result[:1] in ("'", '"') else "error"
 
 
-def _marks(evidence: Evidence | None) -> dict[str, Mark]:
-    # Held-out is added by the caller; no evidence leaves every gate not run.
+def _marks(evidence: Evidence | None, held_out: Mark) -> dict[str, Mark]:
+    # Held-out is scored apart; no evidence leaves every other gate not run.
     marks: dict[str, Mark] = {gate: "NOT RUN" for gate in GATES}
+    marks["held-out"] = held_out
     if evidence is None:
         return marks
     marks |= {gate: _sides_mark(evidence.sides, n) for gate, n in SIDE_GATES.items()}

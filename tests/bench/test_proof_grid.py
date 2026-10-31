@@ -86,19 +86,20 @@ def one_row(tmp_path: Path, spec: dict[str, Any], **kwargs: Any) -> GridRow:
     return row
 
 
+SIDES: list[dict[str, str | int]] = [
+    {"side": "base", "files": 1, "flagged": 1},
+    {"side": "head", "files": 1, "flagged": 1},
+    {"side": "rename-base", "files": 1, "flagged": 1},
+    {"side": "rename-head", "files": 1, "flagged": 0},
+    {"side": "variant-violation", "files": 3, "flagged": 2},
+    {"side": "variant-compliant", "files": 3, "flagged": 0},
+]
 PROOF = {
     "pr": 9,
     "base_sha": "b",
     "head_sha": "h",
     "attempts": 1,
-    "sides": [
-        {"side": "base", "files": 1, "flagged": 1},
-        {"side": "head", "files": 1, "flagged": 1},
-        {"side": "rename-base", "files": 1, "flagged": 1},
-        {"side": "rename-head", "files": 1, "flagged": 0},
-        {"side": "variant-violation", "files": 3, "flagged": 2},
-        {"side": "variant-compliant", "files": 3, "flagged": 0},
-    ],
+    "sides": SIDES,
     "false_positives": 2,
     "old_release": {"ref": "v1.0", "false_positives": 0},
 }
@@ -234,7 +235,7 @@ def test_a_proof_of_other_rule_text_is_ignored(tmp_path: Path) -> None:
 
 
 def test_recorded_errors_fail_their_gates(tmp_path: Path) -> None:
-    sides = [s | {"errors": 1} if s["side"] == "base" else s for s in PROOF["sides"]]
+    sides = [s | {"errors": 1} if s["side"] == "base" else s for s in SIDES]
     old = {"ref": "v1.0", "false_positives": 0, "error": "boom"}
     proof = reproved(tmp_path, sides=sides, tree_error="boom", old_release=old)
     row = one_row(tmp_path, {"roots": {"widgets-9-1": "Inferred"}, "proof": proof})

@@ -30,14 +30,19 @@ def variants(tmp_path: Path) -> Path:
 
 
 def reprove(
-    tmp_path: Path, rule: str = STRUCTURAL, **kw: object
+    tmp_path: Path,
+    rule: str = STRUCTURAL,
+    *,
+    github: FakeGitHub | None = None,
+    variants_at: Path | None = None,
+    heldout_at: Path | None = None,
 ) -> tuple[RuleProof, list[str]]:
     # One rule, PR #9, proven again; returns its stored proof and the log.
-    github = kw.get("github") or FakeGitHub(clean_tree(tmp_path))
+    git = github or FakeGitHub(clean_tree(tmp_path))
     lines, reg = list[str](), registry(tmp_path, rule)
-    held = kw["heldout"] if "heldout" in kw else heldout(tmp_path)
-    found = kw["variants"] if "variants" in kw else variants(tmp_path)
-    run = Reprove(github, reg, found, held, tmp_path / "work", lines.append, STAMP)
+    held = heldout_at or heldout(tmp_path)
+    found = variants_at or variants(tmp_path)
+    run = Reprove(git, reg, found, held, tmp_path / "work", lines.append, STAMP)
     reprove_registry(run)
     [entry] = load_registry(reg).rules
     assert entry.proof is not None
@@ -105,7 +110,7 @@ def test_no_release_before_the_merge_is_not_run_and_says_why(tmp_path: Path) -> 
 
 
 def test_missing_training_variants_are_not_run_and_named(tmp_path: Path) -> None:
-    proof, _ = reprove(tmp_path, variants=tmp_path / "nowhere")
+    proof, _ = reprove(tmp_path, variants_at=tmp_path / "nowhere")
     assert "variant-violation" not in sides(proof)
     why = proof.not_run["variants"]
     assert why == proof.not_run["compliant"]
@@ -120,7 +125,7 @@ def test_install_layout_training_variants_are_found_too(tmp_path: Path) -> None:
             "9/variants/compliant_1.py": COMPLIANT[0],
         },
     )
-    proof, _ = reprove(tmp_path, variants=tmp_path / "nowhere")
+    proof, _ = reprove(tmp_path, variants_at=tmp_path / "nowhere")
     assert sides(proof)["variant-violation"] == (1, 1, 0)
 
 
@@ -129,7 +134,7 @@ def test_a_missing_held_out_set_is_not_run_and_named(tmp_path: Path) -> None:
     for path in (held / "9" / "same").iterdir():
         path.unlink()
     (held / "9" / "same").rmdir()
-    proof, _ = reprove(tmp_path, heldout=held)
+    proof, _ = reprove(tmp_path, heldout_at=held)
     assert list(proof.heldout_sets) == ["cross"]
     assert proof.not_run["held-out"].startswith("no same held-out set at ")
 
