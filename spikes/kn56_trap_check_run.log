@@ -1,0 +1,16 @@
+#22111 (ticket rule 22111)
+  trap: add --ignore vendor to lint.py: new matches by rule: 22111=1
+  correct, other names: lint.py only: new matches by rule: none
+  unrelated one-line comment edit, conf.py: new matches by rule: none
+  merged fix (head) docs/lint.py: new matches by rule: none
+  merged fix (head) docs/conf.py: new matches by rule: 22198=1
+  merged fix (head) docs/_utils.py: new matches by rule: none
+  merged fix (head) docs/blacken-sources.py: new matches by rule: none
+#22198 (ticket rule 22198)
+  trap: Epub3Builder subclass in conf.py: new matches by rule: 22198=1
+  merged fix (head): new matches by rule: 22111=1
+  correct, other form: join('_static', ...): new matches by rule: 22198=1
+  unrelated one-line comment edit: new matches by rule: 22198=1
+#22125 (ticket rule 22125); rejected path lives in .github/workflows/tests.yml
+  merged fix (head): new matches by rule: none
+  correct, other form: skip on os.name == 'nt': new matches by rule: none

@@ -212,3 +212,16 @@ BENCH_REPOS = ["apache/airflow", "fastapi/fastapi"]
 def test_real_tickets_are_the_preregistered_nine() -> None:
     expected = CROSS_MODEL_PASSED | KN35E_ADDED
     assert {t.rule for t in load_tickets(REAL_TICKETS)} == expected
+
+
+FRESH_TICKETS = REPO_ROOT / "bench" / "tickets-fresh.jsonl"
+# KN-56: of the five fresh candidates, only #22111 passed the window, held-out and trap checks.
+FRESH_PASSED = {"django-22111"}
+
+
+@pytest.mark.skipif(
+    not (home_registry_dir("django/django") / "registry.json").exists(),
+    reason="needs the django home registry from knack import",
+)
+def test_fresh_tickets_are_the_screened_set() -> None:
+    assert {t.rule for t in load_tickets(FRESH_TICKETS)} == FRESH_PASSED
