@@ -129,6 +129,12 @@ def test_write_violating_content_denies_with_citation(tmp_path: Path) -> None:
     assert SOURCE_URL in reason
 
 
+def test_deny_message_ends_with_how_to_dispute(tmp_path: Path) -> None:
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log"))
+    assert reason.splitlines()[-1] == 'To dispute: knack argue "<your reason>"'
+
+
 def test_edit_reintroducing_alias_denies(tmp_path: Path) -> None:
     target = tmp_path / "dags.py"
     target.write_text(read_guard_fixture("fixed.py"), encoding="utf-8")

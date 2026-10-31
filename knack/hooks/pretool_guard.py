@@ -17,6 +17,7 @@ JsonDict = dict[str, Any]
 RuleAndRoot = tuple[Path, Root | None]
 WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
+DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
 
 
 @dataclass(frozen=True)
@@ -192,12 +193,12 @@ def _append_receipt(
         return
     now = datetime.now(timezone.utc).isoformat()
     fields = guard_receipt(
-        trail.repo, trail.file, _rule_name(rule_path), root, verdict, now
+        trail.repo, trail.file, rule_name(rule_path), root, verdict, now
     )
     append_receipt(trail.receipts, fields)
 
 
-def _rule_name(rule_path: Path) -> str:
+def rule_name(rule_path: Path) -> str:
     # A rule with no readable id is still receipted, by its file name.
     try:
         return _rule_id(rule_path)
@@ -216,5 +217,5 @@ def _rule_id(rule_path: Path) -> str:
 def _deny(reason: str) -> JsonDict:
     # Muse Code only honors this exact deny envelope, exit 0.
     inner = {"hookEventName": "PreToolUse", "permissionDecision": "deny"}
-    inner["permissionDecisionReason"] = reason
+    inner["permissionDecisionReason"] = f"{reason}\n{DISPUTE_LINE}"
     return {"hookSpecificOutput": inner}
