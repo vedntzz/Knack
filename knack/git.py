@@ -40,3 +40,8 @@ def _run_quietly(command: list[str]) -> subprocess.CompletedProcess[str] | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+
+
+def current_branch(cwd: Path) -> str | None:
+    # Named even before the first commit; None when detached or outside git.
+    return git_output(cwd, "symbolic-ref", "--short", "-q", "HEAD") or None
