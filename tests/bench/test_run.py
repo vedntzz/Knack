@@ -112,6 +112,7 @@ class FakeMuse:
             ExecCall(prompt, workspace, home, session_id, timeout, settings, auth)
         )
         self.edit(workspace)
+        log.write_text(f"muse ran {session_id}\n")
         return ExecResult(
             exit_code=None if self.timed_out else 0,
             timed_out=self.timed_out,
@@ -214,6 +215,7 @@ def setup(
         cache=tmp_path / "cache",
         real_home=real_home,
         timeout_s=600,
+        artifacts=tmp_path / "artifacts",
     )
 
 
@@ -610,12 +612,13 @@ class Launch:
     # What main got as far as: the doctor's arguments, and the out file of any batch.
     doctor: list[tuple[Path, Path]]
     batches: list[Path]
+    setups: list[RunSetup]
 
 
 @pytest.fixture
 def launch(monkeypatch: pytest.MonkeyPatch) -> Launch:
     # Keys set, tickets and runs faked, so main stops only where it refuses.
-    seen = Launch([], [])
+    seen = Launch([], [], [])
     for name in ("GITHUB_TOKEN", "BASETEN_API_KEY", "MODEL_API_KEY"):
         monkeypatch.setenv(name, "k")
 
@@ -624,6 +627,7 @@ def launch(monkeypatch: pytest.MonkeyPatch) -> Launch:
 
     def batch(jobs: object, run_setup: RunSetup, parallel: int, out: Path) -> None:
         seen.batches.append(out)
+        seen.setups.append(run_setup)
 
     monkeypatch.setattr("knack.bench.run.load_tickets", tickets)
     monkeypatch.setattr("knack.bench.run.run_all", batch)
@@ -716,3 +720,45 @@ def test_a_run_without_write_calls_did_not_attempt(
 ) -> None:
     record = run(tmp_path, real_home, FakeMuse(no_edit, ALLOWED))
     assert (record.attempted, record.attempts) == (False, [])
+
+
+def test_each_run_keeps_its_export_diff_and_muse_log_in_artifacts(
+    tmp_path: Path, real_home: Path
+) -> None:
+    record = run(tmp_path, real_home, FakeMuse(write("src/loader.py", GATHER), ALLOWED))
+    kept = tmp_path / "artifacts" / "widgets-9--veto--0"
+    assert record.artifacts_path == kept
+    assert sorted(p.name for p in kept.iterdir()) == [
+        "diff.patch",
+        "export.json",
+        "muse.log",
+    ]
+    assert "asyncio.gather" in (kept / "diff.patch").read_text()
+    assert (kept / "muse.log").read_text().startswith("muse ran ")
+    assert json.loads((kept / "export.json").read_text())["events"] == ALLOWED
+
+
+def test_kept_artifacts_survive_the_work_folder(
+    tmp_path: Path, real_home: Path
+) -> None:
+    record = run(tmp_path, real_home, FakeMuse(write("src/loader.py", GATHER), ALLOWED))
+    subprocess.run(["rm", "-rf", str(tmp_path / "work")], check=True)
+    assert record.artifacts_path is not None
+    assert (record.artifacts_path / "diff.patch").is_file()
+
+
+def test_artifacts_default_to_the_bench_folder_and_can_be_moved(
+    launch: Launch, tmp_path: Path
+) -> None:
+    assert main(run_argv(tmp_path, "--skip-doctor")) == 0
+    moved = run_argv(tmp_path, "--skip-doctor", "--append", "--artifacts", "elsewhere")
+    assert main(moved) == 0
+    assert [s.artifacts for s in launch.setups] == [
+        Path("bench/artifacts"),
+        Path("elsewhere"),
+    ]
+
+
+def test_bench_artifacts_are_gitignored() -> None:
+    ignored = Path(__file__).parents[2] / ".gitignore"
+    assert "bench/artifacts/" in ignored.read_text().splitlines()

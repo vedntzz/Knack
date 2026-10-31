@@ -7,3 +7,4 @@ __pycache__/
 .pytest_cache/
 AGENTS.md
 spikes/batch/*/src/
+bench/artifacts/
