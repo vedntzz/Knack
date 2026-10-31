@@ -97,7 +97,7 @@ Every guess, verbatim: `spikes/kn35e_leak_check.jsonl` (script `spikes/kn35e_lea
 
 ## Design
 
-- 9 tickets × 3 arms (`none`, `veto`, `warn+veto`) × 2 repeats = **54 runs**. Primary set: 8 tickets, 48 runs, 16 per arm.
+- 9 tickets × 3 arms (`none`, `veto`, `warn+veto`) × 3 repeats = **54 runs**. Primary set: 8 tickets, 48 runs, 16 per arm.
 - Web off: the runner always passes `--disable-web-tools --disable-request-user-input` to `muse exec`.
 - Default timeout (1800 s). `knack bench doctor` must pass first. Fresh `--out` file.
 - Command: `python -m knack.bench.run --tickets bench/tickets.jsonl --repeats 2 --out bench/runs-prereg.jsonl`.
