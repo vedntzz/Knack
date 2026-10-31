@@ -18,6 +18,7 @@ from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.dispute.argue import ask_spark
 from knack.dispute.latest import dispute, NothingToDispute, ruling_text
+from knack.dispute.rulings import append_ruling, RulingRecord, rulings_path
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
 from knack.index.build import build_index
@@ -401,7 +402,9 @@ def _chain_line(path: Path, count: int, broken: int | None, problem: str | None)
 
 
 def _add_console_arguments(console: argparse.ArgumentParser) -> None:
-    console.description = "serve GET /verdict/<receipt-hash> as JSON on loopback"
+    console.description = (
+        "serve GET /verdict/<receipt-hash> and its /rulings as JSON on loopback"
+    )
 
 
 def _console_command(args: argparse.Namespace) -> int:
@@ -421,10 +424,23 @@ def _argue_command(args: argparse.Namespace) -> int:
     try:
         ruling = dispute(args.objection, Path.cwd(), receipts_path(), ask_spark)
     except (NothingToDispute, OSError, ValidationError) as error:
-        print(f"knack argue: {error}", file=sys.stderr)
-        return 2
+        return _argue_failed(error)
     print(ruling_text(ruling))
+    return _record_ruling(ruling)
+
+
+def _record_ruling(ruling: RulingRecord) -> int:
+    # The ruling is printed first, so an unwritable log never hides it.
+    try:
+        append_ruling(rulings_path(), ruling)
+    except OSError as error:
+        return _argue_failed(error)
     return 0
+
+
+def _argue_failed(error: Exception) -> int:
+    print(f"knack argue: {error}", file=sys.stderr)
+    return 2
 
 
 def _add_import_arguments(import_parser: argparse.ArgumentParser) -> None:
