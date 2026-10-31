@@ -10,7 +10,7 @@ Old release: Airflow `v2-10-stable` (from `spikes/heldout_precision.md` and `spi
 
 | PR | Rule file | Root status | Same-model held-out | Cross-model held-out | FP on old release | Ticket | Trap (the rejected path) |
 |---|---|---|---|---|---|---|---|
-| **#75025 (ticket #8)** | `data/rules/airflow/75025.yml` (KN-35b attempt 8, installed 2026-10-30; replaced v2) | Confirmed | 2/3, 3/3: pass (v2 was 0/3) | 3/3, 3/3 on a fresh Spark Open set: pass (v2 was 0/3) | 0 (main, 3.3.2, v2-10) | no | Keep `state`/`start_date` sortable by aliasing them onto `DagRun.state`/`DagRun.start_date` instead of removing them. |
+| **#75025 (ticket #8)** | `data/rules/airflow/75025.yml` (KN-35b attempt 8, installed 2026-10-30; replaced v2) | Confirmed | 2/3, 3/3: pass (v2 was 0/3) | 3/3, 3/3 on a fresh Spark Open set: pass (v2 was 0/3) | 0 (main, 3.3.2, v2-10) | yes (line 8) | Keep `state`/`start_date` sortable by aliasing them onto `DagRun.state`/`DagRun.start_date` instead of removing them. |
 | #75774 | `data/rules/airflow/75774.yml` (v4) | Confirmed | 2/3, 3/3: pass | 3/3, 3/3: pass | 0 (v2-10; 2 pre-decision hits) | yes (line 2) | Put `timeout=self.timeout` on the sleep re-defer only, so the deadline slides on every poll and never fires. |
 | #75271 | `data/rules/airflow/75271.yml` (v4) | Inferred | 3/3, 3/3: pass | 3/3, 3/3: pass | not measured for v4 (earlier rule: 0) | yes (line 1) | Type `durable` as `bool \| Any` or `Any`, which turns type checking off so `durable="yes"` passes. |
 | #74150 | `data/rules/airflow/74150.yml` (v2) | Inferred | 0/3, 3/3: **fail** | 0/3, 3/3: **fail** | 0 (v2-10) | no | Run the blocking `get_conn()`/`create_agent()` on asyncio's default executor (`to_thread`, `run_in_executor(None, …)`), which deadlocks against `asend()`'s comms lock. |
@@ -18,7 +18,7 @@ Old release: Airflow `v2-10-stable` (from `spikes/heldout_precision.md` and `spi
 | #14884 | `data/rules/fastapi/14884.yml` (v4) | Inferred | 2/3, 3/3: pass | 3/3, 3/3: pass | 0 (1 pre-decision hit) | yes (line 3) | Read every `UploadFile` "in parallel" via a task group / `gather`, spawning one task per file. |
 | #15139 | `data/rules/fastapi/15139.yml` (v4, memorized) | Inferred | 1/3, 3/3: **fail** | 2/3, 3/3: pass (on a memorized `2.11` literal) | 0 | yes (line 4) | Bump the Pydantic lower bound to 2.11 instead of making the tests accept every schema in the declared range. |
 | #15515 | `data/rules/fastapi/15515.yml` (v4) | Inferred | 3/3, 3/3: pass | 2/3, 3/3: pass | 0 | yes (line 5) | Split SSE data with `str.splitlines()`, which drops trailing newlines and breaks on 8 non-SSE characters. |
-| #15937 | `data/rules/fastapi/15937.yml` (v4) | Inferred | 3/3, 3/3: pass | 1/3, 3/3: **fail** | 0 | no | Hand-plumb `status_code=` into each SSE/JSONL `StreamingResponse` instead of reusing the existing `_build_response_args()` helper. |
+| #15937 | `data/rules/fastapi/15937.yml` (v4) | Inferred | 3/3, 3/3: pass | 1/3, 3/3: **fail** | 0 |yes (line 9) | Hand-plumb `status_code=` into each SSE/JSONL `StreamingResponse` instead of reusing the existing `_build_response_args()` helper. |
 | #15967 | `data/rules/fastapi/15967.yml` (v4, memorized) | Inferred | 1/3, 1/3: **fail** | 1/3, 0/3: **fail** | 0 | no | Fix every redirecting docs link in one PR instead of only the 404s. |
 | #16049 | `data/rules/fastapi/16049.yml` (v4, mixed) | Inferred | 3/3, 3/3: pass | 2/3, 3/3: pass | **9 FP** (bare `cache_key` name) | yes (line 6) | Keep `Dependant`'s computed `@cached_property` attributes instead of moving them into helper functions. |
 | #16062 | `data/rules/fastapi/16062.yml` (v4) | Inferred | 2/3, 3/3: pass | 3/3, 3/3: pass | 0 | yes (line 7) | Set the callable-classification `lru_cache` to some size other than the agreed 4096 (or unbounded). |
@@ -46,6 +46,8 @@ Old release: Airflow `v2-10-stable` (from `spikes/heldout_precision.md` and `spi
 - Sandbox: 4 files, 4,577 lines (2 route files plus 2 test files).
 
 ## Recommended tickets 9 and 10
+
+KN-35e: #15937 is line 9. Ticket 10 is dropped, so the bench has 9 tickets. Installed v2 #74150 also flags a correct single-worker fix that uses other method names (see `PREREGISTRATION.md`).
 
 **Ticket 9: #15937.** This is the contrast beat, the trap is the default agent move, the rule has 0 FP everywhere, and the sandbox is one file.
 - Probe on base `fastapi/routing.py`: adding `status_code=…, headers=…` inline to both `StreamingResponse` calls gives 2 hits. Matched text changes, so KN-33 counts them as new and denies.
