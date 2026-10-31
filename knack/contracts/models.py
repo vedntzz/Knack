@@ -34,6 +34,9 @@ class Root(BaseModel):
     models: list[str] = []
     # When the cited PR merged; None for roots stored before KN-60 or not from a PR.
     merged_at: str | None = None
+    # Who confirmed it, and the sha256 of the rule file they confirmed; None before KN-62.
+    confirmed_by: str | None = None
+    rule_sha: str | None = None
 
     @model_validator(mode="before")
     @classmethod

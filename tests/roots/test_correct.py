@@ -3,9 +3,10 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from knack.contracts.models import DecisionStatus
+from knack.contracts.models import DecisionStatus, Root
 from knack.roots.correct import confirm_root, CorrectionError, reject_root
 from knack.roots.corrections import Correction
+from knack.roots.pin import rule_sha
 from knack.roots.store import write_root
 from registry_fixture import make_registry, raw_entries, root, status_on_disk
 
@@ -114,11 +115,6 @@ def test_confirm_promotes_a_corroboration_label(
     assert status_on_disk(registry, "widgets-4-1") == "Confirmed"
 
 
-def test_confirm_refuses_an_already_confirmed_root(registry: Path, log: Path) -> None:
-    with pytest.raises(CorrectionError, match="Confirmed"):
-        confirm_root(registry, "widgets-3-1", "maria", log)
-
-
 def test_confirm_refuses_a_rejected_root(registry: Path, log: Path) -> None:
     reject_root(registry, "widgets-4-1", "misread", "maria", log)
     with pytest.raises(CorrectionError, match="Unknown"):
@@ -135,3 +131,65 @@ def test_reject_needs_a_reason(registry: Path, log: Path) -> None:
     with pytest.raises(CorrectionError, match="reason"):
         reject_root(registry, "widgets-4-1", "  ", "maria", log)
     assert status_on_disk(registry, "widgets-4-1") == "Inferred"
+
+
+def rule_text_sha(registry: Path, number: str) -> str:
+    return rule_sha(registry.parent / "rules" / f"{number}.yml")
+
+
+def on_disk(registry: Path, root_id: str) -> Root:
+    path = registry.parent / "roots" / f"{root_id}.json"
+    return Root.model_validate_json(path.read_text())
+
+
+def test_confirm_pins_the_rule_and_who_confirmed(registry: Path, log: Path) -> None:
+    confirm_root(registry, "widgets-4-1", "maria", log)
+    root = on_disk(registry, "widgets-4-1")
+    assert (root.rule_sha, root.confirmed_by) == (rule_text_sha(registry, "4"), "maria")
+
+
+def test_confirm_of_a_root_no_rule_cites_pins_nothing(
+    registry: Path, log: Path
+) -> None:
+    write_root(
+        root("widgets-7-1", "Inferred"), registry.parent / "roots" / "widgets-7-1.json"
+    )
+    confirm_root(registry, "widgets-7-1", "maria", log)
+    assert on_disk(registry, "widgets-7-1").rule_sha is None
+
+
+def test_confirm_repins_a_confirmed_root_after_a_recompile(
+    registry: Path, log: Path
+) -> None:
+    confirm_root(registry, "widgets-4-1", "maria", log)
+    old = rule_text_sha(registry, "4")
+    (registry.parent / "rules" / "4.yml").write_text("id: widgets-4\n# recompiled\n")
+    record = confirm_root(registry, "widgets-4-1", "bo", log)
+    assert (record.before.rule_sha, record.after.rule_sha) == (
+        old,
+        rule_text_sha(registry, "4"),
+    )
+    assert (record.after.status, record.after.confirmed_by) == ("Confirmed", "bo")
+
+
+def test_confirm_pins_a_root_confirmed_before_pins(registry: Path, log: Path) -> None:
+    record = confirm_root(registry, "widgets-3-1", "maria", log)
+    assert (record.before.rule_sha, record.after.rule_sha) == (
+        None,
+        rule_text_sha(registry, "3"),
+    )
+
+
+def test_confirm_refuses_a_root_already_pinned_to_its_rule(
+    registry: Path, log: Path
+) -> None:
+    confirm_root(registry, "widgets-4-1", "maria", log)
+    with pytest.raises(CorrectionError, match="already Confirmed and pinned"):
+        confirm_root(registry, "widgets-4-1", "maria", log)
+
+
+def test_reject_clears_the_pin(registry: Path, log: Path) -> None:
+    confirm_root(registry, "widgets-4-1", "maria", log)
+    reject_root(registry, "widgets-4-1", "misread", "bo", log)
+    root = on_disk(registry, "widgets-4-1")
+    assert (root.status, root.rule_sha, root.confirmed_by) == ("Unknown", None, None)

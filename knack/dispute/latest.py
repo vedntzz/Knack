@@ -14,6 +14,7 @@ from knack.walk.registry import Registry
 NO_CLONE = "{cwd} is not a clone with a knack registry; nothing to dispute"
 NO_DENY = "no deny receipt for this clone in {path}; nothing to dispute"
 HELD = "ESCALATE: held for a person"
+RESOLVE_HINT = 'To resolve: knack resolve {hash} allow|retire --reason "<why>"'
 
 
 class NothingToDispute(Exception):
@@ -48,7 +49,14 @@ def disputed(objection: str, cwd: Path, receipts: Path, ask: Ask) -> Disputed:
 def ruling_text(ruling: RulingRecord) -> str:
     head = "HOLD" if ruling.decision == "hold" else HELD
     quotes = [f'  "{quote}"' for quote in ruling.cited_quotes]
-    return "\n".join([head, ruling.reply, *quotes])
+    return "\n".join([head, ruling.reply, *quotes, *_resolve_hint(ruling)])
+
+
+def _resolve_hint(ruling: RulingRecord) -> list[str]:
+    # Only an escalation waits on a person, so only it names the human path.
+    if ruling.decision == "hold":
+        return []
+    return [RESOLVE_HINT.format(hash=ruling.receipt_hash)]
 
 
 def latest_deny(receipts: Path, repo: str, root: Path) -> Receipt:

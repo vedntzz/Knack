@@ -21,7 +21,19 @@ TAIL_BYTES = 64 * 1024
 PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
 # Fields added after the first receipts: left off the line, and the hash, when unset.
-LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256")
+LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256", "resolution")
+# What a person decided about a deny after ESCALATE: let that edit through, or retire the decision.
+ResolutionAction = Literal["allow", "retire"]
+
+
+class Resolution(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # The hash of the deny receipt this resolves.
+    of: str
+    action: ResolutionAction
+    by: str
+    reason: str
 
 
 class Receipt(BaseModel):
@@ -45,6 +57,8 @@ class Receipt(BaseModel):
     matched: list[MatchedCode] | None = None
     # The saved snapshot of the edit this verdict was on, under ~/.knack/edits.
     edit_sha256: str | None = None
+    # Set only on the receipt knack resolve appends.
+    resolution: Resolution | None = None
 
 
 class ChainReport(BaseModel):
@@ -85,6 +99,24 @@ def decision_of(verdict: Verdict) -> Decision:
         return "deny"
     failed = verdict.reason.startswith(GUARD_ERROR_REASON)
     return "guard-error" if failed else "allow"
+
+
+def resolution_receipt(deny: Receipt, resolution: Resolution, time: str) -> JsonDict:
+    # The deny's fields, now an allow by a person; the session was the agent's, not theirs.
+    kept = deny.model_dump(mode="json", exclude={"prev", "hash", "session_id"})
+    decided = {"decision": "allow", "latency_ms": 0.0, "time": time}
+    return kept | decided | {"resolution": resolution.model_dump()}
+
+
+def resolution_of(receipts: Path, deny_hash: str) -> Resolution | None:
+    found = (r.resolution for r in load_receipts(receipts) if r.resolution)
+    return next((r for r in found if r.of == deny_hash), None)
+
+
+def human_allow(receipts: Path, rule_id: str, edit_sha256: str) -> Resolution | None:
+    # A person allowed this exact edit under this rule; a retire allows nothing by edit.
+    allowed = [r for r in load_receipts(receipts) if _allows(r, rule_id, edit_sha256)]
+    return allowed[-1].resolution if allowed else None
 
 
 def append_receipt(path: Path, fields: JsonDict) -> Receipt:
@@ -169,6 +201,13 @@ def _link_problem(line: str, prev: str) -> str | None:
     failed = [(PREV_BROKEN, receipt.prev != prev)]
     failed += [(HASH_BROKEN, receipt.hash != receipt_hash(receipt))]
     return next((problem for problem, broken in failed if broken), None)
+
+
+def _allows(receipt: Receipt, rule_id: str, edit_sha256: str) -> bool:
+    resolution = receipt.resolution
+    if resolution is None or resolution.action != "allow":
+        return False
+    return (receipt.rule_id, receipt.edit_sha256) == (rule_id, edit_sha256)
 
 
 def _receipt_or_none(line: str) -> Receipt | None:
