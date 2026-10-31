@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -6,6 +7,7 @@ from knack.contracts.models import Root, WalkResponse
 from knack.guard.check import log_error_quietly
 from knack.hooks.scope import home_error_log, scoped_quietly
 from knack.index.cache import repo_index
+from knack.receipts.warns import record_warn, warns_path
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 from knack.walk.walk import walk
@@ -29,7 +31,21 @@ def _warn(event: JsonDict, registry: Registry, repo_root: Path) -> JsonDict | No
     except Exception as error:
         log_error_quietly(home_error_log(), error)
         return None
-    return _envelope(_confirmed_text(response))
+    text = _confirmed_text(response)
+    if text is not None:
+        _record_quietly(event, registry.repo, repo_root, text)
+    return _envelope(text)
+
+
+def _record_quietly(event: JsonDict, repo: str, repo_root: Path, text: str) -> None:
+    # The console shows a deny beside the warning; a failed record never mutes it.
+    try:
+        session = event.get("session_id")
+        session_id = str(session) if session else None
+        now = datetime.now(timezone.utc).isoformat()
+        record_warn(warns_path(), repo, repo_root, session_id, text, now)
+    except Exception as error:
+        log_error_quietly(home_error_log(), error)
 
 
 def _walk_prompt(event: JsonDict, registry: Registry, repo_root: Path) -> WalkResponse:

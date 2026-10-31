@@ -9,7 +9,7 @@ from typing import Any, BinaryIO, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from knack.contracts.models import Root, Verdict
+from knack.contracts.models import MatchedCode, Root, Verdict
 from knack.guard.check import GUARD_ERROR_REASON
 
 JsonDict = dict[str, Any]
@@ -20,6 +20,8 @@ GENESIS = "0" * 64
 TAIL_BYTES = 64 * 1024
 PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
+# Fields added after the first receipts: left off the line, and the hash, when unset.
+LATER_FIELDS = ("branch", "session_id", "matched")
 
 
 class Receipt(BaseModel):
@@ -37,6 +39,10 @@ class Receipt(BaseModel):
     # The previous line's hash, so an edit, deletion or reorder breaks the chain.
     prev: str
     hash: str
+    # The clone's branch, the agent session and the new matches, when known.
+    branch: str | None = None
+    session_id: str | None = None
+    matched: list[MatchedCode] | None = None
 
 
 class ChainReport(BaseModel):
@@ -53,14 +59,24 @@ def receipts_path() -> Path:
 
 
 def guard_receipt(
-    repo: str, file: str, rule_id: str, root: Root | None, verdict: Verdict, time: str
+    repo: str,
+    file: str,
+    rule_id: str,
+    root: Root | None,
+    verdict: Verdict,
+    time: str,
+    branch: str | None = None,
+    session_id: str | None = None,
 ) -> JsonDict:
     # The receipt's fields before chaining: the consulted root, hashed quote, outcome.
     roots = [root.id] if root else []
     quote = _sha256(root.quote) if root else None
     named = {"time": time, "repo": repo, "file": file, "rule_id": rule_id}
     decided = {"decision": decision_of(verdict), "latency_ms": verdict.latency_ms}
-    return named | decided | {"root_ids": roots, "quote_sha256": quote}
+    matched = [m.model_dump() for m in verdict.matched] or None
+    later = {"branch": branch, "session_id": session_id, "matched": matched}
+    kept = {key: value for key, value in later.items() if value is not None}
+    return named | decided | {"root_ids": roots, "quote_sha256": quote} | kept
 
 
 def decision_of(verdict: Verdict) -> Decision:
@@ -74,15 +90,32 @@ def append_receipt(path: Path, fields: JsonDict) -> Receipt:
     # The lock spans read-last-hash and append, so parallel hooks never fork the chain.
     with _locked(path) as handle:
         receipt = _chained(fields, _last_hash(handle))
-        handle.write((receipt.model_dump_json() + "\n").encode("utf-8"))
+        handle.write((receipt_line(receipt) + "\n").encode("utf-8"))
     return receipt
 
 
+def receipt_line(receipt: Receipt) -> str:
+    # The body that was hashed, plus the hash.
+    line = _hashed_body(receipt) | {"hash": receipt.hash}
+    return json.dumps(line, separators=(",", ":"), ensure_ascii=False)
+
+
 def receipt_hash(receipt: Receipt) -> str:
-    # SHA-256 of sorted-key compact JSON of every field but hash.
-    body = receipt.model_dump(mode="json", exclude={"hash"})
+    # SHA-256 of sorted-key compact JSON of every field on the line but hash.
+    body = _hashed_body(receipt)
     text = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return _sha256(text)
+
+
+def _hashed_body(receipt: Receipt) -> JsonDict:
+    # Unset later fields are absent, so older receipts hash as they always did.
+    unset = {name for name in LATER_FIELDS if getattr(receipt, name) is None}
+    return receipt.model_dump(mode="json", exclude={"hash"} | unset)
+
+
+def load_receipts(path: Path) -> list[Receipt]:
+    # A missing file has no receipts; a torn or foreign line is skipped.
+    return [receipt for receipt in map(_receipt_or_none, _lines(path)) if receipt]
 
 
 def verify_chain(path: Path) -> ChainReport:

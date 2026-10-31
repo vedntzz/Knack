@@ -276,3 +276,43 @@ def test_inferred_stays_silent_on_stdout(tmp_path: Path) -> None:
 
 def raise_on_call(*args: Any, **kwargs: Any) -> Any:
     raise AssertionError("indexed a repo whose origin does not match")
+
+
+def warns_file(root: Path) -> Path:
+    return root / "home" / ".knack" / "warns.jsonl"
+
+
+def test_an_injected_warning_is_recorded_for_the_console(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, registry, _ = harness(tmp_path, "Confirmed")
+    set_env(monkeypatch, tmp_path, registry)
+    event = warn_event("Clean up pkg/a.py please", repo) | {"session_id": "s-1"}
+    result = warn_guard.run_hook(json.dumps(event))
+    assert result is not None
+    [record] = [
+        json.loads(line) for line in warns_file(tmp_path).read_text().splitlines()
+    ]
+    assert record["context"] == warn_context(result)
+    assert (record["session_id"], record["repo"]) == ("s-1", "apache/airflow")
+    assert record["root"] == str(repo.resolve()) and record["time"]
+
+
+def test_silence_records_no_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, registry, _ = harness(tmp_path, "Inferred")
+    set_env(monkeypatch, tmp_path, registry)
+    warn_guard.run_hook(json.dumps(warn_event("Clean up pkg/a.py please", repo)))
+    assert not warns_file(tmp_path).exists()
+
+
+def test_a_failed_warning_record_never_changes_the_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, registry, _ = harness(tmp_path, "Confirmed")
+    set_env(monkeypatch, tmp_path, registry)
+    warns_file(tmp_path).mkdir(parents=True)
+    result = warn_guard.run_hook(json.dumps(warn_event("Clean up pkg/a.py", repo)))
+    assert result is not None and "decision r-1" in warn_context(result)
+    assert "warns.jsonl" in home_log(tmp_path).read_text()

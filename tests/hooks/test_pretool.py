@@ -542,3 +542,65 @@ def test_the_hook_allows_a_tmp_write_silently_via_subprocess(tmp_path: Path) -> 
     done = run_pretool(json.dumps(event), clone, env)
     assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
     assert not (tmp_path / "home" / ".knack").exists()
+
+
+CONSOLE = "http://127.0.0.1:7655"
+
+
+def on_branch(clone: Path, branch: str) -> Path:
+    # An unborn clone still has a named branch.
+    ref = f"refs/heads/{branch}"
+    subprocess.run(["git", "-C", str(clone), "symbolic-ref", "HEAD", ref], check=True)
+    return clone
+
+
+def test_a_deny_receipt_names_its_branch_session_and_matched_code(
+    tmp_path: Path,
+) -> None:
+    clone = on_branch(make_clone(tmp_path / "airflow", AIRFLOW_URL), "fix-sort")
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("dags.py", clone)
+    deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log", receipts))
+    [receipt] = receipt_lines(receipts)
+    assert (receipt["branch"], receipt["session_id"]) == (
+        "fix-sort",
+        event["session_id"],
+    )
+    content = event["tool_input"]["content"]
+    assert receipt["matched"] and all(m["text"] in content for m in receipt["matched"])
+
+
+def test_an_allow_receipt_outside_git_has_no_branch(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = load_event("write_event.json")
+    event["tool_input"].update(path="dags.py", content=read_guard_fixture("fixed.py"))
+    event["cwd"] = str(tmp_path)
+    decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    [receipt] = receipt_lines(receipts)
+    assert "branch" not in receipt and "matched" not in receipt
+
+
+def test_the_deny_message_links_its_receipt_on_the_console(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = deny_reason(
+        decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    )
+    [receipt] = receipt_lines(receipts)
+    link = f"Console: {CONSOLE}/verdict/{receipt['hash']}"
+    assert link in reason.splitlines()
+    assert reason.endswith(pretool_guard.DISPUTE_LINE)
+
+
+def test_no_receipt_means_no_console_link(tmp_path: Path) -> None:
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log"))
+    assert "/verdict/" not in reason
+
+
+def test_a_failed_receipt_means_no_console_link(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    receipts.mkdir()
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    assert "/verdict/" not in deny_reason(reason)

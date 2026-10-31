@@ -77,6 +77,14 @@ class Leaf(BaseModel):
             raise ValueError("high-risk leaf requires root_ids")
 
 
+class MatchedCode(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # The line is in the proposed content, not the file on disk.
+    line: PositiveInt
+    text: str
+
+
 class Verdict(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -85,6 +93,8 @@ class Verdict(BaseModel):
     rule_id: str | None = Field(default=None, min_length=1)
     root_ids: list[str] = []
     latency_ms: NonNegativeFloat
+    # The new matches behind a deny or advisory; empty when nothing matched.
+    matched: list[MatchedCode] = []
 
     @model_validator(mode="after")
     def check_cross_field_rules(self) -> Self:

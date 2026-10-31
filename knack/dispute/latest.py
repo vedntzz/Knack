@@ -1,12 +1,10 @@
 from pathlib import Path
 
-from pydantic import ValidationError
-
 from knack.contracts.models import Root, Ruling
 from knack.dispute.argue import argue, Ask
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import hook_registry_path, scoped_registry
-from knack.receipts.chain import Receipt
+from knack.receipts.chain import load_receipts, Receipt
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
@@ -33,7 +31,7 @@ def ruling_text(ruling: Ruling) -> str:
 
 
 def latest_deny(receipts: Path, repo: str, root: Path) -> Receipt:
-    mine = [r for r in _receipts(receipts) if _denied_here(r, repo, root)]
+    mine = [r for r in load_receipts(receipts) if _denied_here(r, repo, root)]
     if not mine:
         raise NothingToDispute(NO_DENY.format(path=receipts))
     return mine[-1]
@@ -61,18 +59,3 @@ def _denied_here(receipt: Receipt, repo: str, root: Path) -> bool:
     # Another clone of the same repo has its own denies.
     inside = Path(receipt.file).is_relative_to(root)
     return receipt.decision == "deny" and receipt.repo == repo and inside
-
-
-def _receipts(path: Path) -> list[Receipt]:
-    # A missing file has no receipts; a torn or foreign line is skipped.
-    if not path.exists():
-        return []
-    lines = path.read_text(encoding="utf-8").splitlines()
-    return [receipt for receipt in map(_receipt_or_none, lines) if receipt]
-
-
-def _receipt_or_none(line: str) -> Receipt | None:
-    try:
-        return Receipt.model_validate_json(line)
-    except ValidationError:
-        return None
