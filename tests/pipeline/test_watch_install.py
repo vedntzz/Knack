@@ -110,3 +110,25 @@ def test_reinstalling_with_corroborate_replaces_our_muse_hook(tmp_path: Path) ->
     batch = json.loads(settings.read_text())["hooks"]["PostToolBatch"]
     commands = [hook["command"] for entry in batch for hook in entry["hooks"]]
     assert commands == [muse_command(PYTHON, registry, corroborate=True)]
+
+
+def test_no_corroborate_rides_along_in_both_hook_commands(
+    repo: Path, tmp_path: Path
+) -> None:
+    registry = tmp_path / "r.json"
+    hook = install_post_merge(repo, registry, PYTHON, self_check=False)
+    assert f"post-merge --registry {registry} --no-corroborate" in hook.read_text()
+    command = muse_command(PYTHON, registry, self_check=False)
+    assert f"tool-batch --registry {registry} --no-corroborate" in command
+
+
+def test_switching_between_any_two_settings_leaves_one_muse_hook(
+    tmp_path: Path,
+) -> None:
+    settings, registry = tmp_path / "settings.json", tmp_path / "r.json"
+    add_muse_hook(settings, registry, PYTHON, corroborate=True)
+    add_muse_hook(settings, registry, PYTHON)
+    assert add_muse_hook(settings, registry, PYTHON, self_check=False) is True
+    batch = json.loads(settings.read_text())["hooks"]["PostToolBatch"]
+    commands = [hook["command"] for entry in batch for hook in entry["hooks"]]
+    assert commands == [muse_command(PYTHON, registry, self_check=False)]

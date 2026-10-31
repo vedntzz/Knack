@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from conftest import git, make_repo
 from knack import cli
+from knack.watch.setup import SELF_CHECK_AUTO, SELF_CHECK_OFF
 from knack.watch.state import read_seen
 from test_watch_run import head, write_registry
 
@@ -91,3 +92,32 @@ def test_watch_corroborate_installs_hooks_that_corroborate(
     assert "--corroborate" in (repo / ".git" / "hooks" / "post-merge").read_text()
     assert "--corroborate" in settings.read_text()
     assert "corroborate: a second extractor reads every PR" in capsys.readouterr().out
+
+
+def test_watch_by_default_says_spark_open_checks_merges_when_its_key_is_set(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write_registry(home_out(tmp_path))
+    assert watch(tmp_path / "muse.json") == 0
+    assert SELF_CHECK_AUTO in capsys.readouterr().out
+
+
+def test_watch_no_corroborate_installs_hooks_with_no_second_model(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write_registry(home_out(tmp_path))
+    settings = tmp_path / "muse.json"
+    assert watch(settings, "--no-corroborate") == 0
+    assert "--no-corroborate" in (repo / ".git" / "hooks" / "post-merge").read_text()
+    assert "--no-corroborate" in settings.read_text()
+    assert SELF_CHECK_OFF in capsys.readouterr().out
+
+
+def test_corroborate_and_no_corroborate_together_are_refused(
+    repo: Path, tmp_path: Path
+) -> None:
+    write_registry(home_out(tmp_path))
+    with pytest.raises(SystemExit) as done:
+        watch(tmp_path / "muse.json", "--corroborate", "--no-corroborate")
+    assert done.value.code == 2
+    assert not (repo / ".git" / "hooks" / "post-merge").exists()

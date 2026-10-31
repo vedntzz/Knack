@@ -33,6 +33,11 @@ def adversary_client(extractor: str, adversary: str | None) -> Spark | None:
     # A named adversary needs its key; by default the partner, or None (the compiler).
     if adversary is not None:
         return _client(adversary)
+    return optional_partner(extractor)
+
+
+def optional_partner(extractor: str = DEFAULT_EXTRACTOR) -> Spark | None:
+    # The other extractor when its key is set; None, never an error, when it is not.
     try:
         return partner_client(extractor)
     except MissingCredentials:

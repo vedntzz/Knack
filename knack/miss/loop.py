@@ -115,6 +115,24 @@ class LoopOutcome(BaseModel):
         return [f"{gate.name}: {gate.detail}" for gate in self.gates if not gate.passed]
 
 
+def default_loop(
+    github: GitHub, compiler: Spark, writer: Spark, registry: Path, log: Log
+) -> Loop:
+    # The held-out sets and work folder knack miss uses when none are given.
+    places = (default_heldout(registry), default_work(registry))
+    return Loop(github, compiler, writer, registry, *places, log)
+
+
+def default_heldout(registry: Path) -> Path:
+    # data/registry/fastapi.json -> data/heldout/fastapi.
+    return registry.parent.parent / "heldout" / registry.stem
+
+
+def default_work(registry: Path) -> Path:
+    name = f"{registry.resolve().parent.name}-{registry.stem}"
+    return Path.home() / ".knack" / "cache" / "miss" / name
+
+
 def record_and_recompile(loop: Loop, cases: list[EditCase]) -> LoopOutcome:
     # Each new case is kept for good, then its rule is recompiled against all of them.
     for case in cases:

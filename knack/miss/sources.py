@@ -55,7 +55,7 @@ def resolve_source(
     if source.endswith(".json") and Path(source).is_file():
         return [_from_edit_json(Path(source), kind)]
     if RECEIPT_HASH.fullmatch(source):
-        return [_from_receipt(source, kind, places)]
+        return [case_from_receipt(source, kind, places)]
     return _from_run(source, kind, places, github)
 
 
@@ -69,7 +69,7 @@ def _from_edit_json(path: Path, kind: CaseKind) -> EditCase:
     )
 
 
-def _from_receipt(digest: str, kind: CaseKind, places: Places) -> EditCase:
+def case_from_receipt(digest: str, kind: CaseKind, places: Places) -> EditCase:
     receipt = _disputed_receipt(places.receipts, digest, kind)
     edit = _snapshot(places.edits, receipt)
     fields = {"kind": kind, "rule_id": receipt.rule_id, "source": f"receipt {digest}"}

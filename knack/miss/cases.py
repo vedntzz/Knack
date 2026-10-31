@@ -10,6 +10,16 @@ CASES_DIR = "cases"
 KEY_LENGTH = 12
 
 
+class ModelAnswer(BaseModel):
+    # One model's verbatim answer to a self-check question, and whether it said yes.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model: str
+    yes: bool
+    answer: str
+    prompt_sha256: str
+
+
 class EditCase(BaseModel):
     # One real edit a rule must deny or allow, kept for every later recompile.
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -24,6 +34,8 @@ class EditCase(BaseModel):
     source: str
     # How it was obtained, e.g. rebuilt from a run whose diff is gone.
     note: str = ""
+    # Both models' answers when the case was recorded by a self-check, not a person.
+    answers: list[ModelAnswer] = []
 
     @property
     def key(self) -> str:
@@ -41,8 +53,12 @@ def cases_dir(registry_path: Path) -> Path:
     return registry_path.parent / CASES_DIR
 
 
+def case_path(folder: Path, case: EditCase) -> Path:
+    return folder / case.rule_id / f"{case.kind}-{case.key}.json"
+
+
 def save_case(folder: Path, case: EditCase) -> Path:
-    path = folder / case.rule_id / f"{case.kind}-{case.key}.json"
+    path = case_path(folder, case)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(case.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return path

@@ -50,3 +50,22 @@ def test_search_item_becomes_a_summary_with_empty_body_for_null() -> None:
     assert summary_from_item(item) == PullSummary(
         number=3, title="T", author="bo", body="", merged_at="2026-10-01T00:00:00Z"
     )
+
+
+def test_the_optional_partner_is_spark_open_when_its_key_is_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from knack.pipeline.clients import optional_partner
+    from knack.pipeline.spark_open import SparkOpenApi
+
+    monkeypatch.setenv("BASETEN_API_KEY", "k")
+    assert isinstance(optional_partner(), SparkOpenApi)
+
+
+def test_the_optional_partner_is_none_without_its_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from knack.pipeline.clients import optional_partner
+
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
+    assert optional_partner() is None
