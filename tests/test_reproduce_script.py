@@ -8,7 +8,7 @@ SCRIPT = REPO_ROOT / "scripts" / "reproduce.sh"
 REPORT = REPO_ROOT / "bench" / "REPORT-1030c.md"
 # Sources a fresh clone does not have: ignored batch sources, caches, the home registry.
 LOCAL_ONLY = ["/src/", ".knack/", "~", "$HOME/"]
-SECTIONS = ["extraction", "held-out", "bench", "breadth", "e2e"]
+SECTIONS = ["extraction", "held-out", "bench", "repeats", "breadth", "e2e"]
 # A number line: the number, then the command that printed it.
 NUMBER_LINE = re.compile(r"^\S.*\d.*  \$ \S")
 
@@ -65,7 +65,9 @@ def test_reproduce_prints_every_number_beside_its_command(tmp_path: Path) -> Non
         "generality (same-model held-out pass): 8/13 PRs",
         "cross-model held-out pass: 8/13 PRs",
         "bench report matches bench/REPORT-1030c.md: yes",
-        "roots: 22 (2 Confirmed, 20 Inferred, 0 Unknown)",
+        "roots: 22 (2 Confirmed, 0 Corroborated, 20 Inferred, 0 Uncorroborated, 0 Unknown)",
+        "decisions hunted: 12 (every installed rule)",
+        "repeat commits: 0 (0 human, 0 bot)",
         "e2e steps passed: 8/8",
     ]:
         (line,) = [line for line in out.splitlines() if line.startswith(wanted)]
