@@ -1,0 +1,39 @@
+id: compiled-rule
+language: python
+severity: error
+message: Dependency callable classification cache must use maxsize 4096.
+rule:
+  any:
+    - all:
+        - kind: decorator
+        - regex: "lru_cache"
+        - any:
+            - all:
+                - regex: "maxsize\\s*=\\s*\\d+"
+                - not:
+                    regex: "maxsize\\s*=\\s*4096\\b"
+            - regex: "maxsize\\s*=\\s*None\\b"
+            - not:
+                regex: "maxsize"
+        - inside:
+            stopBy: end
+            all:
+              - kind: decorated_definition
+              - any:
+                  - regex: "def _is_(gen_callable_cached|async_gen_callable_cached|coroutine_callable_cached)\\b"
+                  - has:
+                      stopBy: end
+                      regex: "_is_(gen_callable|async_gen_callable|coroutine_callable)(_cached)?\\b|_CallIdentity\\b"
+    - all:
+        - pattern: '$X.maxsize == $Y'
+        - not:
+            regex: "4096"
+        - inside:
+            stopBy: end
+            regex: "_is_.*callable_cached|_CallIdentity|cache_info"
+    - all:
+        - pattern: '$VAR = $VAL'
+        - regex: "CACHE_SIZE"
+        - regex: "=\\s*\\d+"
+        - not:
+            regex: "4096"

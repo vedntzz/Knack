@@ -21,6 +21,15 @@ from knack.dispute.latest import dispute, NothingToDispute, ruling_text
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
 from knack.index.build import build_index
+from knack.miss.cases import CaseKind
+from knack.miss.loop import (
+    Loop,
+    LoopOutcome,
+    outcome_lines,
+    record_and_recompile,
+    UnknownRule,
+)
+from knack.miss.sources import MissSourceError, Places, resolve_source
 from knack.pipeline.clients import (
     adversary_client,
     DEFAULT_EXTRACTOR,
@@ -31,8 +40,9 @@ from knack.pipeline.clients import (
 )
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import OtherRepoRegistry, run_init
-from knack.pipeline.ports import Spark
+from knack.pipeline.ports import GitHub, Spark
 from knack.receipts.chain import ChainReport, receipts_path, verify_chain
+from knack.receipts.edits import edits_dir
 from knack.roots.correct import (
     confirm_root,
     CorrectionError,
@@ -64,18 +74,32 @@ CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too
 ADVERSARY_HELP = (
     "model that writes variants; defaults to the other extractor if its key is set"
 )
+MISS_HELP = "a receipt hash of the allow, a bench run id, or an edit JSON file"
+FALSE_BLOCK_HELP = "the receipt hash of the deny (or an edit JSON file)"
+HELDOUT_HELP = "folder of <pr>/same and <pr>/cross held-out sets; defaults to ../heldout/<registry name>"
+LOOP_REGISTRY_HELP = "defaults to the home registry of the clone you are in"
+WORK_HELP = "defaults to ~/.knack/cache/miss/<registry>"
+RECEIPTS_HELP = "defaults to ~/.knack/verdicts.jsonl"
+RUNS_HELP = "bench run files; defaults to bench/runs*.jsonl"
+KEPT = "the old rule is kept"
+NO_WRITER = (
+    "the fresh cross-model set needs a second model: set its key or pass --adversary"
+)
+# A bad source, rule, registry, file or key: operator error, exit 2.
+LOOP_ERRORS = (
+    MissSourceError,
+    UnknownRule,
+    NoCloneRegistry,
+    MissingCredentials,
+    FileNotFoundError,
+)
 # github, compiler, corroborating partner, variant writer.
 Extractors = tuple[GitHubApi, Spark, Spark | None, Spark | None]
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    handlers = {"guard": _guard_command, "walk": _walk_command}
-    handlers |= {"init": _init_command, "watch": _watch_command}
-    handlers |= {"confirm": _confirm_command, "reject": _reject_command}
-    handlers |= {"import": _import_command, "bench": _bench_command}
-    handlers |= {"argue": _argue_command, "console": _console_command}
-    return (handlers | {"receipts": _receipts_command})[args.command](args)
+    return _handlers()[args.command](args)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -91,8 +115,8 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
     adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
     adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
-    adders |= {"argue": _add_argue_arguments}
-    adders |= {"console": _add_console_arguments}
+    adders |= {"argue": _add_argue_arguments, "console": _add_console_arguments}
+    adders |= {"miss": _add_miss_arguments, "false-block": _add_false_block_arguments}
     return adders | {"receipts": _add_receipts_arguments}
 
 
@@ -466,3 +490,113 @@ def _guard_check(file_path: Path, rule_path: Path, root_path: Path) -> Verdict:
         # A bad root file is our failure, so it fails open like any guard error.
         return fail_open(error, GUARD_LOG, started)
     return check_file(file_path, rule_path, rule_path.stem, root, GUARD_LOG)
+
+
+def _add_miss_arguments(miss: argparse.ArgumentParser) -> None:
+    miss.description = (
+        "record an edit the guard should have denied, then recompile its rule"
+    )
+    miss.add_argument("source", help=MISS_HELP)
+    _add_loop_arguments(miss)
+
+
+def _add_false_block_arguments(false_block: argparse.ArgumentParser) -> None:
+    false_block.description = (
+        "record an edit the guard should have allowed, then recompile its rule"
+    )
+    false_block.add_argument("source", help=FALSE_BLOCK_HELP)
+    _add_loop_arguments(false_block)
+
+
+def _add_loop_arguments(loop: argparse.ArgumentParser) -> None:
+    loop.add_argument("--registry", type=Path, help=LOOP_REGISTRY_HELP)
+    loop.add_argument("--heldout", type=Path, help=HELDOUT_HELP)
+    loop.add_argument("--work", type=Path, help=WORK_HELP)
+    _add_source_arguments(loop)
+    _add_loop_model_arguments(loop)
+
+
+def _add_loop_model_arguments(loop: argparse.ArgumentParser) -> None:
+    # The compiler, and the other model that writes variants and the fresh set.
+    choices, default = list(EXTRACTORS), DEFAULT_EXTRACTOR
+    loop.add_argument("--extractor", choices=choices, default=default)
+    loop.add_argument("--adversary", choices=choices, help=ADVERSARY_HELP)
+
+
+def _miss_command(args: argparse.Namespace) -> int:
+    return _miss_loop("miss", "must-fail", args)
+
+
+def _false_block_command(args: argparse.Namespace) -> int:
+    return _miss_loop("false-block", "must-pass", args)
+
+
+def _miss_loop(name: str, kind: CaseKind, args: argparse.Namespace) -> int:
+    # Installed or nothing to do 0; old rule kept 1; operator error 2.
+    try:
+        return _loop_report(_recompiled_for(kind, args))
+    except LOOP_ERRORS as error:
+        return _loop_refused(name, str(error), 2)
+    except Exception as error:
+        return _loop_refused(name, f"{type(error).__name__}: {error}; {KEPT}", 1)
+
+
+def _recompiled_for(kind: CaseKind, args: argparse.Namespace) -> LoopOutcome:
+    # Clients first, so a missing key costs nothing and records nothing.
+    github, compiler, writer = _loop_clients(args)
+    registry = args.registry or required_clone_registry(Path.cwd())
+    cases = resolve_source(args.source, kind, _places(args), github)
+    places = (registry, _heldout(args, registry), _work(args, registry))
+    return record_and_recompile(Loop(github, compiler, writer, *places, print), cases)
+
+
+def _loop_clients(args: argparse.Namespace) -> tuple[GitHub, Spark, Spark]:
+    # The fresh cross-model set needs a writer other than the compiler.
+    github, compiler = live_clients(args.extractor)
+    writer = adversary_client(args.extractor, args.adversary)
+    if writer is None or writer.model == compiler.model:
+        raise MissingCredentials(NO_WRITER)
+    return github, compiler, writer
+
+
+def _places(args: argparse.Namespace) -> Places:
+    receipts = args.receipts or receipts_path()
+    runs = args.runs or sorted(Path("bench").glob("runs*.jsonl"))
+    return Places(receipts, edits_dir(receipts), runs, args.tickets)
+
+
+def _heldout(args: argparse.Namespace, registry: Path) -> Path:
+    # data/registry/fastapi.json -> data/heldout/fastapi.
+    return args.heldout or registry.parent.parent / "heldout" / registry.stem
+
+
+def _work(args: argparse.Namespace, registry: Path) -> Path:
+    name = f"{registry.resolve().parent.name}-{registry.stem}"
+    return args.work or Path.home() / ".knack" / "cache" / "miss" / name
+
+
+def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
+    handlers = {"guard": _guard_command, "walk": _walk_command}
+    handlers |= {"init": _init_command, "watch": _watch_command}
+    handlers |= {"confirm": _confirm_command, "reject": _reject_command}
+    handlers |= {"import": _import_command, "bench": _bench_command}
+    handlers |= {"argue": _argue_command, "console": _console_command}
+    handlers |= {"miss": _miss_command, "false-block": _false_block_command}
+    return handlers | {"receipts": _receipts_command}
+
+
+def _add_source_arguments(loop: argparse.ArgumentParser) -> None:
+    # Where receipt hashes and bench run ids are looked up.
+    loop.add_argument("--receipts", type=Path, help=RECEIPTS_HELP)
+    loop.add_argument("--runs", type=Path, nargs="+", help=RUNS_HELP)
+    loop.add_argument("--tickets", type=Path, default=Path("bench/tickets.jsonl"))
+
+
+def _loop_report(outcome: LoopOutcome) -> int:
+    print("\n".join(outcome_lines(outcome)))
+    return 0 if outcome.installed or not outcome.recompiled else 1
+
+
+def _loop_refused(name: str, reason: str, code: int) -> int:
+    print(f"knack {name}: {reason}", file=sys.stderr)
+    return code

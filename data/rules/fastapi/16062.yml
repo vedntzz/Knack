@@ -3,23 +3,31 @@ language: python
 severity: error
 message: Dependency callable classification lru_cache maxsize must be 4096; 1024 is too small for large apps and larger bumps are deferred.
 rule:
-  all:
-    - kind: decorator
-    - regex: "lru_cache"
-    - any:
-        - all:
-            - regex: "maxsize\\s*=\\s*\\d+"
+  any:
+    - all:
+        - kind: decorator
+        - regex: "lru_cache"
+        - any:
+            - all:
+                - regex: "maxsize\\s*=\\s*\\d+"
+                - not:
+                    regex: "maxsize\\s*=\\s*4096\\b"
+            - regex: "maxsize\\s*=\\s*None\\b"
             - not:
-                regex: "maxsize\\s*=\\s*4096\\b"
-        - regex: "maxsize\\s*=\\s*None\\b"
-        - not:
-            regex: "maxsize"
-    - inside:
-        stopBy: end
-        all:
-          - kind: decorated_definition
-          - any:
-              - regex: "def _is_(gen_callable_cached|async_gen_callable_cached|coroutine_callable_cached)\\b"
-              - has:
-                  stopBy: end
-                  regex: "_is_(gen_callable|async_gen_callable|coroutine_callable)(_cached)?\\b|_CallIdentity\\b"
+                regex: "maxsize"
+        - inside:
+            stopBy: end
+            all:
+              - kind: decorated_definition
+              - any:
+                  - regex: "def _is_(gen_callable_cached|async_gen_callable_cached|coroutine_callable_cached)\\b"
+                  - has:
+                      stopBy: end
+                      regex: "_is_(gen_callable|async_gen_callable|coroutine_callable)(_cached)?\\b|_CallIdentity\\b"
+    - all:
+        - kind: integer
+        - regex: "\\b(409[7-9]|4[1-9]\\d{2}|[5-9]\\d{3}|[1-9]\\d{4,})\\b"
+        - inside:
+            stopBy: end
+            kind: module
+            regex: "_is_gen_callable_cached|_is_async_gen_callable_cached|_is_coroutine_callable_cached"

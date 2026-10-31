@@ -1,0 +1,19 @@
+id: compiled-rule
+language: python
+severity: error
+message: SSE and JSONL streaming responses must reuse _build_response_args() instead of manual status handling
+rule:
+  all:
+    - pattern: $CLS($$$)
+    - regex: StreamingResponse
+    - any:
+        - has:
+            stopBy: end
+            regex: text/event-stream
+        - has:
+            stopBy: end
+            regex: application/jsonl
+    - not:
+        has:
+          stopBy: end
+          regex: '[*][*]'

@@ -26,6 +26,12 @@ def select_numbers(github: GitHub, repo: str, numbers: list[int]) -> Selection:
     return Selection(read=len(numbers), prs=kept)
 
 
+def pull_request(github: GitHub, repo: str, number: int) -> PullRequest:
+    # One PR by number, unfiltered: its rule is already installed.
+    summary = github.summary(repo, number)
+    return _pull_request(github, repo, summary, github.changed_files(repo, number))
+
+
 def qualifies(paths: list[str]) -> bool:
     # One to five Python files, and not a tests-or-docs-only change.
     python = [path for path in paths if path.endswith(".py")]

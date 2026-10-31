@@ -1,7 +1,7 @@
 import json
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -12,6 +12,7 @@ from knack.git import current_branch
 from knack.guard.check import check_file, fail_open, log_error_quietly
 from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
 from knack.receipts.chain import append_receipt, guard_receipt, Receipt, receipts_path
+from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
@@ -31,6 +32,8 @@ class Trail:
     file: str
     branch: str | None = None
     session_id: str | None = None
+    # The saved snapshot of this proposal, when receipts are kept.
+    edit_sha256: str | None = None
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
@@ -69,8 +72,17 @@ def _decide_inner(
     if content is None:
         return None
     trail = _trail(event, base, registry.repo, log_path, receipts)
-    proposal = (content, _current_content(Path(trail.file)))
-    return _scan_proposal(*proposal, _rules_with_roots(registry), trail)
+    content, current, trail = _snapshotted(content, trail)
+    return _scan_proposal(content, current, _rules_with_roots(registry), trail)
+
+
+def _with_snapshot(trail: Trail, after: str, before: str | None) -> Trail:
+    # Best effort: a failed snapshot is logged and the receipt simply has none.
+    try:
+        return _snapshot_trail(trail, after, before)
+    except Exception as error:
+        log_error_quietly(trail.log, error)
+        return trail
 
 
 def _trail(
@@ -209,7 +221,7 @@ def _append_receipt(
         return None
     now = datetime.now(timezone.utc).isoformat()
     named = (trail.repo, trail.file, rule_name(rule_path), root, verdict, now)
-    fields = guard_receipt(*named, trail.branch, trail.session_id)
+    fields = guard_receipt(*named, trail.branch, trail.session_id, trail.edit_sha256)
     return append_receipt(trail.receipts, fields)
 
 
@@ -235,3 +247,17 @@ def _deny(reason: str, receipt: Receipt | None) -> JsonDict:
     link = f"Console: {verdict_url(receipt.hash)}\n" if receipt else ""
     inner["permissionDecisionReason"] = f"{reason}\n{link}{DISPUTE_LINE}"
     return {"hookSpecificOutput": inner}
+
+
+def _snapshotted(content: str, trail: Trail) -> tuple[str, str | None, Trail]:
+    # The file before this call, and the trail pointing at the saved edit.
+    current = _current_content(Path(trail.file))
+    return content, current, _with_snapshot(trail, content, current)
+
+
+def _snapshot_trail(trail: Trail, after: str, before: str | None) -> Trail:
+    # No receipts, no snapshot: nothing would point at it.
+    if trail.receipts is None:
+        return trail
+    edit = EditSnapshot(file=trail.file, before=before, after=after)
+    return replace(trail, edit_sha256=save_edit(edits_dir(trail.receipts), edit))
