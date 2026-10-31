@@ -34,31 +34,48 @@ def run_hook(stdin_text: str) -> JsonDict | None:
     scoped = scoped_quietly(event)
     if scoped is None:
         return None
-    return decide(event, scoped[0], home_error_log(), receipts_path())
+    return decide(event, scoped[0], home_error_log(), receipts_path(), scoped[1])
 
 
 def decide(
-    event: JsonDict, registry: Registry, log_path: Path, receipts: Path | None = None
+    event: JsonDict,
+    registry: Registry,
+    log_path: Path,
+    receipts: Path | None = None,
+    root: Path | None = None,
 ) -> JsonDict | None:
     # Fail open: any surprise in the hook input is logged, never blocks the edit.
     try:
-        return _decide_inner(event, registry, log_path, receipts)
+        return _decide_inner(event, registry, log_path, receipts, root)
     except Exception as error:
         log_error_quietly(log_path, error)
         return None
 
 
 def _decide_inner(
-    event: JsonDict, registry: Registry, log_path: Path, receipts: Path | None
+    event: JsonDict,
+    registry: Registry,
+    log_path: Path,
+    receipts: Path | None,
+    root: Path | None,
 ) -> JsonDict | None:
     base = event_cwd(event)
-    content = _proposed_content(event, base)
+    content = _proposed_content(event, base) if _in_root(event, base, root) else None
     if content is None:
         return None
-    target = _target(event, base)
-    trail = Trail(log_path, receipts, registry.repo, target)
-    proposal = (content, _current_content(Path(target)))
+    trail = Trail(log_path, receipts, registry.repo, _target(event, base))
+    proposal = (content, _current_content(Path(trail.file)))
     return _scan_proposal(*proposal, _rules_with_roots(registry), trail)
+
+
+def _in_root(event: JsonDict, base: Path, root: Path | None) -> bool:
+    # Only files under the clone's git root are guarded; a write elsewhere (e.g.
+    # /tmp) is not the repo's, so it is neither checked nor receipted. None is
+    # for callers that scoped already. Other tools may carry no path at all.
+    if root is None or event["tool_name"] not in (WRITE_TOOL, EDIT_TOOL):
+        return True
+    target = _resolve(base, str(event["tool_input"]["path"])).resolve()
+    return target.is_relative_to(root.resolve())
 
 
 def _current_content(target: Path) -> str | None:

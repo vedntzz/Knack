@@ -481,3 +481,58 @@ def test_the_75774_upstream_fix_passes(tmp_path: Path) -> None:
         msgraph_file(tmp_path), MSGRAPH_HEAD.read_text(encoding="utf-8")
     )
     assert decide(event, registry_75774(tmp_path), tmp_path / "log") is None
+
+
+def outside_write_event(clone: Path, path: str) -> dict[str, Any]:
+    # The agent works in the clone; the path may land outside it.
+    return violating_write_event(path, clone)
+
+
+def test_write_outside_the_git_root_is_silent_and_unreceipted(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    receipts, log = tmp_path / "verdicts.jsonl", tmp_path / "log"
+    event = outside_write_event(clone, str(tmp_path / "scratch" / "dags.py"))
+    assert decide(event, make_registry(tmp_path), log, receipts, clone) is None
+    assert not receipts.exists() and not log.exists()
+
+
+def test_relative_escape_from_the_git_root_is_silent(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    receipts = tmp_path / "verdicts.jsonl"
+    event = outside_write_event(clone, "../dags.py")
+    assert (
+        decide(event, make_registry(tmp_path), tmp_path / "log", receipts, clone)
+        is None
+    )
+    assert not receipts.exists()
+
+
+def test_edit_outside_the_git_root_never_reads_the_file(tmp_path: Path) -> None:
+    # A missing file outside the clone is not an error to log: it is not ours.
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    log = tmp_path / "log"
+    event = edit_event_on(tmp_path / "gone" / "dags.py", FIXED_DICT, ALIAS_DICT)
+    event["cwd"] = str(clone)
+    event["tool_input"]["path"] = str(tmp_path / "gone" / "dags.py")
+    assert (
+        decide(event, make_registry(tmp_path), log, tmp_path / "r.jsonl", clone) is None
+    )
+    assert not log.exists()
+
+
+def test_write_inside_the_git_root_still_denies_and_receipts(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    receipts = tmp_path / "verdicts.jsonl"
+    event = outside_write_event(clone, str(clone / "pkg" / "dags.py"))
+    reason = decide(event, make_registry(tmp_path), tmp_path / "log", receipts, clone)
+    assert SOURCE_URL in deny_reason(reason)
+    assert [r["decision"] for r in receipt_lines(receipts)] == ["deny"]
+
+
+def test_the_hook_allows_a_tmp_write_silently_via_subprocess(tmp_path: Path) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    event = outside_write_event(clone, str(tmp_path / "scratch" / "dags.py"))
+    done = run_pretool(json.dumps(event), clone, env)
+    assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
+    assert not (tmp_path / "home" / ".knack").exists()
