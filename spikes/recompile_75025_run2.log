@@ -1,0 +1,10 @@
+REPLAYED ATTEMPT 1: ['base', 'rename-base', 'variant-violation', 'guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py adds no new match']
+REPLAYED ATTEMPT 2: ['279 false positives on the default branch', '274 false positives on release 3.3.2']
+REPLAYED ATTEMPT 3: ['14 false positives on the default branch', '14 false positives on release 3.3.2']
+REPLAYED ATTEMPT 4: ['8 false positives on the default branch', '8 false positives on release 3.3.2']
+REPLAYED ATTEMPT 5: ['6 false positives on the default branch', '6 false positives on release 3.3.2']
+ATTEMPT 6: all checks pass
+GATE v2-10-stable: pass | []
+GATE held-out same-model: pass | 3/3 caught, 3/3 allowed
+GATE held-out cross-model: FAIL | 2/3 caught, 2/3 allowed
+RESULT: proven on attempt 6 but a gate failed; nothing installed

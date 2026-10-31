@@ -14,6 +14,7 @@ from conftest import (
 from knack.pipeline.prove import (
     failed_checks,
     feedback,
+    GuardEdit,
     passed,
     ProofCase,
     prove,
@@ -175,3 +176,44 @@ def test_without_a_previous_release_there_is_no_old_release_check(
 ) -> None:
     plain = case(tmp_path)
     assert "release" not in feedback(prove(STRUCTURAL, plain), plain)
+
+
+# A real edit's shape: it keeps the file's old violation and adds a new one below it.
+EDIT_ADDS = "\n\nasync def fetch_all(blobs):\n    data = await asyncio.gather(*(b.read() for b in blobs))\n    return data\n"
+MISSED_EDIT = "guard edit pkg/loader.py adds no new match"
+
+
+def edit_case(tmp_path: Path) -> ProofCase:
+    before = side(tmp_path, "edit-before", BASE)["pkg/loader.py"]
+    after = side(tmp_path, "edit-after", BASE + EDIT_ADDS)["pkg/loader.py"]
+    edits = {"pkg/loader.py": GuardEdit(before=before, after=after)}
+    return case(tmp_path).model_copy(update={"guard_edits": edits})
+
+
+def test_rule_flagging_the_code_an_edit_adds_passes_the_guard_edit(
+    tmp_path: Path,
+) -> None:
+    assert passed(prove(STRUCTURAL, edit_case(tmp_path)))
+
+
+def test_rule_matching_only_what_the_file_already_had_fails_the_guard_edit(
+    tmp_path: Path,
+) -> None:
+    assert MISSED_EDIT in failed_checks(prove(MEMORIZED_ON_BASE, edit_case(tmp_path)))
+
+
+def test_feedback_shows_the_missed_edit_as_a_diff(tmp_path: Path) -> None:
+    edited = edit_case(tmp_path)
+    text = feedback(prove(MEMORIZED_ON_BASE, edited), edited)
+    assert "MISSED GUARD EDIT pkg/loader.py" in text
+    assert "+    data = await asyncio.gather" in text
+
+
+def test_feedback_omits_an_edit_the_rule_already_denies(tmp_path: Path) -> None:
+    edited = edit_case(tmp_path)
+    assert "MISSED GUARD EDIT" not in feedback(prove(STRUCTURAL, edited), edited)
+
+
+def test_without_guard_edits_there_is_no_guard_edit_check(tmp_path: Path) -> None:
+    plain = case(tmp_path)
+    assert "guard edit" not in feedback(prove(STRUCTURAL, plain), plain)

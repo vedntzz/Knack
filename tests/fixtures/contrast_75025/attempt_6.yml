@@ -1,0 +1,89 @@
+id: compiled-rule
+language: python
+severity: error
+message: Do not expose `state` or `start_date` as DAG sort keys; neither column exists on DagModel. Use `last_run_state`/`last_run_start_date` instead, do not alias `state`/`start_date` onto DagRun.
+rule:
+  any:
+    - all:
+        - kind: string
+        - regex: "^[\"']-?(state|start_date)[\"']$"
+        - inside:
+            stopBy: end
+            all:
+              - pattern: SortParam($$$)
+              - has:
+                  stopBy: end
+                  regex: DagModel
+    - all:
+        - kind: list
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: "^[\"']next_dagrun[\"']$"
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: "^[\"']-?(state|start_date)[\"']$"
+        - inside:
+            stopBy: end
+            all:
+              - has:
+                  stopBy: end
+                  regex: DagModel
+              - has:
+                  stopBy: end
+                  regex: SortParam
+    - all:
+        - kind: pair
+        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*DagRun\\.(state|start_date)"
+    - all:
+        - kind: pair
+        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*[\"']last_run_(state|start_date)[\"']"
+    - all:
+        - kind: tuple
+        - has:
+            kind: string
+            regex: "^[\"'](state|start_date)[\"']$"
+        - has:
+            regex: "DagRun\\.(state|start_date)"
+    - all:
+        - kind: pair
+        - regex: "[\"']order_by[\"']"
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: "^[\"']-?(state|start_date)[\"']$"
+        - inside:
+            stopBy: end
+            all:
+              - kind: call
+              - has:
+                  stopBy: end
+                  all:
+                    - kind: string
+                    - regex: "^[\"']/dags[\"']$"
+    - all:
+        - kind: pair
+        - regex: "[\"']order_by[\"']"
+        - has:
+            stopBy: end
+            all:
+              - kind: string
+              - regex: "^[\"']-?(state|start_date)[\"']$"
+        - inside:
+            stopBy: end
+            all:
+              - has:
+                  stopBy: end
+                  all:
+                    - kind: string
+                    - regex: "^[\"']/dags[\"']$"
+              - has:
+                  stopBy: end
+                  regex: DagModel
+              - has:
+                  stopBy: end
+                  regex: "last_run_state|next_dagrun"

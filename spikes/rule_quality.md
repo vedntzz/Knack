@@ -56,11 +56,14 @@ Applied to #75025 (root `airflow-75025-1`, Confirmed):
 
 | Rule | Cross-model held-out | False positives |
 |---|---|---|
-| `data/rules/airflow/75025.yml` (hand-repaired, installed) | 0/3 caught, 3/3 allowed | 0 (also 0 on v2-10-stable) |
+| hand-repaired v2 (installed until 2026-10-30) | 0/3 caught, 3/3 allowed | 0 (also 0 on v2-10-stable) |
 | `data/rules/airflow/75025.v4.yml` (v4, not installed) | 1/3 caught, 2/3 allowed | 1 compliant variant flagged |
+| `tests/fixtures/contrast_75025/attempt_6.yml` (KN-35, not installed) | 2/3 caught, 2/3 allowed | 1 compliant variant flagged (the same `compliant_3.py`); 0 on main, 3.3.2 and v2-10-stable |
 
-The v4 rule generalizes better but blocks a compliant file, so the installed
-rule stays the hand-repaired one. The registry does not load `75025.v4.yml`.
+The v4 rule and attempt 6 generalize better, but both block a compliant file,
+so neither was installed. Attempt 8 (KN-35b) replaced the hand-repaired rule on
+2026-10-30: see "Result (KN-35b)" below.
+See "Adversary contrast case" below.
 
 Applied to #75774 (root `airflow-75774-1`, Confirmed): the installed v4 rule
 `data/rules/airflow/75774.yml` allows 3/3 cross-model compliant variants. On
@@ -216,6 +219,125 @@ Limits:
 - #16049 passes held-out 3/3, 3/3 and still gives 9 FPs on fastapi 0.115.0.
   The variants never use `cache_key` as a plain dataclass field, so the
   variant check cannot see that failure.
+
+### Adversary contrast case: #75025 attempt 6 (KN-35)
+
+Fixture: `tests/fixtures/contrast_75025/`
+- `attempt_6.yml`: the rule, as compiled.
+- `compliant_3.py`: Spark Open's file, copied from `variants-heldout-cross/`.
+- `failing_match.json`: the ast-grep match.
+
+Run: `spikes/recompile_75025.py`. Logs: `recompile_75025_run.log` (attempts 1–5) and `recompile_75025_run2.log` (attempt 6, which continues from attempt 5's prompt).
+
+The recompile adds a new check: a real agent edit the guard must deny. It is
+the `_DAG_SORT_ALIASES` normalizer from the Oct 28 natural run
+(`tests/hooks/fixtures/edit_75025_alias.json`). Only matches the file lacked
+before the edit count, the same text comparison the guard uses since KN-33.
+The installed rule fails this check. Its only match on the edited file is the
+`SortParam` call the edit leaves untouched, so the guard allows the edit.
+
+Every other check stays: base, head, rename, the training variants, and main.
+The old release is 3.3.2, the last release before the 2026-10-19 merge.
+
+| Check | Installed `75025.yml` | Attempt 6 |
+|---|---|---|
+| Compile checks (base/head/rename/training variants) | fails training variants | pass |
+| Guard edit (the real alias edit) | **allowed** (no new match) | denied (new matches at lines 95–96) |
+| FPs on main / 3.3.2 / v2-10-stable | 0 / 0 / 0 | 0 / 0 / 0 |
+| Same-model held-out (Spark) | 0/3 caught, 3/3 allowed: fail | 3/3, 3/3: **pass** |
+| Cross-model held-out (Spark Open) | 0/3 caught, 3/3 allowed: fail | 2/3, 2/3: **fail** |
+
+Attempt 6 passes every check the compiler sees. It also passes Spark's
+held-out set, and only Spark Open's set fails it. That makes it the adversary
+contrast case.
+
+Spark Open's `compliant_3.py` builds a candidate list with `"state"` and
+`"start_date"` in it, filters those two out in a loop, and gives only the
+filtered list to `SortParam`. Attempt 6's list branch flags any list holding
+`next_dagrun` plus `state`/`start_date` inside code that mentions `DagModel`
+and `SortParam`. So it flags line 5, the candidate list, although the
+forbidden keys never reach `SortParam`.
+
+This is the same file that failed `75025.v4.yml`. Two separate compiles fit
+Spark's idea of the violation, and both fail on the same Spark Open shape.
+
+Not installed. A blocking rule needs 3/3 allowed on both held-out sets. The
+held-out sets are never fed back to the compiler, so the compile stopped at
+attempt 6 and attempts 7–10 never ran. The installed rule stays and still
+allows the alias edit.
+
+**Decision (Vedant, 2026-10-30, before any rerun): `compliant_3.py` counts as
+compliant.** The forbidden keys never reach `SortParam`, so a rule that flags it
+is a false positive. Consequences, in order:
+- The first Spark Open set (`variants-heldout-cross/`) moves into training. It
+  is no longer held out, and its scores above are training scores from now on.
+- A fresh Spark Open set, never shown to the compiler, becomes the cross-model
+  held-out set for #75025.
+- Compiling continues from attempt 6 under the same gates.
+
+#### Result (KN-35b): attempt 8 installed
+
+Run: `spikes/recompile_75025_b.py`. Log: `recompile_75025_run3.log`.
+- Training is now `variants-train-kn35/`: Spark's set as files 1–3 and the
+  first Spark Open set as files 4–6. The original directories are unchanged.
+- The fresh held-out set is `variants-heldout-cross-2/`, written by Spark Open
+  with the same prompt. It shares no identical module with any earlier set,
+  and the compiler never saw it.
+- The verifier pools the two training sets into one side, so its violation
+  bar is ≥2 of 6. The install gate checks each training set separately against
+  the old bar (≥2/3 caught, 3/3 allowed).
+
+| Attempt | Result |
+|---|---|
+| 1–5 | replayed with their original feedback |
+| 6 | fails `variant-compliant`: the moved `compliant_3.py`, now `compliant_6.py` |
+| 7 | fails head and rename-head; 8 FPs on main and 8 on 3.3.2 |
+| **8** | **every check passes** |
+
+| Gate (attempt 8) | Result |
+|---|---|
+| Training, Spark set | 3/3 caught, 3/3 allowed |
+| Training, first Spark Open set (moved) | 3/3 caught, 3/3 allowed (allows `compliant_3.py`) |
+| v2-10-stable | 0 matches |
+| Same-model held-out | 2/3 caught, 3/3 allowed: pass |
+| Cross-model held-out (fresh) | 3/3 caught, 3/3 allowed: pass |
+
+Attempt 8 is installed as `airflow-75025` in `data/rules/airflow/75025.yml` and
+in the home registry. The previous rule is backed up in the run's scratch work
+dir. The real alias edit replayed through the pretool hook is now **denied**,
+with the full citation. The correct fix (deleting the two keys) is allowed.
+
+Caveat: attempt 8 was fitted to the first Spark Open set, so only the fresh
+set and Spark's held-out set count as held-out results for it.
+
+### #74150: v3 without the whole-module branch
+
+Run: `spikes/recheck_74150.py`. Log: `recheck_74150_run.log`.
+`74150.v3.yml` with branch 1 dropped (any module that has `FallbackModel` and
+`MaskingCapability` but no `await`). Branch 2, `run_in_executor(None, …)` /
+`to_thread(…)` around `get_conn`/`create_agent`/`get_connection`/`get_hook`,
+is the whole rule. No recompile. The old release is 3.3.2, the last release
+before the 2026-10-28 merge.
+
+| Check | v3 (both branches) | v3, branch 2 only |
+|---|---|---|
+| base (must flag) | 2/2 | **0/2: fail** |
+| rename-base (must flag) | 2/2 | **0/2: fail** |
+| head / rename-head (must allow) | 0/2 / 0/2 | 0/2 / 0/2 |
+| Training variants | 3/3 caught, 3/3 allowed | 3/3 caught, 3/3 allowed |
+| FPs on main / 3.3.2 | 0 / 0 | 0 / 0 |
+| Same-model held-out (Spark) | 3/3, 3/3 | 3/3, 3/3 |
+| Cross-model held-out (Spark Open) | 3/3, 3/3 | 3/3, 3/3 |
+
+The trimmed rule fails base and rename-base because the PR's base never
+contains the violation. The decision is about new async code: base has no
+`async def`, no `run_in_executor` and no `to_thread`, and the PR adds
+`aget_conn`/`acreate_agent`. Branch 1 flagged base only because the test file
+lacks `await`, which encodes what the PR had not added yet, not the rejected
+approach.
+
+Not installed: the installed `74150.yml` (v2) is unchanged. **The generality
+count stays 8 of 13.** The gate is unchanged too: base must still be flagged.
 
 ### Variant quality
 

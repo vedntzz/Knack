@@ -30,9 +30,9 @@ testpaths = ["tests"]
 
 [tool.pyright]
 include = ["knack", "tests"]
-exclude = ["tests/guard/fixtures", "spikes"]
+exclude = ["tests/guard/fixtures", "tests/fixtures", "spikes"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
 [tool.ufmt]
-excludes = ["tests/guard/fixtures/", "/spikes/"]
+excludes = ["tests/guard/fixtures/", "tests/fixtures/", "/spikes/"]

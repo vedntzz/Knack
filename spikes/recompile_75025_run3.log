@@ -1,0 +1,15 @@
+FRESH HELD-OUT variants-heldout-cross-2: 6 files, identical to an earlier set: 0
+REPLAYED ATTEMPT 1: ['base', 'rename-base', 'variant-violation', 'guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py adds no new match']
+REPLAYED ATTEMPT 2: ['279 false positives on the default branch', '274 false positives on release 3.3.2']
+REPLAYED ATTEMPT 3: ['14 false positives on the default branch', '14 false positives on release 3.3.2']
+REPLAYED ATTEMPT 4: ['8 false positives on the default branch', '8 false positives on release 3.3.2']
+REPLAYED ATTEMPT 5: ['6 false positives on the default branch', '6 false positives on release 3.3.2']
+ATTEMPT 6 under the new training set: ['variant-compliant']
+ATTEMPT 7: ['head', 'rename-head', '8 false positives on the default branch', '8 false positives on release 3.3.2']
+ATTEMPT 8: all checks pass
+GATE training Spark: pass | 3/3 caught, 3/3 allowed
+GATE training Spark Open (moved): pass | 3/3 caught, 3/3 allowed
+GATE v2-10-stable: pass | []
+GATE held-out same-model: pass | 2/3 caught, 3/3 allowed
+GATE held-out cross-model (fresh): pass | 3/3 caught, 3/3 allowed
+RESULT: proven on attempt 8, all gates pass; installed to /Users/vedant/Documents/knack/data/rules/airflow/75025.yml, /Users/vedant/.knack/registries/apache-airflow/rules/75025.yml

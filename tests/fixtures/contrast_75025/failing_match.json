@@ -1,0 +1,233 @@
+[
+{
+  "text": "[\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"]",
+  "range": {
+    "byteOffset": {
+      "start": 157,
+      "end": 225
+    },
+    "start": {
+      "line": 4,
+      "column": 19
+    },
+    "end": {
+      "line": 4,
+      "column": 87
+    }
+  },
+  "file": "compliant_3.py",
+  "lines": "candidate_fields = [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"]",
+  "charCount": {
+    "leading": 19,
+    "trailing": 0
+  },
+  "language": "Python",
+  "metaVariables": {
+    "single": {},
+    "multi": {
+      "secondary": [
+        {
+          "text": "\"next_dagrun\"",
+          "range": {
+            "byteOffset": {
+              "start": 188,
+              "end": 201
+            },
+            "start": {
+              "line": 4,
+              "column": 50
+            },
+            "end": {
+              "line": 4,
+              "column": 63
+            }
+          }
+        },
+        {
+          "text": "\"state\"",
+          "range": {
+            "byteOffset": {
+              "start": 203,
+              "end": 210
+            },
+            "start": {
+              "line": 4,
+              "column": 65
+            },
+            "end": {
+              "line": 4,
+              "column": 72
+            }
+          }
+        },
+        {
+          "text": "from airflow.models import DagModel",
+          "range": {
+            "byteOffset": {
+              "start": 60,
+              "end": 95
+            },
+            "start": {
+              "line": 1,
+              "column": 0
+            },
+            "end": {
+              "line": 1,
+              "column": 35
+            }
+          }
+        },
+        {
+          "text": "from airflow.api_fastapi.common.parameters import SortParam",
+          "range": {
+            "byteOffset": {
+              "start": 0,
+              "end": 59
+            },
+            "start": {
+              "line": 0,
+              "column": 0
+            },
+            "end": {
+              "line": 0,
+              "column": 59
+            }
+          }
+        },
+        {
+          "text": "from airflow.api_fastapi.common.parameters import SortParam\nfrom airflow.models import DagModel\nfrom airflow.models.dagrun import DagRun\n\ncandidate_fields = [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"]\nfiltered_fields = []\nfor item in candidate_fields:\n    if item not in (\"state\", \"start_date\"):\n        filtered_fields.append(item)\nalias_ok = {}\nfor src, dst in [(\"last_run_state\", DagRun.state), (\"last_run_start_date\", DagRun.start_date)]:\n    alias_ok[src] = dst\nparam_ok = SortParam(filtered_fields, DagModel, alias_ok)\ndep_ok = param_ok.dynamic_depends()",
+          "range": {
+            "byteOffset": {
+              "start": 0,
+              "end": 585
+            },
+            "start": {
+              "line": 0,
+              "column": 0
+            },
+            "end": {
+              "line": 13,
+              "column": 35
+            }
+          }
+        }
+      ]
+    },
+    "transformed": {}
+  },
+  "ruleId": "compiled-rule",
+  "severity": "error",
+  "note": null,
+  "message": "Do not expose `state` or `start_date` as DAG sort keys; neither column exists on DagModel. Use `last_run_state`/`last_run_start_date` instead, do not alias `state`/`start_date` onto DagRun.",
+  "labels": [
+    {
+      "text": "[\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"]",
+      "range": {
+        "byteOffset": {
+          "start": 157,
+          "end": 225
+        },
+        "start": {
+          "line": 4,
+          "column": 19
+        },
+        "end": {
+          "line": 4,
+          "column": 87
+        }
+      },
+      "style": "primary"
+    },
+    {
+      "text": "\"next_dagrun\"",
+      "range": {
+        "byteOffset": {
+          "start": 188,
+          "end": 201
+        },
+        "start": {
+          "line": 4,
+          "column": 50
+        },
+        "end": {
+          "line": 4,
+          "column": 63
+        }
+      },
+      "style": "secondary"
+    },
+    {
+      "text": "\"state\"",
+      "range": {
+        "byteOffset": {
+          "start": 203,
+          "end": 210
+        },
+        "start": {
+          "line": 4,
+          "column": 65
+        },
+        "end": {
+          "line": 4,
+          "column": 72
+        }
+      },
+      "style": "secondary"
+    },
+    {
+      "text": "from airflow.models import DagModel",
+      "range": {
+        "byteOffset": {
+          "start": 60,
+          "end": 95
+        },
+        "start": {
+          "line": 1,
+          "column": 0
+        },
+        "end": {
+          "line": 1,
+          "column": 35
+        }
+      },
+      "style": "secondary"
+    },
+    {
+      "text": "from airflow.api_fastapi.common.parameters import SortParam",
+      "range": {
+        "byteOffset": {
+          "start": 0,
+          "end": 59
+        },
+        "start": {
+          "line": 0,
+          "column": 0
+        },
+        "end": {
+          "line": 0,
+          "column": 59
+        }
+      },
+      "style": "secondary"
+    },
+    {
+      "text": "from airflow.api_fastapi.common.parameters import SortParam\nfrom airflow.models import DagModel\nfrom airflow.models.dagrun import DagRun\n\ncandidate_fields = [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"]\nfiltered_fields = []\nfor item in candidate_fields:\n    if item not in (\"state\", \"start_date\"):\n        filtered_fields.append(item)\nalias_ok = {}\nfor src, dst in [(\"last_run_state\", DagRun.state), (\"last_run_start_date\", DagRun.start_date)]:\n    alias_ok[src] = dst\nparam_ok = SortParam(filtered_fields, DagModel, alias_ok)\ndep_ok = param_ok.dynamic_depends()",
+      "range": {
+        "byteOffset": {
+          "start": 0,
+          "end": 585
+        },
+        "start": {
+          "line": 0,
+          "column": 0
+        },
+        "end": {
+          "line": 13,
+          "column": 35
+        }
+      },
+      "style": "secondary"
+    }
+  ]
+}
+]

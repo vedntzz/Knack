@@ -1,3 +1,4 @@
+import difflib
 import json
 import random
 import subprocess
@@ -9,6 +10,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.guard.check import only_new
 from knack.guard.runner import (
     AST_GREP,
     GuardRunnerError,
@@ -34,6 +36,8 @@ MUST_FLAG = {
     "variant-violation": True,
     "variant-compliant": False,
 }
+# Real agent edits the guard must deny: each needs a match its file lacked before.
+EDIT_SIDE = "guard-edit"
 # Files a must-flag side needs flagged; 1 unless listed.
 MIN_FLAGGED = {"variant-violation": 2}
 SIDE_NOTES = {
@@ -41,7 +45,9 @@ SIDE_NOTES = {
     "rename-head": " (head with every identifier this PR introduced renamed to _r... names)",
     "variant-violation": " (fresh violation written apart from the PR; >=2 of 3 must be flagged)",
     "variant-compliant": " (fresh compliant code written apart from the PR)",
+    EDIT_SIDE: " (a real agent edit the guard must deny; only matches the file lacked before count)",
 }
+EDIT_MISS = "(the guard must deny it; your rule matches only code the file already had)"
 VARIANT_MISSES = {
     "variant-violation": "MISSED VIOLATION (the rule must flag this)",
     "variant-compliant": "FLAGGED COMPLIANT CODE (the rule must allow this)",
@@ -57,6 +63,13 @@ class SideRow(BaseModel):
     error: str | None = None
 
 
+class GuardEdit(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    before: Path
+    after: Path
+
+
 class ProofCase(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -66,6 +79,8 @@ class ProofCase(BaseModel):
     # The previous release checkout; None skips the old-release check.
     old_ref: str | None = None
     old_tree: Path | None = None
+    # Real edits the guard must deny, by file name; empty skips the check.
+    guard_edits: dict[str, GuardEdit] = {}
 
 
 class OldRelease(BaseModel):
@@ -99,7 +114,7 @@ def verifier_sides(
 
 def prove(rule_yaml: str, case: ProofCase) -> Proof:
     with _rule_file(rule_yaml) as rule_path:
-        rows = [_scan_row(rule_path, side, path) for side, path in _files(case.sides)]
+        rows = _rows(rule_path, case)
         found, tree_error = _tree_false_positives(rule_path, case.tree, case.changed)
         old = _old_release(rule_path, case)
     return Proof(
@@ -132,14 +147,38 @@ def failed_checks(proof: Proof) -> list[str]:
     rejected = [f"ast-grep rejected the rule: {e.splitlines()[0]}" for e in errors if e]
     sides = [side for side, ok in side_ok(proof.rows).items() if not ok]
     branch = _false_positive_check(proof.false_positives, "the default branch")
-    return rejected[:1] + sides + branch + _old_release_check(old)
+    edits = _edit_check(proof.rows)
+    return rejected[:1] + sides + edits + branch + _old_release_check(old)
 
 
 def feedback(proof: Proof, case: ProofCase) -> str:
     # What the compiler sees on retry: every side, the tree, and wrong variants' source.
     rows = "\n".join(_row_report(row) for row in proof.rows)
     trees = _tree_report(proof) + _old_release_report(proof.old_release)
-    return f"{rows}\n{trees}{_variant_feedback(proof, case.sides)}"
+    variants = _variant_feedback(proof, case.sides)
+    return f"{rows}\n{trees}{variants}{_edit_feedback(proof, case)}"
+
+
+def _rows(rule_path: Path, case: ProofCase) -> list[SideRow]:
+    sides = [_scan_row(rule_path, side, path) for side, path in _files(case.sides)]
+    edits = [_edit_row(rule_path, n, e) for n, e in case.guard_edits.items()]
+    return sides + edits
+
+
+def _edit_row(rule_path: Path, name: str, edit: GuardEdit) -> SideRow:
+    # The guard's own test: matches compared by text with the file before the edit.
+    try:
+        before = scan_file_with_rule(edit.before, rule_path)
+        fresh = only_new(scan_file_with_rule(edit.after, rule_path), before)
+    except GuardRunnerError as error:
+        return SideRow(side=EDIT_SIDE, name=name, matches=[], error=str(error))
+    shown = [f"{m.matched_text!r} (line {m.line})" for m in fresh]
+    return SideRow(side=EDIT_SIDE, name=name, matches=shown)
+
+
+def _edit_check(rows: list[SideRow]) -> list[str]:
+    missed = [r.name for r in rows if r.side == EDIT_SIDE and not r.matches]
+    return [f"guard edit {name} adds no new match" for name in missed]
 
 
 def _false_positive_check(false_positives: list[str], where: str) -> list[str]:
@@ -241,7 +280,7 @@ def _fp_line(path: str, match: dict[str, Any]) -> str:
 
 
 def _row_report(row: SideRow) -> str:
-    expected = "must flag >=1" if MUST_FLAG[row.side] else "must flag 0"
+    expected = "must flag 0" if MUST_FLAG.get(row.side) is False else "must flag >=1"
     result = row.error or ", ".join(row.matches) or "no matches"
     return f"{row.side} {expected}{SIDE_NOTES.get(row.side, '')} | {row.name}: {result}"
 
@@ -277,3 +316,16 @@ def _wrong(row: SideRow) -> bool:
 def _variant_block(row: SideRow, path: Path) -> str:
     source = path.read_text(encoding="utf-8")
     return f"\n\n{VARIANT_MISSES[row.side]} {row.name}:\n{source}"
+
+
+def _edit_feedback(proof: Proof, case: ProofCase) -> str:
+    # A missed edit is shown as its diff, so the compiler sees the code it must catch.
+    missed = [r.name for r in proof.rows if r.side == EDIT_SIDE and not r.matches]
+    return "".join(_edit_block(name, case.guard_edits[name]) for name in missed)
+
+
+def _edit_block(name: str, edit: GuardEdit) -> str:
+    before = edit.before.read_text(encoding="utf-8").splitlines(keepends=True)
+    after = edit.after.read_text(encoding="utf-8").splitlines(keepends=True)
+    diff = "".join(difflib.unified_diff(before, after, "before", "after"))
+    return f"\n\nMISSED GUARD EDIT {name} {EDIT_MISS}:\n{diff}"
