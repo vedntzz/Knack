@@ -1,4 +1,4 @@
-from knack.contracts.models import Root, Verdict
+from knack.contracts.models import MatchedCode, Root, Verdict
 from knack.guard.runner import RuleMatch
 
 NO_MATCH_REASON = "no rule matched"
@@ -34,6 +34,7 @@ def _deny_verdict(
         rule_id=rule_id,
         root_ids=[root.id],
         latency_ms=latency_ms,
+        matched=_matched_code(matches),
     )
 
 
@@ -46,6 +47,7 @@ def _advisory_verdict(
         rule_id=rule_id,
         root_ids=[root.id] if root else [],
         latency_ms=latency_ms,
+        matched=_matched_code(matches),
     )
 
 
@@ -71,3 +73,7 @@ def _rejected_alternative_line(root: Root) -> str:
 
 def _matched_line(matches: list[RuleMatch]) -> str:
     return "Matched: " + ", ".join(f"{m.matched_text} (line {m.line})" for m in matches)
+
+
+def _matched_code(matches: list[RuleMatch]) -> list[MatchedCode]:
+    return [MatchedCode(line=m.line, text=m.matched_text) for m in matches]

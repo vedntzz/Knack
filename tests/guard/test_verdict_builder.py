@@ -106,3 +106,18 @@ def test_corroboration_statuses_never_deny(status: DecisionStatus) -> None:
     verdict = build_verdict(RULE_ID, make_matches(), make_root(status), 1.0)
     assert verdict.allowed is True
     assert verdict.reason.startswith("advisory:")
+
+
+def test_a_deny_carries_its_matched_code_and_lines() -> None:
+    verdict = build_verdict(RULE_ID, make_matches(), make_root(), 1.0)
+    found = [(m.line, m.text) for m in verdict.matched]
+    assert found == [(23, '"state"'), (23, '"start_date"')]
+
+
+def test_an_advisory_allow_carries_its_matched_code_too() -> None:
+    verdict = build_verdict(RULE_ID, make_matches(), make_root("Inferred"), 1.0)
+    assert verdict.allowed and len(verdict.matched) == 2
+
+
+def test_a_clean_allow_matched_nothing() -> None:
+    assert build_verdict(RULE_ID, [], make_root(), 1.0).matched == []

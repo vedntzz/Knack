@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers |= {"init": _init_command, "watch": _watch_command}
     handlers |= {"confirm": _confirm_command, "reject": _reject_command}
     handlers |= {"import": _import_command, "bench": _bench_command}
-    handlers |= {"argue": _argue_command}
+    handlers |= {"argue": _argue_command, "console": _console_command}
     return (handlers | {"receipts": _receipts_command})[args.command](args)
 
 
@@ -92,6 +92,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
     adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
     adders |= {"argue": _add_argue_arguments}
+    adders |= {"console": _add_console_arguments}
     return adders | {"receipts": _add_receipts_arguments}
 
 
@@ -373,6 +374,18 @@ def _chain_line(path: Path, count: int, broken: int | None, problem: str | None)
     if broken is None:
         return f"{path}: {count} {noun}, chain intact"
     return f"{path}: chain broken at line {broken}: {problem} ({count} {noun} before it verify)"
+
+
+def _add_console_arguments(console: argparse.ArgumentParser) -> None:
+    console.description = "serve GET /verdict/<receipt-hash> as JSON on loopback"
+
+
+def _console_command(args: argparse.Namespace) -> int:
+    # FastAPI loads only here, never on the hook or other commands' path.
+    from knack.console import app
+
+    app.serve()
+    return 0
 
 
 def _add_argue_arguments(argue: argparse.ArgumentParser) -> None:

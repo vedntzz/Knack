@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from knack.cli import main as knack_main
-from knack.contracts.models import Root, Verdict
+from knack.contracts.models import MatchedCode, Root, Verdict
 from knack.receipts.chain import (
     append_receipt,
     GENESIS,
@@ -226,3 +226,40 @@ def test_cli_verify_on_an_unreadable_path_exits_2(
 ) -> None:
     assert knack_main(["receipts", "verify", "--path", str(tmp_path)]) == 2
     assert "knack receipts" in capsys.readouterr().err
+
+
+LATER = {"branch", "session_id", "matched"}
+
+
+def matched_deny() -> Verdict:
+    found = [MatchedCode(line=23, text='"state"')]
+    return deny().model_copy(update={"matched": found})
+
+
+def test_later_fields_are_kept_and_hashed_when_set(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    named = ("apache/airflow", "/w/dags.py", "no-alias-sort-keys")
+    record = guard_receipt(
+        *named, root(), matched_deny(), NOW, branch="fix-sort", session_id="s-1"
+    )
+    append_receipt(path, record)
+    [line] = lines(path)
+    assert (line["branch"], line["session_id"]) == ("fix-sort", "s-1")
+    assert line["matched"] == [{"line": 23, "text": '"state"'}]
+    assert line["hash"] == canonical_hash(line)
+    assert verify_chain(path).broken_line is None
+
+
+def test_unset_later_fields_are_left_off_the_line(three: Path) -> None:
+    # Receipts written before these fields existed hash exactly as they did.
+    assert not LATER & set(lines(three)[0])
+    assert verify_chain(three).broken_line is None
+
+
+def test_an_edited_branch_breaks_its_line(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    append_receipt(path, fields(deny()) | {"branch": "fix-sort"})
+    records = lines(path)
+    records[0]["branch"] = "main"
+    rewrite(path, records)
+    assert verify_chain(path).broken_line == 1

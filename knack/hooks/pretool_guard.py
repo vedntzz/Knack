@@ -6,10 +6,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from knack.console.links import verdict_url
 from knack.contracts.models import Root, Verdict
+from knack.git import current_branch
 from knack.guard.check import check_file, fail_open, log_error_quietly
 from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
-from knack.receipts.chain import append_receipt, guard_receipt, receipts_path
+from knack.receipts.chain import append_receipt, guard_receipt, Receipt, receipts_path
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
@@ -27,6 +29,8 @@ class Trail:
     receipts: Path | None
     repo: str
     file: str
+    branch: str | None = None
+    session_id: str | None = None
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
@@ -64,9 +68,20 @@ def _decide_inner(
     content = _proposed_content(event, base) if _in_root(event, base, root) else None
     if content is None:
         return None
-    trail = Trail(log_path, receipts, registry.repo, _target(event, base))
+    trail = _trail(event, base, registry.repo, log_path, receipts)
     proposal = (content, _current_content(Path(trail.file)))
     return _scan_proposal(*proposal, _rules_with_roots(registry), trail)
+
+
+def _trail(
+    event: JsonDict, base: Path, repo: str, log: Path, receipts: Path | None
+) -> Trail:
+    # Branch and session are only worth a git call when a receipt will hold them.
+    target = _target(event, base)
+    if receipts is None:
+        return Trail(log, receipts, repo, target)
+    session = str(event["session_id"]) if event.get("session_id") else None
+    return Trail(log, receipts, repo, target, current_branch(base), session)
 
 
 def _in_root(event: JsonDict, base: Path, root: Path | None) -> bool:
@@ -160,9 +175,9 @@ def _first_deny(
     # Rules run in registry order; every verdict is receipted; the first deny wins.
     for rule_path, root in rules:
         verdict = _check_rule(temp, baseline, rule_path, root, trail.log)
-        _receipt_quietly(trail, rule_path, root, verdict)
+        receipt = _receipt_quietly(trail, rule_path, root, verdict)
         if not verdict.allowed:
-            return _deny(verdict.reason)
+            return _deny(verdict.reason, receipt)
     return None
 
 
@@ -178,24 +193,24 @@ def _check_rule(
 
 def _receipt_quietly(
     trail: Trail, rule_path: Path, root: Root | None, verdict: Verdict
-) -> None:
+) -> Receipt | None:
     # A receipt is best effort: its failure is logged and the verdict stands.
     try:
-        _append_receipt(trail, rule_path, root, verdict)
+        return _append_receipt(trail, rule_path, root, verdict)
     except Exception as error:
         log_error_quietly(trail.log, error)
+        return None
 
 
 def _append_receipt(
     trail: Trail, rule_path: Path, root: Root | None, verdict: Verdict
-) -> None:
+) -> Receipt | None:
     if trail.receipts is None:
-        return
+        return None
     now = datetime.now(timezone.utc).isoformat()
-    fields = guard_receipt(
-        trail.repo, trail.file, rule_name(rule_path), root, verdict, now
-    )
-    append_receipt(trail.receipts, fields)
+    named = (trail.repo, trail.file, rule_name(rule_path), root, verdict, now)
+    fields = guard_receipt(*named, trail.branch, trail.session_id)
+    return append_receipt(trail.receipts, fields)
 
 
 def rule_name(rule_path: Path) -> str:
@@ -214,8 +229,9 @@ def _rule_id(rule_path: Path) -> str:
     raise ValueError(f"rule file has no id: {rule_path}")
 
 
-def _deny(reason: str) -> JsonDict:
+def _deny(reason: str, receipt: Receipt | None) -> JsonDict:
     # Muse Code only honors this exact deny envelope, exit 0.
     inner = {"hookEventName": "PreToolUse", "permissionDecision": "deny"}
-    inner["permissionDecisionReason"] = f"{reason}\n{DISPUTE_LINE}"
+    link = f"Console: {verdict_url(receipt.hash)}\n" if receipt else ""
+    inner["permissionDecisionReason"] = f"{reason}\n{link}{DISPUTE_LINE}"
     return {"hookSpecificOutput": inner}
