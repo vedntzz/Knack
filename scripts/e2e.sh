@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # KN-40 acceptance: init -> confirm -> alias denied -> fix allowed -> argue holds -> receipts verify.
 # Runs in a temp HOME against a fixture clone of apache/airflow; GitHub and Spark are test fakes.
-set -u
+set -u -o pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PY="${PYTHON:-$ROOT/.venv/bin/python}"
@@ -10,7 +10,8 @@ WORK="$(mktemp -d "${TMPDIR:-/tmp}/knack-e2e.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
 ROUTES="airflow-core/src/airflow/api_fastapi/core_api/routes"
-BASE="$ROOT/spikes/batch/apache-airflow/src/75025/base"
+# Every fixture is committed under scripts/fixtures; nothing comes from ~ or the network.
+BASE="$ROOT/scripts/fixtures/75025/base"
 CLONE="$WORK/airflow"
 REGISTRY_DIR="$WORK/home/.knack/registries/apache-airflow"
 ROOT_ID="airflow-75025-1"
@@ -22,17 +23,35 @@ real_state() {
     -exec shasum {} + 2>/dev/null | sort
 }
 
-# step NAME COMMAND...: prints PASS/FAIL NAME; output only on failure.
+# step NAME COMMAND...: prints PASS/FAIL NAME; on failure, the step's stderr then its stdout.
 step() {
-  local name="$1" out
+  local name="$1" out err="$WORK/step.err"
   shift
-  if out="$("$@" 2>&1)"; then
+  if out="$("$@" 2>"$err")"; then
     echo "PASS $name"
-  else
-    echo "FAIL $name"
-    printf '%s\n' "$out" | sed 's/^/    /'
-    FAILED=1
+    return 0
   fi
+  echo "FAIL $name"
+  report "stderr" <"$err"
+  printf '%s\n' "$out" | report "stdout"
+  FAILED=1
+  return 1
+}
+
+# report LABEL: indented stdin under LABEL, nothing when stdin is empty.
+report() {
+  local text
+  text="$(cat)"
+  [ -n "$text" ] && { echo "    $1:"; printf '%s\n' "$text" | sed 's/^/      /'; }
+  return 0
+}
+
+# must COMMAND...: runs it; on failure names the command on stderr above its own stderr.
+must() {
+  "$@" && return 0
+  local status=$?
+  echo "command failed (exit $status): $*" >&2
+  return "$status"
 }
 
 knack() { "$PY" -c 'import sys; from knack.cli import main; sys.exit(main(sys.argv[1:]))' "$@"; }
@@ -40,13 +59,13 @@ faked() { "$PY" "$ROOT/scripts/e2e_fakes.py" "$@"; }
 
 make_clone() {
   # The pre-fix route files in a repo whose origin is apache/airflow.
-  mkdir -p "$CLONE/$ROUTES/public" "$CLONE/$ROUTES/ui"
-  cp "$BASE/$ROUTES/public/dags.py" "$CLONE/$ROUTES/public/dags.py"
-  cp "$BASE/$ROUTES/ui/dags.py" "$CLONE/$ROUTES/ui/dags.py"
-  git -C "$CLONE" init -q -b main
-  git -C "$CLONE" remote add origin https://github.com/apache/airflow.git
-  git -C "$CLONE" add -A
-  git -C "$CLONE" -c user.name=e2e -c user.email=e2e@example.com commit -q -m base
+  must mkdir -p "$CLONE/$ROUTES/public" "$CLONE/$ROUTES/ui" || return 1
+  must cp "$BASE/$ROUTES/public/dags.py" "$CLONE/$ROUTES/public/dags.py" || return 1
+  must cp "$BASE/$ROUTES/ui/dags.py" "$CLONE/$ROUTES/ui/dags.py" || return 1
+  must git -C "$CLONE" init -q -b main || return 1
+  must git -C "$CLONE" remote add origin https://github.com/apache/airflow.git || return 1
+  must git -C "$CLONE" add -A || return 1
+  must git -C "$CLONE" commit -q -m base
 }
 
 # edit_event FIND_FILE: a Muse edit_file PreToolUse event on public/dags.py, find/replace from JSON.
@@ -63,8 +82,11 @@ EOF
 pretool() { (cd "$CLONE" && "$PY" -m knack.hooks.pretool); }
 
 init_step() {
+  # The root alone is not enough: init writes it even when it discards the rule.
   faked init --repo apache/airflow --prs 1 || return 1
-  test -f "$REGISTRY_DIR/registry.json" && test -f "$REGISTRY_DIR/roots/$ROOT_ID.json"
+  must test -f "$REGISTRY_DIR/roots/$ROOT_ID.json" || return 1
+  must test -f "$REGISTRY_DIR/rules/75025.yml" || return 1
+  must grep -q '"rules/75025.yml"' "$REGISTRY_DIR/registry.json"
 }
 
 confirm_step() {
@@ -109,8 +131,13 @@ mkdir -p "$HOME"
 # No live credential or registry override reaches any step; git reads no user config.
 unset GITHUB_TOKEN MODEL_API_KEY BASETEN_API_KEY KNACK_REGISTRY
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+# CI has no git identity; every commit here is made as this one.
+export GIT_AUTHOR_NAME="knack e2e" GIT_AUTHOR_EMAIL="e2e@example.com"
+export GIT_COMMITTER_NAME="knack e2e" GIT_COMMITTER_EMAIL="e2e@example.com"
 cd "$ROOT" || exit 1
-make_clone >/dev/null 2>&1 || { echo "FAIL fixture clone"; exit 1; }
+
+# Every later step needs the clone, so its failure stops the run.
+step "fixture clone" make_clone || exit 1
 
 step "knack init" init_step
 step "knack confirm" confirm_step
