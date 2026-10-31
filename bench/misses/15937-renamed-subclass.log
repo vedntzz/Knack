@@ -1,0 +1,9 @@
+recorded must-fail case fastapi/routing.py [d14cb95b641c] for fastapi-15937 -> data/registry/cases/fastapi-15937/must-fail-d14cb95b641c.json
+fastapi-15937 fails: guard edit fastapi/routing.py [d14cb95b641c] adds no new match; recompiling with muse-spark-1.3
+PASS proof: base, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 0.140.12
+PASS held-out same: 3/3 violations caught, 3/3 compliant allowed
+FAIL held-out cross: 1/3 violations caught, 3/3 compliant allowed
+PASS fresh cross-model: 3/3 violations caught, 3/3 compliant allowed (/Users/vedant/.knack/cache/miss/registry-fastapi/15937/fresh-20261031T165844Z-834c49)
+candidate rule: /Users/vedant/.knack/cache/miss/registry-fastapi/15937/candidate-20261031T165913Z-166eb1.yml
+kept the old fastapi-15937: 1 gate(s) failed
+exit=1

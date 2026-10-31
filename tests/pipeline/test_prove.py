@@ -12,6 +12,7 @@ from conftest import (
     write_tree,
 )
 from knack.pipeline.prove import (
+    edit_checks,
     failed_checks,
     feedback,
     GuardEdit,
@@ -217,3 +218,51 @@ def test_feedback_omits_an_edit_the_rule_already_denies(tmp_path: Path) -> None:
 def test_without_guard_edits_there_is_no_guard_edit_check(tmp_path: Path) -> None:
     plain = case(tmp_path)
     assert "guard edit" not in feedback(prove(STRUCTURAL, plain), plain)
+
+
+# A compliant edit: gather over pings, no blob reads; STRUCTURAL still flags it.
+PINGS = "\n\nasync def ping_all(a, b):\n    pings = await asyncio.gather(a.ping(), b.ping())\n    return pings\n"
+# STRUCTURAL narrowed to gathers that read: allows PINGS, still catches 2 of 3 variants.
+NARROWED = """id: compiled-rule
+language: python
+severity: error
+message: Read blobs one at a time.
+rule:
+  all:
+    - pattern: $R = await asyncio.gather($$$)
+    - has: {regex: "read", stopBy: end}
+"""
+FALSE_BLOCK = "guard allow pkg/loader.py adds a new match"
+
+
+def allow_case(tmp_path: Path) -> ProofCase:
+    before = side(tmp_path, "allow-before", BASE)["pkg/loader.py"]
+    after = side(tmp_path, "allow-after", BASE + PINGS)["pkg/loader.py"]
+    allows = {"pkg/loader.py": GuardEdit(before=before, after=after)}
+    return case(tmp_path).model_copy(update={"guard_allows": allows})
+
+
+def test_rule_flagging_code_a_must_pass_edit_adds_fails(tmp_path: Path) -> None:
+    assert FALSE_BLOCK in failed_checks(prove(STRUCTURAL, allow_case(tmp_path)))
+
+
+def test_rule_allowing_the_must_pass_edit_passes(tmp_path: Path) -> None:
+    assert passed(prove(NARROWED, allow_case(tmp_path)))
+
+
+def test_feedback_shows_the_false_block_as_a_diff(tmp_path: Path) -> None:
+    allowed = allow_case(tmp_path)
+    text = feedback(prove(STRUCTURAL, allowed), allowed)
+    assert "FALSE BLOCK pkg/loader.py" in text
+    assert "+    pings = await asyncio.gather" in text
+
+
+def test_must_pass_rows_report_must_flag_zero(tmp_path: Path) -> None:
+    allowed = allow_case(tmp_path)
+    text = feedback(prove(NARROWED, allowed), allowed)
+    assert "guard-allow must flag 0" in text
+
+
+def test_edit_checks_lists_only_the_edit_failures(tmp_path: Path) -> None:
+    proof = prove(MEMORIZED_ON_BASE, edit_case(tmp_path))
+    assert edit_checks(proof.rows) == [MISSED_EDIT]

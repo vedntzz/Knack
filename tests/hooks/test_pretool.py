@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from knack.hooks import pretool_guard
 from knack.hooks.pretool_guard import decide
+from knack.receipts.edits import load_edit
 from knack.walk.registry import Registry, RegistryEntry
 
 HOOK_FIXTURES = Path(__file__).parent / "fixtures"
@@ -604,3 +605,37 @@ def test_a_failed_receipt_means_no_console_link(tmp_path: Path) -> None:
     event = violating_write_event("new_dags.py", tmp_path)
     reason = decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
     assert "/verdict/" not in deny_reason(reason)
+
+
+def test_a_receipt_points_at_the_snapshot_of_its_edit(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("new_dags.py", tmp_path)
+    decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    [receipt] = receipt_lines(receipts)
+    edit = load_edit(tmp_path / "edits", receipt["edit_sha256"])
+    assert edit is not None and edit.before is None
+    assert edit.after == read_guard_fixture("replay/run3_public_dags.py")
+    assert edit.file == str(tmp_path.resolve() / "new_dags.py")
+
+
+def test_an_edit_snapshot_holds_the_file_before_the_edit(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    (tmp_path / "dags.py").write_text("old = 1\n", encoding="utf-8")
+    event = load_event("write_event.json")
+    event["tool_input"].update(path="dags.py", content=read_guard_fixture("fixed.py"))
+    event["cwd"] = str(tmp_path)
+    decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    [receipt] = receipt_lines(receipts)
+    edit = load_edit(tmp_path / "edits", receipt["edit_sha256"])
+    assert edit is not None and edit.before == "old = 1\n"
+
+
+def test_a_failed_snapshot_never_changes_the_verdict(tmp_path: Path) -> None:
+    # The edits path is a file, so the snapshot write fails.
+    receipts = tmp_path / "verdicts.jsonl"
+    (tmp_path / "edits").write_text("not a folder", encoding="utf-8")
+    event = violating_write_event("new_dags.py", tmp_path)
+    reason = decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
+    assert SOURCE_URL in deny_reason(reason)
+    [receipt] = receipt_lines(receipts)
+    assert "edit_sha256" not in receipt

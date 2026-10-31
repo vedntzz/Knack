@@ -1,0 +1,10 @@
+recorded must-fail case fastapi/dependencies/models.py [77322b4d226e] for fastapi-16062 -> data/registry/cases/fastapi-16062/must-fail-77322b4d226e.json
+fastapi-16062 fails: guard edit fastapi/dependencies/models.py [77322b4d226e] adds no new match; recompiling with muse-spark-1.3
+PASS cases: every must-fail edit denied, every must-pass edit allowed
+PASS proof: base, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 0.140.0
+PASS held-out same: 2/3 violations caught (old rule 2), 3/3 compliant allowed
+PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed
+PASS fresh cross-model: 3/3 violations caught (old rule 3), 3/3 compliant allowed (/Users/vedant/.knack/cache/miss/registry-fastapi/16062/fresh-20261031T171443Z-983f2a)
+candidate rule: /Users/vedant/.knack/cache/miss/registry-fastapi/16062/candidate-20261031T171504Z-43479c.yml
+installed fastapi-16062 -> data/registry/../rules/fastapi/16062.yml (2 attempt(s))
+exit=0

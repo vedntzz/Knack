@@ -81,6 +81,11 @@ def variant_files(out: Path, prompt: str, writer: Spark) -> Sides:
     # Cached per PR and writer, so every attempt is scored on the same variants.
     if set(variant_authors(out).values()) != {writer.model}:
         _write_variants(out, generate_variants(writer, prompt), writer.model)
+    return saved_variants(out)
+
+
+def saved_variants(out: Path) -> Sides:
+    # A variant folder already on disk, e.g. a committed held-out set.
     return {side: _saved(out, prefix) for side, prefix in KINDS.items()}
 
 

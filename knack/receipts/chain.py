@@ -21,7 +21,7 @@ TAIL_BYTES = 64 * 1024
 PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
 # Fields added after the first receipts: left off the line, and the hash, when unset.
-LATER_FIELDS = ("branch", "session_id", "matched")
+LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256")
 
 
 class Receipt(BaseModel):
@@ -43,6 +43,8 @@ class Receipt(BaseModel):
     branch: str | None = None
     session_id: str | None = None
     matched: list[MatchedCode] | None = None
+    # The saved snapshot of the edit this verdict was on, under ~/.knack/edits.
+    edit_sha256: str | None = None
 
 
 class ChainReport(BaseModel):
@@ -67,15 +69,14 @@ def guard_receipt(
     time: str,
     branch: str | None = None,
     session_id: str | None = None,
+    edit_sha256: str | None = None,
 ) -> JsonDict:
     # The receipt's fields before chaining: the consulted root, hashed quote, outcome.
     roots = [root.id] if root else []
     quote = _sha256(root.quote) if root else None
     named = {"time": time, "repo": repo, "file": file, "rule_id": rule_id}
     decided = {"decision": decision_of(verdict), "latency_ms": verdict.latency_ms}
-    matched = [m.model_dump() for m in verdict.matched] or None
-    later = {"branch": branch, "session_id": session_id, "matched": matched}
-    kept = {key: value for key, value in later.items() if value is not None}
+    kept = _set_later_fields(verdict, branch, session_id, edit_sha256)
     return named | decided | {"root_ids": roots, "quote_sha256": quote} | kept
 
 
@@ -175,3 +176,16 @@ def _receipt_or_none(line: str) -> Receipt | None:
         return Receipt.model_validate_json(line)
     except ValidationError:
         return None
+
+
+def _set_later_fields(
+    verdict: Verdict,
+    branch: str | None,
+    session_id: str | None,
+    edit_sha256: str | None,
+) -> JsonDict:
+    # Unset later fields stay off the line, so older receipts hash as they did.
+    matched = [m.model_dump() for m in verdict.matched] or None
+    later = {"branch": branch, "session_id": session_id, "matched": matched}
+    later |= {"edit_sha256": edit_sha256}
+    return {key: value for key, value in later.items() if value is not None}

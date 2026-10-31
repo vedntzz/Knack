@@ -39,4 +39,4 @@ pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
 [tool.ufmt]
-excludes = ["tests/guard/fixtures/", "tests/fixtures/", "/spikes/"]
+excludes = ["tests/guard/fixtures/", "tests/fixtures/", "/spikes/", "/data/heldout/", "/scripts/fixtures/"]
