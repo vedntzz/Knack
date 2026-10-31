@@ -1,3 +1,4 @@
+from math import sqrt
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -9,17 +10,30 @@ LABELS = ("blocked", "rejected_path", "correct", "other")
 REPEATS = {"blocked", "rejected_path"}
 HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Attempt rate | Judge agreement |"
 FLAG_HEADER = "| Run | Ticket | Arm | Label | Judge | Why |"
+# Two-sided 95% normal quantile, for the Wilson score interval.
+Z = 1.959963984540054
 
 
 class ReportError(Exception):
     pass
 
 
-def bench_report(runs: Path) -> str:
-    # Markdown: one row per arm, then every flagged run with its reason.
+def bench_report(runs: Path, exclude: str | None = None) -> str:
+    # Markdown: one row per arm without the excluded ticket, then that ticket's
+    # own rows, then every flagged run (excluded ticket included) with its reason.
     records = load_runs(runs)
-    title = f"# Bench report: {_runs(len(records))}"
-    return "\n".join([title, "", *arm_table(records), "", *flagged_section(records)])
+    kept = [record for record in records if record.ticket != exclude]
+    body = [*arm_table(kept), "", *excluded_section(records, exclude)]
+    return "\n".join([_title(kept, exclude), "", *body, *flagged_section(records)])
+
+
+def excluded_section(records: list[RunRecord], ticket: str | None) -> list[str]:
+    if ticket is None:
+        return []
+    own = [record for record in records if record.ticket == ticket]
+    if not own:
+        raise ReportError(f"no runs for ticket {ticket}")
+    return [f"## Excluded ticket: {ticket}", "", *arm_table(own), ""]
 
 
 def load_runs(path: Path) -> list[RunRecord]:
@@ -100,20 +114,38 @@ def _judge_error(record: RunRecord) -> str:
     return f": {error}" if error else ""
 
 
+def _title(kept: list[RunRecord], exclude: str | None) -> str:
+    excluding = f" (excluding {exclude})" if exclude else ""
+    return f"# Bench report: {_runs(len(kept))}{excluding}"
+
+
 def _runs(count: int) -> str:
     return f"{count} run" if count == 1 else f"{count} runs"
 
 
 def _share(count: int, total: int) -> str:
-    return f"{count} ({_percent(count, total)})"
+    return f"{count} ({wilson_rate(count, total)})"
 
 
 def _ratio(count: int, total: int) -> str:
-    return f"{count}/{total} ({_percent(count, total)})"
+    return f"{count}/{total} ({wilson_rate(count, total)})"
 
 
-def _percent(count: int, total: int) -> str:
-    return f"{count / total:.0%}" if total else "n/a"
+def wilson_rate(count: int, total: int) -> str:
+    # "21% [8–48%]": the rate and its Wilson 95% interval; no runs reads n/a.
+    if not total:
+        return "n/a"
+    low, high = _wilson(count, total)
+    return f"{count / total:.0%} [{low * 100:.0f}–{high:.0%}]"
+
+
+def _wilson(count: int, total: int) -> tuple[float, float]:
+    # Unlike p ± z·se, stays inside [0, 1] and is not zero-width at 0/n or n/n.
+    rate = count / total
+    shrink = 1 + Z**2 / total
+    centre = (rate + Z**2 / (2 * total)) / shrink
+    spread = Z * sqrt(rate * (1 - rate) / total + Z**2 / (4 * total**2)) / shrink
+    return max(0.0, centre - spread), min(1.0, centre + spread)
 
 
 def _row(cells: list[str]) -> str:

@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from knack import cli
 from knack.bench.blind import BlindLabel
-from knack.bench.report import bench_report, ReportError
+from knack.bench.report import bench_report, ReportError, wilson_rate
 from knack.bench.run import RunRecord
 
 HEADER = "| Arm | Runs | Blocked | Recovered | Rejected path | Correct | Other | Repeat rate | Attempt rate | Judge agreement |"
@@ -79,9 +79,9 @@ def test_report_counts_and_rates_each_arm(tmp_path: Path) -> None:
     report = bench_report(write_runs(tmp_path / "runs.jsonl", RUNS))
     assert HEADER in report
     assert table_rows(report) == [
-        "| none | 3 | 0 (0%) | n/a | 1 (33%) | 1 (33%) | 1 (33%) | 1/3 (33%) | 2/2 (100%) | 2/2 (100%) |",
-        "| veto | 3 | 2 (67%) | 1/2 (50%) | 0 (0%) | 1 (33%) | 0 (0%) | 2/3 (67%) | 1/1 (100%) | 2/3 (67%) |",
-        "| warn+veto | 1 | 0 (0%) | n/a | 0 (0%) | 1 (100%) | 0 (0%) | 0/1 (0%) | 0/1 (0%) | 1/1 (100%) |",
+        "| none | 3 | 0 (0% [0–56%]) | n/a | 1 (33% [6–79%]) | 1 (33% [6–79%]) | 1 (33% [6–79%]) | 1/3 (33% [6–79%]) | 2/2 (100% [34–100%]) | 2/2 (100% [34–100%]) |",
+        "| veto | 3 | 2 (67% [21–94%]) | 1/2 (50% [9–91%]) | 0 (0% [0–56%]) | 1 (33% [6–79%]) | 0 (0% [0–56%]) | 2/3 (67% [21–94%]) | 1/1 (100% [21–100%]) | 2/3 (67% [21–94%]) |",
+        "| warn+veto | 1 | 0 (0% [0–79%]) | n/a | 0 (0% [0–79%]) | 1 (100% [21–100%]) | 0 (0% [0–79%]) | 0/1 (0% [0–79%]) | 0/1 (0% [0–79%]) | 1/1 (100% [21–100%]) |",
     ]
 
 
@@ -170,4 +170,82 @@ def test_recovered_counts_blocked_runs_that_ended_correct(tmp_path: Path) -> Non
         record("c1", "veto", "correct", diff_label="correct"),
     ]
     [row] = table_rows(bench_report(write_runs(tmp_path / "runs.jsonl", runs)))
-    assert row.split(" | ")[3] == "2/3 (67%)"
+    assert row.split(" | ")[3] == "2/3 (67% [21–94%])"
+
+
+def test_wilson_rate_matches_the_spec_example() -> None:
+    assert wilson_rate(3, 14) == "21% [8–48%]"
+
+
+def test_wilson_rate_stays_inside_zero_and_one() -> None:
+    assert wilson_rate(0, 3) == "0% [0–56%]"
+    assert wilson_rate(3, 3) == "100% [44–100%]"
+
+
+def test_wilson_rate_of_nothing_is_na() -> None:
+    assert wilson_rate(0, 0) == "n/a"
+
+
+EXCLUDE_RUNS = [
+    record("a1", "veto", "blocked", ticket="t-keep"),
+    record("a2", "veto", "correct", ticket="t-keep"),
+    record("a3", "none", "rejected_path", ticket="t-keep"),
+    record("x1", "veto", "correct", ticket="t-out"),
+    record("x2", "none", "correct", ticket="t-out"),
+]
+
+
+def excluded_rows(report: str) -> list[str]:
+    lines = report.splitlines()
+    start = lines.index("## Excluded ticket: t-out")
+    return [line for line in lines[start + 4 :] if line.startswith("| ")][:2]
+
+
+def test_exclude_ticket_drops_it_from_the_primary_table(tmp_path: Path) -> None:
+    path = write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS)
+    report = bench_report(path, exclude="t-out")
+    assert report.splitlines()[0] == "# Bench report: 3 runs (excluding t-out)"
+    assert [row.split(" | ")[:2] for row in table_rows(report)[:2]] == [
+        ["| none", "1"],
+        ["| veto", "2"],
+    ]
+
+
+def test_exclude_ticket_reports_its_own_rows_separately(tmp_path: Path) -> None:
+    path = write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS)
+    report = bench_report(path, exclude="t-out")
+    lines = report.splitlines()
+    start = lines.index("## Excluded ticket: t-out")
+    assert lines[start + 2] == HEADER
+    assert [row.split(" | ")[:2] for row in excluded_rows(report)] == [
+        ["| none", "1"],
+        ["| veto", "1"],
+    ]
+    assert excluded_rows(report)[1].split(" | ")[5] == "1 (100% [21–100%])"
+
+
+def test_exclude_unknown_ticket_is_an_error(tmp_path: Path) -> None:
+    path = write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS)
+    with pytest.raises(ReportError, match="no runs for ticket t-typo"):
+        bench_report(path, exclude="t-typo")
+
+
+def test_report_without_exclusion_has_no_excluded_section(tmp_path: Path) -> None:
+    report = bench_report(write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS))
+    assert "## Excluded ticket" not in report
+
+
+def test_cli_exclude_ticket(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    path = write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS)
+    argv = ["bench", "report", "--runs", str(path), "--exclude-ticket", "t-out"]
+    assert cli.main(argv) == 0
+    assert capsys.readouterr().out == bench_report(path, exclude="t-out") + "\n"
+
+
+def test_cli_exclude_unknown_ticket_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = write_runs(tmp_path / "runs.jsonl", EXCLUDE_RUNS)
+    argv = ["bench", "report", "--runs", str(path), "--exclude-ticket", "t-typo"]
+    assert cli.main(argv) == 2
+    assert "t-typo" in capsys.readouterr().err
