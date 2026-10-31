@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.contracts.models import RuleProof
 from knack.pipeline.heldout import HeldOut
 
 # Spark answers may carry extra keys; we keep only the fields we cite.
@@ -82,3 +83,5 @@ class Compiled(BaseModel):
     failed_checks: list[str]
     # Only proven rules are scored on the adversary's held-out set.
     heldout: HeldOut | None = None
+    # A proven rule's results, stored with it at install.
+    proof: RuleProof | None = None

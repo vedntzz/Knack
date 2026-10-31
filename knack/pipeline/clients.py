@@ -22,7 +22,11 @@ class MissingCredentials(Exception):
 
 def live_clients(extractor: str = DEFAULT_EXTRACTOR) -> tuple[GitHubApi, Spark]:
     key_env, spark = EXTRACTORS[extractor]
-    return GitHubApi(_required_env("GITHUB_TOKEN")), spark(_required_env(key_env))
+    return github_client(), spark(_required_env(key_env))
+
+
+def github_client() -> GitHubApi:
+    return GitHubApi(_required_env("GITHUB_TOKEN"))
 
 
 def partner_client(extractor: str) -> Spark:

@@ -27,6 +27,7 @@ from knack.pipeline.progress import (
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
 from knack.pipeline.readings import save_readings
+from knack.pipeline.record import rule_proof, with_heldout, with_merged_at
 from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
 from knack.pipeline.sources import fetch_side, joined_source
@@ -88,7 +89,7 @@ def finish(run: Run, selection: Selection, keep: list[RegistryEntry]) -> Path:
     extractions = _extract_stage(run, selection.prs)
     second = _second_stage(run, selection.prs)
     _save_stage(run, extractions, second)
-    roots = _roots_stage(run, extractions, second)
+    roots = _roots_stage(run, extractions, second, selection.prs)
     compiled = _compile_stage(run, selection.prs, extractions, roots)
     return _install_stage(run, compiled, keep)
 
@@ -130,10 +131,14 @@ def _log_extracted(log: Log, number: int, extraction: Extraction | None) -> None
 
 
 def _roots_stage(
-    run: Run, extractions: list[Extraction], second: SecondReading | None
+    run: Run,
+    extractions: list[Extraction],
+    second: SecondReading | None,
+    prs: list[PullRequest],
 ) -> list[Root]:
-    # New roots carry machine labels; reviewed ones on disk stay, rejected ones back no rule.
-    roots = [r for e in extractions for r in _roots_of(run, e, second)]
+    # New roots carry machine labels and merge time; reviewed ones on disk stay.
+    found = [r for e in extractions for r in _roots_of(run, e, second)]
+    roots = with_merged_at(found, prs)
     reviewed = reviewed_roots(run.out / "roots")
     written = install_roots(roots, run.out / "roots")
     kept = [reviewed[r.id] for r in roots if r.id in reviewed]
@@ -249,7 +254,8 @@ def _with_heldout(run: Run, compiled: Compiled, prompt: str) -> Compiled:
     if compiled.rule is None:
         return compiled
     heldout = _heldout_safely(run, compiled.number, compiled.rule, prompt)
-    return compiled.model_copy(update={"heldout": heldout})
+    proof = with_heldout(compiled.proof, heldout)
+    return compiled.model_copy(update={"heldout": heldout, "proof": proof})
 
 
 def _heldout_safely(run: Run, number: int, rule: Path, prompt: str) -> HeldOut:
@@ -274,11 +280,9 @@ def _side(run: Run, target: Target, side: str, work: Path) -> dict[str, Path]:
 def _record(run: Run, target: Target, attempt: Attempt) -> Compiled:
     rule = _install_rule(run, target, attempt)
     fields = {"number": target.pr.number, "rule": rule, "root_ids": target.root_ids}
-    fields |= {
-        "attempts": attempt.number,
-        "failed_checks": failed_checks(attempt.proof),
-    }
-    return Compiled.model_validate(fields)
+    checks = {"attempts": attempt.number, "failed_checks": failed_checks(attempt.proof)}
+    proof = rule_proof(attempt.proof, target.pr, attempt.number) if rule else None
+    return Compiled.model_validate(fields | checks | {"proof": proof})
 
 
 def _install_rule(run: Run, target: Target, attempt: Attempt) -> Path | None:
@@ -303,7 +307,7 @@ def _install_stage(
     run: Run, compiled: list[Compiled], keep: list[RegistryEntry]
 ) -> Path:
     # New rules join the kept entries; a rule file proven again replaces its entry.
-    entries = [_entry(c.rule, c.root_ids) for c in compiled if c.rule]
+    entries = [_entry(c) for c in compiled if c.rule]
     rules = [e for e in keep if e.rule not in {n.rule for n in entries}] + entries
     path = _write_registry(run, rules)
     discarded = len(compiled) - len(entries)
@@ -320,5 +324,6 @@ def _write_registry(run: Run, rules: list[RegistryEntry]) -> Path:
     return path
 
 
-def _entry(rule: Path, root_ids: list[str]) -> RegistryEntry:
-    return RegistryEntry(rule=Path("rules") / rule.name, root_ids=root_ids)
+def _entry(compiled: Compiled) -> RegistryEntry:
+    rule = Path("rules") / Path(str(compiled.rule)).name
+    return RegistryEntry(rule=rule, root_ids=compiled.root_ids, proof=compiled.proof)

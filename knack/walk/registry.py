@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.contracts.models import RuleProof
 from knack.git import git_root, origin_repo
 
 
@@ -10,6 +11,8 @@ class RegistryEntry(BaseModel):
 
     rule: Path
     root_ids: list[str]
+    # Stored at install; None for rules installed before KN-60 or imported by hand.
+    proof: RuleProof | None = None
 
 
 class Registry(BaseModel):

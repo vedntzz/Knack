@@ -32,6 +32,8 @@ class Root(BaseModel):
     seeded: bool = False
     # Every extractor that found this root; empty when a human wrote it.
     models: list[str] = []
+    # When the cited PR merged; None for roots stored before KN-60 or not from a PR.
+    merged_at: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -169,3 +171,46 @@ class CompiledRule(BaseModel):
             return
         if not self.must_fail or not self.must_pass:
             raise ValueError("proven rule requires must_fail and must_pass")
+
+
+class SideProof(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    side: str
+    files: int
+    flagged: int
+
+
+class OldReleaseProof(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ref: str
+    false_positives: int
+
+
+class HeldOutScore(BaseModel):
+    # A rule's score on variants the compiler never saw; a metric, never a label.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    author: str
+    caught: int = 0
+    violations: int = 0
+    allowed: int = 0
+    compliant: int = 0
+    # Set when the held-out set could not be written or scanned: not run, not 0%.
+    error: str | None = None
+
+
+class RuleProof(BaseModel):
+    # What install proved the rule on: the PR's base/head, the trees, the held-out set.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    pr: int
+    base_sha: str
+    head_sha: str
+    attempts: int
+    sides: list[SideProof]
+    # Matches on the default branch outside the PR's own files.
+    false_positives: int
+    old_release: OldReleaseProof | None = None
+    heldout: HeldOutScore | None = None

@@ -40,6 +40,7 @@ from knack.pipeline.clients import (
     adversary_client,
     DEFAULT_EXTRACTOR,
     EXTRACTORS,
+    github_client,
     live_clients,
     MissingCredentials,
     partner_client,
@@ -49,6 +50,7 @@ from knack.pipeline.init import OtherRepoRegistry, run_init
 from knack.pipeline.ports import GitHub, Spark
 from knack.receipts.chain import ChainReport, receipts_path, verify_chain
 from knack.receipts.edits import edits_dir
+from knack.roots.backfill import backfill_merged_at, missing_merged_at
 from knack.roots.correct import (
     confirm_root,
     CorrectionError,
@@ -102,6 +104,14 @@ LOOP_ERRORS = (
     MissingCredentials,
     FileNotFoundError,
 )
+# No token, no registry, a bad root file or GitHub unreachable: a message, exit 2.
+BACKFILL_ERRORS = (
+    NoCloneRegistry,
+    MissingCredentials,
+    RootStoreError,
+    ValidationError,
+    OSError,
+)
 # github, compiler, corroborating partner, variant writer.
 Extractors = tuple[GitHubApi, Spark, Spark | None, Spark | None]
 
@@ -126,6 +136,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
     adders |= {"argue": _add_argue_arguments, "console": _add_console_arguments}
     adders |= {"miss": _add_miss_arguments, "false-block": _add_false_block_arguments}
+    adders |= {"backfill-merged": _add_backfill_arguments}
     return adders | {"receipts": _add_receipts_arguments}
 
 
@@ -411,6 +422,32 @@ def _chain_line(path: Path, count: int, broken: int | None, problem: str | None)
     return f"{path}: chain broken at line {broken}: {problem} ({count} {noun} before it verify)"
 
 
+def _add_backfill_arguments(backfill: argparse.ArgumentParser) -> None:
+    backfill.description = "store each root's PR merge time, read from the GitHub API"
+    backfill.add_argument("--registry", type=Path, help=LOOP_REGISTRY_HELP)
+
+
+def _backfill_command(args: argparse.Namespace) -> int:
+    try:
+        roots_dir = _registry_roots(args.registry)
+        filled = backfill_merged_at(roots_dir, github_client().merged_at)
+    except BACKFILL_ERRORS as error:
+        return _loop_refused("backfill-merged", str(error), 2)
+    print("\n".join(_backfill_lines(roots_dir, filled)))
+    return 0
+
+
+def _registry_roots(registry: Path | None) -> Path:
+    return load_registry(registry or required_clone_registry(Path.cwd())).roots_dir
+
+
+def _backfill_lines(roots_dir: Path, filled: list[str]) -> list[str]:
+    merged = {root.id: root.merged_at for root in load_roots(roots_dir)}
+    lines = [f"{root_id}: merged {merged[root_id]}" for root_id in filled]
+    left = len(missing_merged_at(roots_dir))
+    return lines + [f"{len(filled)} roots backfilled, {left} without a merged PR"]
+
+
 def _add_console_arguments(console: argparse.ArgumentParser) -> None:
     console.description = (
         "serve GET /verdict/<receipt-hash> and its /rulings as JSON on loopback"
@@ -639,6 +676,7 @@ def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
     handlers |= {"import": _import_command, "bench": _bench_command}
     handlers |= {"argue": _argue_command, "console": _console_command}
     handlers |= {"miss": _miss_command, "false-block": _false_block_command}
+    handlers |= {"backfill-merged": _backfill_command}
     return handlers | {"receipts": _receipts_command}
 
 
