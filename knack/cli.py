@@ -34,7 +34,8 @@ from knack.roots.correct import (
     reject_root,
     reviewer_name,
 )
-from knack.roots.corrections import Correction, corrections_path
+from knack.roots.corrections import corrections_path
+from knack.roots.gate import Apply, Gate, gated, Outcome, regressed_line
 from knack.roots.merge import import_lines, import_registry, RegistryImportError
 from knack.roots.store import load_roots, RootStoreError
 from knack.walk.registry import (
@@ -53,6 +54,7 @@ GUARD_LOG = Path(".knack/guard_errors.log")
 REPO_PATTERN = re.compile(r"[\w.-]+/[\w.-]+")
 DEFAULT_PRS = 50
 OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
+NO_GATE_HELP = "skip re-extracting every PR with a Confirmed root after the correction"
 CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too"
 ADVERSARY_HELP = (
     "model that writes variants; defaults to the other extractor if its key is set"
@@ -189,6 +191,7 @@ def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:
     help = "defaults to the home registry of the clone you are in"
     correct.add_argument("--registry", type=Path, help=help)
     correct.add_argument("--by", help="who decided; defaults to git user.name")
+    correct.add_argument("--no-gate", action="store_true", help=NO_GATE_HELP)
 
 
 def _add_reject_arguments(reject: argparse.ArgumentParser) -> None:
@@ -199,7 +202,7 @@ def _add_reject_arguments(reject: argparse.ArgumentParser) -> None:
 def _confirm_command(args: argparse.Namespace) -> int:
     by, log = args.by or reviewer_name(Path.cwd()), corrections_path()
     apply = partial(confirm_root, root_id=args.root_id, by=by, log=log)
-    return _correct("confirm", args.registry, apply)
+    return _correct("confirm", args, apply)
 
 
 def _reject_command(args: argparse.Namespace) -> int:
@@ -207,20 +210,42 @@ def _reject_command(args: argparse.Namespace) -> int:
     apply = partial(
         reject_root, root_id=args.root_id, reason=args.reason, by=by, log=log
     )
-    return _correct("reject", args.registry, apply)
+    return _correct("reject", args, apply)
 
 
-def _correct(
-    name: str, registry: Path | None, apply: Callable[[Path], Correction]
-) -> int:
-    # A bad id, registry, clone or root state is operator error: a message and exit 2.
+def _correct(name: str, args: argparse.Namespace, apply: Apply) -> int:
+    # A bad id, registry, clone, root state or key is operator error: exit 2.
     try:
-        done = apply(registry or required_clone_registry(Path.cwd()))
+        outcome = _gated_correction(args, apply)
     except (CorrectionError, NoCloneRegistry, RootStoreError) as error:
         print(f"knack {name}: {error}", file=sys.stderr)
         return 2
-    print(f"{done.root_id}: {done.before.status} -> {done.after.status}")
-    return 0
+    return _correction_report(outcome)
+
+
+def _gated_correction(args: argparse.Namespace, apply: Apply) -> Outcome:
+    # Clients come first, so a missing key leaves the root untouched.
+    gate = None if args.no_gate else _gate()
+    registry = args.registry or required_clone_registry(Path.cwd())
+    return gated(registry, apply, gate, corrections_path())
+
+
+def _gate() -> Gate:
+    try:
+        return Gate(*live_clients(), log=print)
+    except MissingCredentials as error:
+        raise CorrectionError(
+            f"{error}; the gate needs it, or pass --no-gate"
+        ) from error
+
+
+def _correction_report(outcome: Outcome) -> int:
+    # A rolled-back correction exits 1 and names every Confirmed root it lost.
+    done, undone = outcome.correction, " rolled back" if outcome.rolled_back else ""
+    print(f"{done.root_id}: {done.before.status} -> {done.after.status}{undone}")
+    for root in outcome.lost:
+        print(regressed_line(root))
+    return 1 if outcome.rolled_back else 0
 
 
 def _add_bench_arguments(bench: argparse.ArgumentParser) -> None:
