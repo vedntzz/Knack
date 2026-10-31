@@ -16,6 +16,8 @@ from knack.bench.report import bench_report, ReportError
 from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
+from knack.dispute.argue import ask_spark
+from knack.dispute.latest import dispute, NothingToDispute, ruling_text
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
 from knack.index.build import build_index
@@ -72,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers |= {"init": _init_command, "watch": _watch_command}
     handlers |= {"confirm": _confirm_command, "reject": _reject_command}
     handlers |= {"import": _import_command, "bench": _bench_command}
+    handlers |= {"argue": _argue_command}
     return (handlers | {"receipts": _receipts_command})[args.command](args)
 
 
@@ -88,6 +91,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"init": _add_init_arguments, "watch": _add_watch_arguments}
     adders |= {"confirm": _add_correct_arguments, "import": _add_import_arguments}
     adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
+    adders |= {"argue": _add_argue_arguments}
     return adders | {"receipts": _add_receipts_arguments}
 
 
@@ -369,6 +373,21 @@ def _chain_line(path: Path, count: int, broken: int | None, problem: str | None)
     if broken is None:
         return f"{path}: {count} {noun}, chain intact"
     return f"{path}: chain broken at line {broken}: {problem} ({count} {noun} before it verify)"
+
+
+def _add_argue_arguments(argue: argparse.ArgumentParser) -> None:
+    argue.add_argument("objection", help="why the latest deny in this clone is wrong")
+
+
+def _argue_command(args: argparse.Namespace) -> int:
+    # Hold and escalate both exit 0; nothing to dispute is operator error, exit 2.
+    try:
+        ruling = dispute(args.objection, Path.cwd(), receipts_path(), ask_spark)
+    except (NothingToDispute, OSError, ValidationError) as error:
+        print(f"knack argue: {error}", file=sys.stderr)
+        return 2
+    print(ruling_text(ruling))
+    return 0
 
 
 def _add_import_arguments(import_parser: argparse.ArgumentParser) -> None:
