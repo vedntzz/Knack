@@ -1,0 +1,10 @@
+{
+  "id": "demo-7-1",
+  "title": "Parse settings instead of eval",
+  "decision": "Parse settings with ast.literal_eval, never eval",
+  "why": "eval runs arbitrary code from the settings file",
+  "decided_by": "maintainer",
+  "source_url": "https://github.com/demo/demo/pull/7",
+  "quote": "Let's never eval settings again.",
+  "status": "Confirmed"
+}

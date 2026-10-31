@@ -1,0 +1,8 @@
+{
+  "repo": "demo/demo",
+  "roots_dir": "roots",
+  "rules": [
+    {"rule": "rules/7.yml", "root_ids": ["demo-7-1"]},
+    {"rule": "rules/9.yml", "root_ids": ["demo-9-1"]}
+  ]
+}

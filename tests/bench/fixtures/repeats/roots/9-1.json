@@ -1,0 +1,10 @@
+{
+  "id": "demo-9-1",
+  "title": "Drop exec",
+  "decision": "Never exec generated code",
+  "why": "exec hides what runs",
+  "decided_by": "maintainer",
+  "source_url": "https://github.com/demo/demo/pull/9",
+  "quote": "No exec.",
+  "status": "Inferred"
+}

@@ -1,0 +1,6 @@
+id: demo-9
+language: python
+severity: error
+message: Never call exec.
+rule:
+  pattern: exec($X)
