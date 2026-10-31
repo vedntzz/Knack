@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,14 +20,29 @@ class NothingToDispute(Exception):
     pass
 
 
+@dataclass(frozen=True)
+class Disputed:
+    record: RulingRecord
+    # The registry file the deny was guarded with.
+    registry: Path
+    roots: list[Root]
+    # Spark's prompt and its verbatim answer; None when Spark was not asked or failed.
+    spark: tuple[str, str] | None
+
+
 def dispute(objection: str, cwd: Path, receipts: Path, ask: Ask) -> RulingRecord:
+    return disputed(objection, cwd, receipts, ask).record
+
+
+def disputed(objection: str, cwd: Path, receipts: Path, ask: Ask) -> Disputed:
     # The clone's latest deny names the rule; its roots answer the objection.
-    registry, root = _clone_registry(cwd)
+    path, (registry, root) = _clone_registry(cwd)
     denied = latest_deny(receipts, registry.repo, root)
-    asked: list[str] = []
+    asked: list[tuple[str, str | None]] = []
     roots = rule_roots(registry, denied.rule_id)
     ruling = argue(objection, roots, ask=_noting_asks(ask, asked))
-    return _record(denied.hash, objection, ruling, SPARK_MODEL if asked else None)
+    record = _record(denied.hash, objection, ruling, SPARK_MODEL if asked else None)
+    return Disputed(record, path, roots, _answered(asked))
 
 
 def ruling_text(ruling: RulingRecord) -> str:
@@ -50,14 +66,14 @@ def rule_roots(registry: Registry, rule_id: str) -> list[Root]:
     return [by_id[root_id] for root_id in ids if root_id in by_id]
 
 
-def _clone_registry(cwd: Path) -> tuple[Registry, Path]:
-    # The same registry the hook would guard this clone with.
+def _clone_registry(cwd: Path) -> tuple[Path, tuple[Registry, Path]]:
+    # The same registry the hook would guard this clone with, and its file.
     event = {"cwd": str(cwd)}
     path = hook_registry_path(event)
     scoped = scoped_registry(event, path) if path else None
-    if scoped is None:
+    if path is None or scoped is None:
         raise NothingToDispute(NO_CLONE.format(cwd=cwd))
-    return scoped
+    return path, scoped
 
 
 def _denied_here(receipt: Receipt, repo: str, root: Path) -> bool:
@@ -74,10 +90,17 @@ def _record(
     return RulingRecord(**linked, model=model, **ruling.model_dump())
 
 
-def _noting_asks(ask: Ask, asked: list[str]) -> Ask:
-    # A ruling names the model only when the model was actually asked.
+def _noting_asks(ask: Ask, asked: list[tuple[str, str | None]]) -> Ask:
+    # A ruling names the model when it was asked, even if it then failed.
     def noted(prompt: str) -> str:
-        asked.append(prompt)
-        return ask(prompt)
+        asked.append((prompt, None))
+        answer = ask(prompt)
+        asked[-1] = (prompt, answer)
+        return answer
 
     return noted
+
+
+def _answered(asked: list[tuple[str, str | None]]) -> tuple[str, str] | None:
+    prompt, answer = asked[-1] if asked else ("", None)
+    return (prompt, answer) if answer is not None else None

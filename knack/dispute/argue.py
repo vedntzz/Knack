@@ -34,7 +34,7 @@ def argue(objection: str, roots: list[Root], ask: Ask | None = None) -> Ruling:
     confirmed = [root for root in roots if root.status == "Confirmed"]
     if not confirmed:
         return _escalate(NO_CONFIRMED_ROOTS)
-    ruling = _ask_for_ruling(_prompt(objection, confirmed), ask or ask_spark)
+    ruling = _ask_for_ruling(ruling_prompt(objection, confirmed), ask or ask_spark)
     return _checked(ruling, [root.quote for root in confirmed])
 
 
@@ -45,7 +45,7 @@ def ask_spark(prompt: str) -> str:
         return _message_text(json.load(response))
 
 
-def _prompt(objection: str, confirmed: list[Root]) -> str:
+def ruling_prompt(objection: str, confirmed: list[Root]) -> str:
     quotes = "\n\n".join(_quote_block(root) for root in confirmed)
     return PROMPT.format(quotes=quotes, objection=objection)
 

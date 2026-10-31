@@ -7,18 +7,32 @@ from knack.watch.install import add_muse_hook, install_post_merge, WatchInstallE
 from knack.watch.state import write_seen
 
 CORROBORATE_NOTE = "  corroborate: a second extractor reads every PR"
+SELF_CHECK_AUTO = (
+    "  self-check: Spark Open judges each merge when BASETEN_API_KEY is set"
+)
+SELF_CHECK_OFF = "  self-check: off (--no-corroborate)"
 
 
 def install_watch(
-    cwd: Path, registry: Path | None, muse_settings: Path, corroborate: bool = False
+    cwd: Path,
+    registry: Path | None,
+    muse_settings: Path,
+    corroborate: bool = False,
+    self_check: bool = True,
 ) -> list[str]:
     # Both hooks, then a baseline at HEAD so earlier history is never replayed.
     root, repo = _clone(cwd)
     path = _checked(registry or home_registry_dir(repo) / "registry.json", repo)
-    hook = install_post_merge(root, path, sys.executable, corroborate)
-    added = add_muse_hook(muse_settings, path, sys.executable, corroborate)
+    hook = install_post_merge(root, path, sys.executable, corroborate, self_check)
+    added = add_muse_hook(muse_settings, path, sys.executable, corroborate, self_check)
     lines = _report(hook, added, muse_settings, _baseline(root, path))
-    return [f"knack watch {repo}", *lines, *([CORROBORATE_NOTE] if corroborate else [])]
+    return [f"knack watch {repo}", *lines, *_second_notes(corroborate, self_check)]
+
+
+def _second_notes(corroborate: bool, self_check: bool) -> list[str]:
+    if corroborate:
+        return [CORROBORATE_NOTE]
+    return [SELF_CHECK_AUTO if self_check else SELF_CHECK_OFF]
 
 
 def _clone(cwd: Path) -> tuple[Path, str]:

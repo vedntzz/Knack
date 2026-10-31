@@ -10,6 +10,8 @@ from knack.git import git_output
 MARKER = "# installed by knack watch"
 HOOK_MODULE = "knack.watch.hook"
 MUSE_EVENT = "PostToolBatch"
+# (corroborate, self_check): --corroborate, the default, --no-corroborate.
+SETTINGS = ((True, True), (False, True), (False, False))
 
 
 class WatchInstallError(Exception):
@@ -17,11 +19,15 @@ class WatchInstallError(Exception):
 
 
 def install_post_merge(
-    root: Path, registry: Path, python: str, corroborate: bool = False
+    root: Path,
+    registry: Path,
+    python: str,
+    corroborate: bool = False,
+    self_check: bool = True,
 ) -> Path:
     # Ours is replaced on reinstall; someone else's hook is never touched.
     path = _hooks_dir(root) / "post-merge"
-    command = _hook_command(python, "post-merge", registry, corroborate)
+    command = _hook_command(python, "post-merge", registry, (corroborate, self_check))
     _refuse_foreign(path, command)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(_post_merge_script(command), encoding="utf-8")
@@ -30,26 +36,47 @@ def install_post_merge(
 
 
 def add_muse_hook(
-    settings: Path, registry: Path, python: str, corroborate: bool = False
+    settings: Path,
+    registry: Path,
+    python: str,
+    corroborate: bool = False,
+    self_check: bool = True,
 ) -> bool:
     # False when the same command is already there; other hooks are kept as they are.
     data = _read_settings(settings)
-    dropped = _drop_command(data, muse_command(python, registry, not corroborate))
-    added = _add_command(data, muse_command(python, registry, corroborate))
+    command = muse_command(python, registry, corroborate, self_check)
+    dropped = _drop_commands(data, _our_others(python, registry, command))
+    added = _add_command(data, command)
     if added or dropped:
         _write_settings(settings, data)
     return added
 
 
-def muse_command(python: str, registry: Path, corroborate: bool = False) -> str:
+def muse_command(
+    python: str, registry: Path, corroborate: bool = False, self_check: bool = True
+) -> str:
     # The same sh -c '... || true' shape as the guard hooks: a crash never blocks.
-    inner = f"{_hook_command(python, 'tool-batch', registry, corroborate)} || true"
-    return f"sh -c {shlex.quote(inner)}"
+    hooked = _hook_command(python, "tool-batch", registry, (corroborate, self_check))
+    return f"sh -c {shlex.quote(hooked + ' || true')}"
 
 
-def _hook_command(python: str, mode: str, registry: Path, corroborate: bool) -> str:
+def second_model_flags(corroborate: bool, self_check: bool) -> list[str]:
+    # --corroborate wins; --no-corroborate turns off the default Spark Open self-check.
+    if corroborate:
+        return ["--corroborate"]
+    return [] if self_check else ["--no-corroborate"]
+
+
+def _hook_command(
+    python: str, mode: str, registry: Path, second: tuple[bool, bool]
+) -> str:
     argv = [*_pinned(python), "-m", HOOK_MODULE, mode, "--registry", str(registry)]
-    return shlex.join(argv + (["--corroborate"] if corroborate else []))
+    return shlex.join(argv + second_model_flags(*second))
+
+
+def _our_others(python: str, registry: Path, command: str) -> list[str]:
+    commands = [muse_command(python, registry, *setting) for setting in SETTINGS]
+    return [other for other in commands if other != command]
 
 
 def _pinned(python: str) -> list[str]:
@@ -91,12 +118,16 @@ def _add_command(data: dict[str, Any], command: str) -> bool:
     return True
 
 
-def _drop_command(data: dict[str, Any], command: str) -> bool:
-    # Our hook with the other --corroborate setting goes, so one run fires per batch.
+def _drop_commands(data: dict[str, Any], commands: list[str]) -> bool:
+    # Our hook with any other second-model setting goes, so one run fires per batch.
     batch: list[Any] = data.get("hooks", {}).get(MUSE_EVENT, [])
     before = len(batch)
-    batch[:] = [entry for entry in batch if not _has_command([entry], command)]
+    batch[:] = [entry for entry in batch if not _has_any(entry, commands)]
     return len(batch) != before
+
+
+def _has_any(entry: Any, commands: list[str]) -> bool:
+    return any(_has_command([entry], command) for command in commands)
 
 
 def _has_command(batch: list[Any], command: str) -> bool:

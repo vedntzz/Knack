@@ -11,8 +11,10 @@ from knack.pipeline.clients import (
     corroborating_clients,
     live_clients,
     MissingCredentials,
+    optional_partner,
 )
-from knack.watch.run import Clients, pending_root, run_pending
+from knack.watch.install import second_model_flags
+from knack.watch.run import Clients, Judge, pending_root, run_pending
 
 HOOK_MODULE = "knack.watch.hook"
 WATCH_LOG = "watch.log"
@@ -30,10 +32,12 @@ def main(argv: list[str] | None = None, stdin: TextIO = sys.stdin) -> int:
     return 0
 
 
-def post_merge_argv(registry_path: Path, corroborate: bool = False) -> list[str]:
+def post_merge_argv(
+    registry_path: Path, corroborate: bool = False, self_check: bool = True
+) -> list[str]:
     python = [sys.executable, "-m", HOOK_MODULE]
-    flag = ["--corroborate"] if corroborate else []
-    return python + ["post-merge", "--registry", str(registry_path), *flag]
+    flags = second_model_flags(corroborate, self_check)
+    return python + ["post-merge", "--registry", str(registry_path), *flags]
 
 
 def spawn_background(argv: list[str], cwd: Path, log_path: Path) -> None:
@@ -47,31 +51,44 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=f"python -m {HOOK_MODULE}")
     parser.add_argument("mode", choices=["post-merge", "tool-batch"])
     parser.add_argument("--registry", type=Path, required=True)
-    parser.add_argument("--corroborate", action="store_true")
+    second = parser.add_mutually_exclusive_group()
+    second.add_argument("--corroborate", action="store_true")
+    second.add_argument("--no-corroborate", action="store_true")
     return parser
 
 
 def _dispatch(args: argparse.Namespace, stdin: TextIO) -> None:
     # post-merge runs here, in the terminal; tool-batch hands the run to the background.
     if args.mode == "post-merge":
-        run_pending(Path.cwd(), args.registry, _clients(args.corroborate), _say)
+        run_pending(
+            Path.cwd(), args.registry, _clients(args.corroborate), _say, _judge(args)
+        )
         return
-    _tool_batch(json.loads(stdin.read()), args.registry, args.corroborate)
+    second = (args.corroborate, not args.no_corroborate)
+    _tool_batch(json.loads(stdin.read()), args.registry, *second)
 
 
 def _clients(corroborate: bool) -> Clients:
     return corroborating_clients if corroborate else live_clients
 
 
+def _judge(args: argparse.Namespace) -> Judge | None:
+    # By default Spark Open judges merges when its key is set; --corroborate brings its own.
+    return None if args.corroborate or args.no_corroborate else optional_partner
+
+
 def _tool_batch(
-    event: dict[str, Any], registry_path: Path, corroborate: bool = False
+    event: dict[str, Any],
+    registry_path: Path,
+    corroborate: bool = False,
+    self_check: bool = True,
 ) -> None:
     # Most batches are file edits or Muse's own bookkeeping: those return before git.
     if not ran_shell(event):
         return
     root = pending_root(event_cwd(event), registry_path)
     if root is not None:
-        argv = post_merge_argv(registry_path, corroborate)
+        argv = post_merge_argv(registry_path, corroborate, self_check)
         spawn_background(argv, root, registry_path.parent / WATCH_LOG)
 
 

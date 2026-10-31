@@ -32,6 +32,7 @@ def repo(tmp_path: Path, isolated_git: None, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("BASETEN_API_KEY", raising=False)
     repo = make_repo(tmp_path / "widgets")
     write_registry(tmp_path / "reg")
     write_seen(tmp_path / "reg", head(repo))
@@ -219,3 +220,48 @@ def test_spawn_background_detaches_and_writes_the_log(tmp_path: Path) -> None:
             break
         subprocess.run([sys.executable, "-c", "import time; time.sleep(0.1)"])
     assert "hello" in log.read_text()
+
+
+def judge_built(monkeypatch: pytest.MonkeyPatch, repo: Path) -> list[int]:
+    # Fakes the clients; counts each time the hook builds Spark Open to judge.
+    built = list[int]()
+    pair = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]))
+    trio = (*pair, FakeSparkOpen({**EXTRACTIONS}))
+    monkeypatch.setattr(hook, "live_clients", lambda: pair)
+    monkeypatch.setattr(hook, "corroborating_clients", lambda: trio)
+    monkeypatch.setattr(hook, "optional_partner", lambda: built.append(1))
+    return built
+
+
+@pytest.mark.parametrize(
+    ("flags", "builds"), [([], 1), (["--no-corroborate"], 0), (["--corroborate"], 0)]
+)
+def test_post_merge_builds_spark_open_to_judge_only_by_default(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, flags: list[str], builds: int
+) -> None:
+    built = judge_built(monkeypatch, repo)
+    monkeypatch.chdir(repo)
+    merge_pr(repo)
+    assert hook.main([*post_merge_args(repo), *flags]) == 0
+    assert len(built) == builds
+
+
+def test_post_merge_with_no_key_set_says_the_self_check_was_skipped(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pair = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]))
+    monkeypatch.setattr(hook, "live_clients", lambda: pair)
+    monkeypatch.chdir(repo)
+    merge_pr(repo)
+    assert post_merge(repo) == 0
+    assert "self-check skipped" in capsys.readouterr().out
+
+
+def test_tool_batch_passes_no_corroborate_to_the_background_run(
+    repo: Path, spawned: Spawned
+) -> None:
+    merge_pr(repo)
+    args = ["tool-batch", "--registry", str(registry(repo)), "--no-corroborate"]
+    stdin = io.StringIO(captured("ptb_shell.json", repo))
+    assert hook.main(args, stdin) == 0
+    assert spawned[0][0][-1] == "--no-corroborate"

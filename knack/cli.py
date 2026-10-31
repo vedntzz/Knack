@@ -17,19 +17,24 @@ from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.dispute.argue import ask_spark
-from knack.dispute.latest import dispute, NothingToDispute, ruling_text
+from knack.dispute.latest import disputed, Disputed, NothingToDispute, ruling_text
 from knack.dispute.rulings import append_ruling, RulingRecord, rulings_path
+from knack.dispute.second import Second, second_opinion, spark_escalated
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
 from knack.index.build import build_index
 from knack.miss.cases import CaseKind
 from knack.miss.loop import (
+    default_heldout,
+    default_loop,
+    default_work,
     Loop,
     LoopOutcome,
     outcome_lines,
     record_and_recompile,
     UnknownRule,
 )
+from knack.miss.selfcheck import self_checks_path, Settle
 from knack.miss.sources import MissSourceError, Places, resolve_source
 from knack.pipeline.clients import (
     adversary_client,
@@ -72,6 +77,9 @@ DEFAULT_PRS = 50
 OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
 NO_GATE_HELP = "skip re-extracting every PR with a Confirmed root after the correction"
 CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too"
+NO_SECOND_HELP = (
+    "no second model: by default Spark Open judges merges when BASETEN_API_KEY is set"
+)
 ADVERSARY_HELP = (
     "model that writes variants; defaults to the other extractor if its key is set"
 )
@@ -207,7 +215,9 @@ def _add_watch_arguments(watch: argparse.ArgumentParser) -> None:
     muse = Path.home() / ".config" / "muse" / "settings.json"
     watch.add_argument("--registry", type=Path)
     watch.add_argument("--muse-settings", type=Path, default=muse)
-    watch.add_argument("--corroborate", action="store_true", help=CORROBORATE_HELP)
+    second = watch.add_mutually_exclusive_group()
+    second.add_argument("--corroborate", action="store_true", help=CORROBORATE_HELP)
+    second.add_argument("--no-corroborate", action="store_true", help=NO_SECOND_HELP)
 
 
 def _watch_command(args: argparse.Namespace) -> int:
@@ -222,8 +232,8 @@ def _watch_command(args: argparse.Namespace) -> int:
 
 
 def _install_watch(args: argparse.Namespace) -> list[str]:
-    settings, corroborate = args.muse_settings, args.corroborate
-    return install_watch(Path.cwd(), args.registry, settings, corroborate)
+    second = (args.corroborate, not args.no_corroborate)
+    return install_watch(Path.cwd(), args.registry, args.muse_settings, *second)
 
 
 def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:
@@ -422,11 +432,44 @@ def _add_argue_arguments(argue: argparse.ArgumentParser) -> None:
 def _argue_command(args: argparse.Namespace) -> int:
     # Hold and escalate both exit 0; nothing to dispute is operator error, exit 2.
     try:
-        ruling = dispute(args.objection, Path.cwd(), receipts_path(), ask_spark)
+        done = disputed(args.objection, Path.cwd(), receipts_path(), ask_spark)
     except (NothingToDispute, OSError, ValidationError) as error:
         return _argue_failed(error)
-    print(ruling_text(ruling))
-    return _record_ruling(ruling)
+    print(ruling_text(done.record))
+    return _recorded_then_second(args.objection, done)
+
+
+def _recorded_then_second(objection: str, done: Disputed) -> int:
+    # The ruling is recorded first; the second opinion never changes the exit.
+    code = _record_ruling(done.record)
+    _second_opinion_quietly(objection, done)
+    return code
+
+
+def _second_opinion_quietly(objection: str, done: Disputed) -> None:
+    # Never changes argue's exit: the ruling stands whatever Spark Open says.
+    if not spark_escalated(done):
+        return
+    try:
+        second_opinion(objection, done, _second_ports(done.registry))
+    except Exception as error:
+        print(f"knack argue: no second opinion: {error}", file=sys.stderr)
+
+
+def _second_ports(registry: Path) -> Second:
+    # Spark compiles; Spark Open judges and writes the fresh set. Keys first, so none missing asks no one.
+    github, compiler = live_clients(DEFAULT_EXTRACTOR)
+    judge = partner_client(DEFAULT_EXTRACTOR)
+    loop = default_loop(github, compiler, judge, registry, print)
+    run_loop = partial(record_and_recompile, loop)
+    settle = Settle(registry, self_checks_path(registry), run_loop, print)
+    return Second(judge, _receipt_places(), settle)
+
+
+def _receipt_places() -> Places:
+    # Only receipts and their edit snapshots are read for an argue case.
+    receipts = receipts_path()
+    return Places(receipts, edits_dir(receipts), [], Path("bench/tickets.jsonl"))
 
 
 def _record_ruling(ruling: RulingRecord) -> int:
@@ -582,13 +625,11 @@ def _places(args: argparse.Namespace) -> Places:
 
 
 def _heldout(args: argparse.Namespace, registry: Path) -> Path:
-    # data/registry/fastapi.json -> data/heldout/fastapi.
-    return args.heldout or registry.parent.parent / "heldout" / registry.stem
+    return args.heldout or default_heldout(registry)
 
 
 def _work(args: argparse.Namespace, registry: Path) -> Path:
-    name = f"{registry.resolve().parent.name}-{registry.stem}"
-    return args.work or Path.home() / ".knack" / "cache" / "miss" / name
+    return args.work or default_work(registry)
 
 
 def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:

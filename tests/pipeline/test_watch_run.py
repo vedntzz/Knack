@@ -22,7 +22,9 @@ from knack.roots.corrections import (
 )
 from knack.roots.store import load_roots
 from knack.walk.registry import load_registry, Registry, RegistryEntry
-from knack.watch.run import run_pending
+from knack.watch import selfcheck
+from knack.watch.run import Judge, run_pending
+from knack.watch.selfcheck import SKIPPED, Watched
 from knack.watch.state import read_seen, watch_lock, write_seen
 from test_corroborate import FakeSparkOpen
 from test_init import rejection, root
@@ -44,9 +46,11 @@ class Setup:
     def clients(self) -> tuple[GitHub, Spark]:
         return self.github, self.spark
 
-    def run(self, clients: Clients | None = None) -> Path | None:
+    def run(
+        self, clients: Clients | None = None, judge: Judge | None = None
+    ) -> Path | None:
         chosen = clients or self.clients
-        return run_pending(self.repo, self.registry, chosen, self.lines.append)
+        return run_pending(self.repo, self.registry, chosen, self.lines.append, judge)
 
 
 def head(repo: Path) -> str:
@@ -86,7 +90,8 @@ def test_the_run_prints_the_staged_progress_log(setup: Setup) -> None:
     assert setup.lines[1] == "[1/5] select   1 PRs read, 1 kept"
     assert "  #9: 1 decision, 1 rejected alternative" in setup.lines
     assert "  #9 proven on attempt 1" in setup.lines
-    assert setup.lines[-1].startswith(
+    install = [line for line in setup.lines if line.startswith("[5/5] install")]
+    assert install[0].startswith(
         "[5/5] install  1 rules proven, 0 discarded, 2 in registry -> "
     )
 
@@ -115,7 +120,7 @@ def test_unprovable_rule_leaves_the_registry_as_it_was(
     merge_pr(setup.repo)
     setup.run()
     assert [e.rule.name for e in load_registry(setup.registry).rules] == ["1.yml"]
-    assert "0 rules proven, 1 discarded, 1 in registry" in setup.lines[-1]
+    assert any("0 rules proven, 1 discarded, 1 in registry" in l for l in setup.lines)
 
 
 def test_a_clone_of_another_repo_is_ignored(setup: Setup) -> None:
@@ -169,3 +174,86 @@ def test_clients_with_a_second_extractor_corroborate_the_run(setup: Setup) -> No
     roots = load_roots(setup.out / "roots")
     assert [(r.id, r.status) for r in roots] == [("widgets-9-1", "Corroborated")]
     assert any("1 corroborated, 0 uncorroborated" in line for line in setup.lines)
+
+
+def test_without_a_second_model_the_self_check_is_skipped_and_said(
+    setup: Setup,
+) -> None:
+    merge_pr(setup.repo)
+    setup.run()
+    assert setup.lines[-1] == SKIPPED
+
+
+def test_with_a_second_model_the_self_check_sees_the_rules_before_the_run(
+    setup: Setup, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = list[tuple[list[str], list[int]]]()
+
+    def check(watched: Watched, registry: Registry, numbers: list[int]) -> None:
+        seen.append(([e.rule.name for e in registry.rules], numbers))
+
+    monkeypatch.setattr(selfcheck, "check_merged", check)
+    merge_pr(setup.repo)
+    setup.run(lambda: (setup.github, setup.spark, FakeSparkOpen({**EXTRACTIONS})))
+    assert seen == [(["1.yml"], [9])]
+
+
+def test_a_self_check_crash_is_logged_and_the_baseline_still_moves(
+    setup: Setup, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def crash(watched: Watched, registry: Registry, numbers: list[int]) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(selfcheck, "check_merged", crash)
+    merge_pr(setup.repo)
+    setup.run(lambda: (setup.github, setup.spark, FakeSparkOpen({**EXTRACTIONS})))
+    assert setup.lines[-1] == "self-check error: RuntimeError: boom"
+    assert read_seen(setup.out) == head(setup.repo)
+
+
+class Seen:
+    # Records the judges and rule names each self-check was given.
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self.judges = list[tuple[Spark, Spark]]()
+        monkeypatch.setattr(selfcheck, "check_merged", self.check)
+
+    def check(self, watched: Watched, registry: Registry, numbers: list[int]) -> None:
+        self.judges.append(watched.judges)
+
+
+def test_a_judge_checks_merges_without_corroborating_the_extraction(
+    setup: Setup, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen, judge = Seen(monkeypatch), FakeSparkOpen({**EXTRACTIONS})
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: judge)
+    assert seen.judges == [(setup.spark, judge)]
+    roots = load_roots(setup.out / "roots")
+    assert [r.status for r in roots] != ["Corroborated"]
+    assert not any("corroborated" in line for line in setup.lines)
+
+
+def test_a_judge_with_no_key_skips_the_self_check(setup: Setup) -> None:
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: None)
+    assert setup.lines[-1] == SKIPPED
+
+
+def test_the_judge_is_not_built_when_nothing_merged(setup: Setup) -> None:
+    def never() -> Spark | None:
+        raise AssertionError("built a judge with nothing to check")
+
+    assert setup.run(judge=never) is None
+
+
+def test_a_corroborating_partner_is_the_judge_and_no_other_is_built(
+    setup: Setup, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen, second = Seen(monkeypatch), FakeSparkOpen({**EXTRACTIONS})
+
+    def never() -> Spark | None:
+        raise AssertionError("built a second judge")
+
+    merge_pr(setup.repo)
+    setup.run(lambda: (setup.github, setup.spark, second), never)
+    assert seen.judges == [(setup.spark, second)]
