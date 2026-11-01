@@ -33,7 +33,7 @@ def run_reproduce(
     python: str = sys.executable,
     alone: bool = True,
     path: str = SYSTEM_PATH,
-) ->subprocess.CompletedProcess[str]:
+) -> subprocess.CompletedProcess[str]:
     # alone: the suite's HOME is a temp dir, so another session's pytest cannot touch it.
     env = {"HOME": str(home), "PATH": path, "PYTHON": python}
     env |= {"KNACK_REPRODUCE_IGNORE_OTHERS": "1"} if alone else {}
