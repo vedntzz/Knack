@@ -1,0 +1,1 @@
+{"target": "glimmer-local", "run": 0, "seconds": 1180, "label": "no", "usage": {"prompt_tokens": 623, "completion_tokens": 2362}, "note": "timed from request/response file mtimes 09:27:10 -> 09:46:50; run 1 stopped by hand"}
