@@ -160,7 +160,7 @@ Each repo has one home registry: `~/.knack/registries/<owner-name>/registry.json
 
 ## Built during the hackathon (Oct 26 – Nov 4, 2026)
 
-Everything in this repository. Prior research, done before the event and rebuilt from scratch here: the PRD, the demo-chain analysis of apache/airflow PR #75025, a prototype ast-grep rule, the Oct 25 unscripted agent test, and the Muse Code hook-contract test.
+All code in this repository was written during the event, from Oct 26, 2026. Prior research, done before the event and rebuilt from scratch here: the PRD, the demo-chain analysis of apache/airflow PR #75025, a prototype ast-grep rule, the Oct 25 unscripted agent test, and the Muse Code hook-contract test.
 
 ## Attribution and license
 
