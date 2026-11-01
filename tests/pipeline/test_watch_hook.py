@@ -266,3 +266,11 @@ def test_tool_batch_passes_no_corroborate_to_the_background_run(
     stdin = io.StringIO(captured("ptb_shell.json", repo))
     assert hook.main(args, stdin) == 0
     assert spawned[0][0][-1] == "--no-corroborate"
+
+
+@pytest.mark.parametrize(
+    "name", ["ptb_shell.json", "ptb_write_file.json", "ptb_reminder.json"]
+)
+def test_captured_payloads_carry_no_local_scratch_path(name: str) -> None:
+    # Captured on one machine; its session scratch folder is not part of the contract.
+    assert "/private/tmp/claude-501" not in (FIXTURES / name).read_text()
