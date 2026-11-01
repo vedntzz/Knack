@@ -2,6 +2,23 @@
 
 Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
+This is what the agent reads when the hook denies its edit. It is copied verbatim from [`bench/demo_block.log`](bench/demo_block.log), a run of `bash scripts/demo_block.sh` that replays an agent's recorded edit to apache/airflow's Dag list routes:
+
+```text
+Knack blocked this edit.
+Decision: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.
+Decided by: Pushkal Gupta (author); approved and merged by bbovenzi
+Why: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.
+Rejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.
+Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
+Source: https://github.com/apache/airflow/pull/75025
+Matched: "state": DagRun.state (line 135), "state" (line 135), "start_date": DagRun.start_date (line 136), "start_date" (line 136)
+Console: http://127.0.0.1:7655/verdict/80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16
+To dispute: knack argue "<your reason>"
+```
+
+Problem statement: Build for Your World, because the world an agent works in is a team's own codebase, and that world's rules are the decisions the team already argued out in review, which the agent has never read.
+
 ## Get it running
 
 Prerequisites: git, [uv](https://docs.astral.sh/uv/), jq (one check in the table below uses it) and Python 3.11. If Python 3.11 is not installed, `uv sync` downloads it, which needs network once. ast-grep comes from the pinned `ast-grep-cli==0.51.0` dependency, so there is nothing else to install. `uv sync --frozen` installs the exact versions pinned in the committed `uv.lock` into `.venv`.
@@ -15,7 +32,9 @@ source .venv/bin/activate
 
 The commands below assume the venv is active, so `python` is the venv's.
 
-## Verify any claim in 60 seconds
+## Verify any claim: reproduce.sh runs in 80 s
+
+`bash scripts/reproduce.sh` checks every row below in one run. It took 80 s of wall time on an Apple M5 Pro on 2026-11-01, ending `PROOF: PASS`.
 
 | Claim | Artifact | Check |
 |---|---|---|

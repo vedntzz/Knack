@@ -52,7 +52,7 @@ def test_no_tracked_file_describes_knack_as_rag() -> None:
     assert hits == []
 
 
-VERIFY_HEADING = "## Verify any claim in 60 seconds"
+VERIFY_HEADING = "## Verify any claim"
 CLONE = "git clone https://github.com/vedntzz/Knack.git"
 
 
@@ -143,3 +143,35 @@ def test_rejectbench_fresh_is_named_as_not_run() -> None:
     lines = README.read_text(encoding="utf-8").splitlines()
     [line] = [line for line in lines if "RejectBench-Fresh" in line]
     assert "not run" in line and "bench/PREREGISTRATION-FRESH.md" in line
+
+
+# Group A: the top, for a stranger.
+PROBLEM_STATEMENT = "Problem statement: Build for Your World"
+# The measured reproduce.sh wall time replaces the old "60 seconds" promise.
+MEASURED_VERIFY = re.compile(
+    r"^## Verify any claim: reproduce\.sh runs in \d+ s$", re.M
+)
+
+
+def demo_reason() -> str:
+    # The deny reason as the agent reads it, from the committed demo_block.sh run.
+    lines = DEMO_LOG.read_text(encoding="utf-8").splitlines()
+    start = lines.index("== reason, as the agent reads it ==") + 1
+    return "\n".join(lines[start : lines.index("", start)])
+
+
+def test_problem_statement_says_why_in_the_same_line() -> None:
+    lines = README.read_text(encoding="utf-8").splitlines()
+    [line] = [line for line in lines if PROBLEM_STATEMENT in line]
+    assert len(line) > len(PROBLEM_STATEMENT) + 40
+
+
+def test_the_verify_heading_is_the_measured_runtime() -> None:
+    text = README.read_text(encoding="utf-8")
+    assert MEASURED_VERIFY.search(text) and "60 seconds" not in text
+
+
+def test_a_real_deny_follows_the_one_liner_verbatim_from_the_demo_log() -> None:
+    text = README.read_text(encoding="utf-8")
+    deny = text.index(demo_reason())
+    assert deny < text.index("## ") and "Knack blocks AI coding agents" in text[:deny]
