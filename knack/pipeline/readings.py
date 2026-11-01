@@ -7,6 +7,8 @@ from knack.pipeline.models import Extraction
 
 # work/<pr>/readings.json: model id to what that model read in the PR.
 READINGS = "readings.json"
+# work/<pr>/readings.trace.json: Spark Open's reasoning, beside the reading.
+TRACE = "readings.trace.json"
 ByModel = dict[str, list[Extraction]]
 READINGS_FILE = TypeAdapter(dict[str, Extraction])
 
@@ -16,6 +18,10 @@ def save_readings(work: Path, by_model: ByModel) -> None:
     numbers = {e.number for extractions in by_model.values() for e in extractions}
     for number in numbers:
         _write(work / str(number) / READINGS, _readings_of(by_model, number))
+
+
+def save_trace(work: Path, number: int, model: str, reasoning: str) -> None:
+    _write(work / str(number) / TRACE, {"model": model, "reasoning": reasoning})
 
 
 def load_readings(work: Path, number: int) -> dict[str, Extraction]:
