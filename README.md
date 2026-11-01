@@ -133,6 +133,7 @@ When the guard misses an edit, that edit becomes a recorded case. Spark recompil
 - The recompiled #16062 rule has a broad branch: any integer of 4097 or more in a module that names the cached helpers is denied. A probe line `TIMEOUT_MS = 30000` in that module is blocked. It has 0 matches on the default branch and release 0.140.0 today, but unrelated constants in `fastapi/dependencies/models.py` can trip it.
 - The scorer counts moved code as a new match. The attempt replay does not. They disagree on `16062--warn+veto--0`.
 - In one pilot run the agent wrote upstream names that merged after the ticket's base. That looks like training-data recall.
+- Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
 
 ## Retractions
 
