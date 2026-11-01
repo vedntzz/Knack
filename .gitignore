@@ -14,3 +14,8 @@ bench/artifacts/
 bench/*.log
 bench/runs-*.jsonl
 spikes/heldout_cross*
+
+# local run logs and tool state
+.codex/
+bench/runs-*.jsonl
+spikes/heldout_cross*
