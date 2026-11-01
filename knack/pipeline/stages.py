@@ -32,7 +32,7 @@ from knack.pipeline.progress import (
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
-from knack.pipeline.readings import save_readings
+from knack.pipeline.readings import save_readings, save_trace
 from knack.pipeline.record import rule_proof, with_heldout, with_merged_at
 from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
@@ -92,12 +92,20 @@ def verbatim_decision(extraction: Extraction) -> Decision | None:
 def finish(run: Run, selection: Selection, keep: list[RegistryEntry]) -> Path:
     # extract -> roots -> compile+prove -> install, after either kind of select.
     run.log(select_line(selection))
-    extractions = _extract_stage(run, selection.prs)
-    second = _second_stage(run, selection.prs)
-    _save_stage(run, extractions, second)
+    extractions, second = read_and_save(run, selection.prs)
     roots = _roots_stage(run, extractions, second, selection.prs)
     compiled = _compile_stage(run, selection.prs, extractions, roots)
     return _install_stage(run, compiled, keep)
+
+
+def read_and_save(
+    run: Run, prs: list[PullRequest]
+) -> tuple[list[Extraction], SecondReading | None]:
+    # Both models read every PR; both readings, and any kept trace, go to out/work.
+    extractions = _extract_stage(run, prs)
+    second = _second_stage(run, prs)
+    _save_stage(run, extractions, second)
+    return extractions, second
 
 
 def _extract_stage(run: Run, prs: list[PullRequest]) -> list[Extraction]:
@@ -113,7 +121,8 @@ def _second_stage(run: Run, prs: list[PullRequest]) -> SecondReading | None:
     # The partner reads the same PRs; a PR it fails on keeps its roots Inferred.
     if run.second is None:
         return None
-    stage = extract_all(run.github, run.second, run.repo, prs, few_shot=_lessons())
+    keep = partial(_keep_trace, run.out / "work", run.second)
+    stage = extract_all(run.github, run.second, run.repo, prs, keep, _lessons())
     run.log(second_line(run.second.model, stage))
     return SecondReading(run.second.model, {e.number: e for e in stage.extractions})
 
@@ -126,6 +135,15 @@ def _save_stage(
     if second is not None:
         by_model[second.model] = list(second.by_number.values())
     save_readings(run.out / "work", by_model)
+
+
+def _keep_trace(
+    work: Path, second: Spark, number: int, extraction: Extraction | None
+) -> None:
+    # Runs right after each PR's read, so last_trace is that PR's; None when the flag is off.
+    trace: str | None = getattr(second, "last_trace", None)
+    if extraction is not None and trace:
+        save_trace(work, number, second.model, trace)
 
 
 def _lessons() -> str:
