@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from pathlib import Path
 
@@ -8,10 +9,13 @@ from conftest import (
     FakeGitHub,
     FakeSpark,
     git,
+    HELDOUT_COMPLIANT,
+    HELDOUT_VIOLATIONS,
     make_repo,
     MEMORIZED,
     merge_pr,
     STRUCTURAL,
+    VARIANTS,
 )
 from knack.pipeline.clients import MissingCredentials
 from knack.pipeline.ports import GitHub, Spark
@@ -257,3 +261,30 @@ def test_a_corroborating_partner_is_the_judge_and_no_other_is_built(
     merge_pr(setup.repo)
     setup.run(lambda: (setup.github, setup.spark, second), never)
     assert seen.judges == [(setup.spark, second)]
+
+
+class FlaggedHeldOutSpark(FakeSpark):
+    # The second variant set is the held-out one; it hides a gather among compliant.
+    def ask(self, prompt: str) -> str:
+        answer = super().ask(prompt)
+        if answer != VARIANTS or self._variant_asks() == 1:
+            return answer
+        compliant = HELDOUT_COMPLIANT[:2] + [HELDOUT_VIOLATIONS[0]]
+        return json.dumps({"violations": HELDOUT_VIOLATIONS, "compliant": compliant})
+
+    def _variant_asks(self) -> int:
+        return sum(p.startswith("You write test cases") for p in self.prompts)
+
+
+def test_watch_discards_a_rule_that_flags_a_heldout_compliant_file(
+    setup: Setup,
+) -> None:
+    setup.spark = FlaggedHeldOutSpark([STRUCTURAL])
+    merge_pr(setup.repo)
+    setup.run()
+    assert [e.rule.name for e in load_registry(setup.registry).rules] == ["1.yml"]
+    assert not (setup.out / "rules" / "9.yml").exists()
+    assert (
+        "  #9 discarded after 1 attempts: held-out: 2/3 compliant allowed "
+        "(every held-out compliant file must be allowed)"
+    ) in setup.lines

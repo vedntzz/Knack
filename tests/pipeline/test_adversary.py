@@ -6,6 +6,8 @@ from conftest import (
     FakeAdversary,
     FakeGitHub,
     FakeSpark,
+    HELDOUT_COMPLIANT,
+    HELDOUT_VIOLATIONS,
     MEMORIZED,
     REPO,
     STRUCTURAL,
@@ -99,14 +101,50 @@ def test_a_heldout_set_too_hard_for_the_rule_fails_but_keeps_the_rule(
     assert (tmp_path / "out" / "rules" / "9.yml").exists()
 
 
-def test_a_heldout_writer_failure_is_not_run_and_keeps_the_rule(
+def test_a_heldout_writer_failure_is_not_run_and_discards_the_rule(
     tmp_path: Path,
 ) -> None:
+    # The miss loop's bar: a held-out set that never ran proves nothing.
     lines, _ = init(tmp_path, FakeAdversary(VARIANTS, "no json", "no", "no"))
     held = [line for line in lines if line.startswith("  #9 held-out")]
     assert held == [held[0]] and held[0].startswith("  #9 held-out: not run (")
-    assert (tmp_path / "out" / "rules" / "9.yml").exists()
-    assert "1 rules proven, 0 discarded" in "\n".join(lines)
+    assert discarded(lines).startswith(
+        "  #9 discarded after 1 attempts: held-out: not run ("
+    )
+    assert_discarded(tmp_path, lines)
+
+
+def test_a_flagged_heldout_compliant_file_discards_the_rule(tmp_path: Path) -> None:
+    # A gather among the "compliant" files: the rule flags it, so 2/3 allowed.
+    lines, _ = init(tmp_path, FakeAdversary(VARIANTS, flagged_heldout()))
+    assert discarded(lines) == (
+        "  #9 discarded after 1 attempts: held-out: 2/3 compliant allowed "
+        "(every held-out compliant file must be allowed)"
+    )
+    assert_discarded(tmp_path, lines)
+
+
+def test_a_heldout_discard_keeps_its_score_in_the_log(tmp_path: Path) -> None:
+    lines, _ = init(tmp_path, FakeAdversary(VARIANTS, flagged_heldout()))
+    text = "\n".join(lines)
+    assert "  #9 held-out by fake-adversary: 2/3 violations caught, " in text
+    assert "2/3 compliant allowed (fail)" in text
+
+
+def flagged_heldout() -> str:
+    compliant = HELDOUT_COMPLIANT[:2] + [HELDOUT_VIOLATIONS[0]]
+    return json.dumps({"violations": HELDOUT_VIOLATIONS, "compliant": compliant})
+
+
+def discarded(lines: list[str]) -> str:
+    return next(line for line in lines if line.startswith("  #9 discarded"))
+
+
+def assert_discarded(tmp_path: Path, lines: list[str]) -> None:
+    out = tmp_path / "out"
+    assert not (out / "rules" / "9.yml").exists()
+    assert json.loads((out / "registry.json").read_text())["rules"] == []
+    assert "0 rules proven, 1 discarded, 0 in registry" in "\n".join(lines)
 
 
 def test_a_discarded_rule_gets_no_heldout_set(tmp_path: Path) -> None:
