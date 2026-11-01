@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
+from knack.contracts.models import Root
 from knack.day.models import Day, ReceiptEvent, ReceiptKind
-from knack.day.roots import registry_roots
 from knack.day.when import on_day
 from knack.dispute.rulings import load_rulings
 from knack.receipts.chain import load_receipts, Receipt
@@ -13,10 +13,12 @@ Deciders = dict[str, str]
 RULED: dict[str, ReceiptKind] = {"hold": "held", "escalate": "argue"}
 
 
-def todays_receipts(day: Day, repo: str, now: datetime) -> list[ReceiptEvent]:
+def todays_receipts(
+    day: Day, repo: str, roots: list[Root], now: datetime
+) -> list[ReceiptEvent]:
     # Blocks and learns from the chain, warns, and rulings on this repo's denies.
     chain = [r for r in load_receipts(day.receipts) if same_repo(r.repo, repo)]
-    deciders = _deciders(day.registry_for(repo))
+    deciders = {root.id: root.decided_by for root in roots}
     found = _chain_events(chain, deciders) + _warn_events(day.warns, repo)
     found += _ruling_events(day.rulings, chain, deciders)
     return [event for event in found if on_day(event.time, now)]
@@ -25,10 +27,6 @@ def todays_receipts(day: Day, repo: str, now: datetime) -> list[ReceiptEvent]:
 def same_repo(stored: str, repo: str) -> bool:
     # The hook guards any clone whose origin names the registry's repo, case aside.
     return stored.lower() == repo.lower()
-
-
-def _deciders(registry: Path | None) -> Deciders:
-    return {root.id: root.decided_by for root in registry_roots(registry)[0]}
 
 
 def _chain_events(chain: list[Receipt], deciders: Deciders) -> list[ReceiptEvent]:

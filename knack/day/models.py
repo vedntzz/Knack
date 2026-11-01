@@ -50,6 +50,18 @@ class ReceiptEvent(BaseModel):
 Event = Annotated[CommitEvent | PullEvent | ReceiptEvent, Field(discriminator="type")]
 
 
+class Seat(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # A Confirmed root, read from the registry the console reads.
+    root_id: str
+    decided_by: str
+    confirmed_by: str | None
+    # The PR its source_url cites; None when it cites no GitHub PR.
+    pr: int | None
+    merged_at: str | None
+
+
 class DayFeed(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -62,6 +74,10 @@ class DayFeed(BaseModel):
     events: list[Event]
     # Why no PRs could be read; None when GitHub answered.
     pulls_error: str | None
+    # The repo's Confirmed roots, in root id order.
+    seats: list[Seat]
+    # Why the registry could not be read, so seats and deciders are empty.
+    registry_error: str | None
 
 
 class BranchPulls(Protocol):
