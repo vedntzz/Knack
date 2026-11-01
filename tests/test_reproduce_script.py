@@ -77,7 +77,7 @@ def test_reproduce_prints_every_number_beside_its_command(tmp_path: Path) -> Non
         "roots: 22 (2 Confirmed, 0 Corroborated, 20 Inferred, 0 Uncorroborated, 0 Unknown)",
         "decisions hunted: 12 (every installed rule)",
         "repeat commits: 0 (0 human, 0 bot)",
-        "e2e steps passed: 8/8",
+        "e2e steps passed: 26/26",
     ]:
         (line,) = [line for line in out.splitlines() if line.startswith(wanted)]
         assert NUMBER_LINE.match(line), line

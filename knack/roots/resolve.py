@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 from pathlib import Path
 
 from knack.contracts.models import Root
+from knack.miss.provisional import promote_provisional
 from knack.receipts.chain import (
     append_receipt,
     load_receipts,
@@ -27,6 +28,8 @@ class Resolved:
     correction: Correction
     # The allow appended to the chain, citing the deny it resolves.
     receipt: Receipt
+    # The provisional argue case an allow made must-pass; None when there was none.
+    promoted: Path | None = None
 
 
 def resolve_deny(
@@ -47,7 +50,15 @@ def resolve_deny(
     receipt = append_receipt(
         receipts, resolution_receipt(deny, resolution, correction.at)
     )
-    return Resolved(correction, receipt)
+    return Resolved(correction, receipt, _promoted(registry, resolution))
+
+
+def _promoted(registry_path: Path, resolution: Resolution) -> Path | None:
+    # Only a person's allow turns two models' agreement into a must-pass case.
+    if resolution.action != "allow":
+        return None
+    named = (resolution.of, resolution.by, resolution.reason)
+    return promote_provisional(registry_path, *named)
 
 
 def _unresolved_deny(receipts: Path, receipt_hash: str, reason: str) -> Receipt:

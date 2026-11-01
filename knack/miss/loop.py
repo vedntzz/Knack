@@ -36,7 +36,7 @@ from knack.pipeline.select import pull_request
 from knack.pipeline.sources import fetch_side, joined_source
 from knack.pipeline.variants import saved_variants, variant_files, variant_prompt
 from knack.roots.store import load_roots
-from knack.walk.registry import load_registry, Registry, RegistryEntry
+from knack.walk.registry import load_registry, Registry, RegistryEntry, repo_data
 
 Log = Callable[[str], None]
 PR_NUMBER = re.compile(r"/pull/(\d+)")
@@ -124,8 +124,8 @@ def default_loop(
 
 
 def default_heldout(registry: Path) -> Path:
-    # data/registry/fastapi.json -> data/heldout/fastapi.
-    return registry.parent.parent / "heldout" / registry.stem
+    # data/registry/fastapi.json or a home registry for fastapi/fastapi -> data/heldout/fastapi.
+    return repo_data(registry, "heldout")
 
 
 def default_work(registry: Path) -> Path:

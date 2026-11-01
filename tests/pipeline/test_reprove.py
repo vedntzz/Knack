@@ -12,10 +12,10 @@ from conftest import (
 )
 from knack import cli
 from knack.contracts.models import RuleProof
-from knack.pipeline.reprove import Reprove, reprove_registry
+from knack.pipeline.reprove import default_variants, Reprove, reprove_registry
 from knack.roots.pin import rule_sha
 from knack.walk.registry import load_registry
-from test_miss_loop import heldout, registry
+from test_miss_loop import heldout, home_registry, registry, REPO_DATA
 
 STAMP = "2026-10-31T00:00:00Z"
 BROKEN = "id: compiled-rule\nlanguage: python\nrule: {pattern: '$$$('}\n"
@@ -217,3 +217,25 @@ def test_knack_reprove_exits_1_when_a_rule_was_not_reproved(
         cli.main(["reprove", "--registry", str(reg), "--work", str(tmp_path / "w")])
         == 1
     )
+
+
+def test_a_home_registry_reads_the_repos_data_variants(tmp_path: Path) -> None:
+    found = default_variants(home_registry(tmp_path, "apache/airflow"))
+    assert found == REPO_DATA / "variants" / "airflow" and (found / "75025").is_dir()
+
+
+def test_the_variants_are_named_by_the_guarded_repo(tmp_path: Path) -> None:
+    found = default_variants(home_registry(tmp_path, "fastapi/fastapi"))
+    assert found == REPO_DATA / "variants" / "fastapi"
+
+
+def test_the_shipped_registry_reads_its_own_variants() -> None:
+    found = default_variants(REPO_DATA / "registry" / "airflow.json")
+    assert found.resolve() == (REPO_DATA / "variants" / "airflow").resolve()
+
+
+def test_variants_beside_a_registry_still_win(tmp_path: Path) -> None:
+    registry = home_registry(tmp_path, "apache/airflow")
+    beside = registry.parent.parent / "variants" / registry.stem
+    beside.mkdir(parents=True)
+    assert default_variants(registry) == beside

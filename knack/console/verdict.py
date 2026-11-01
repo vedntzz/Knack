@@ -10,7 +10,13 @@ from knack.contracts.models import MatchedCode, Root, RuleProof
 from knack.dispute.rulings import RulingRecord, rulings_for
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import REGISTRY_ENV
-from knack.receipts.chain import Decision, load_receipts, Receipt, receipt_hash
+from knack.receipts.chain import (
+    Decision,
+    load_receipts,
+    Receipt,
+    receipt_hash,
+    ResolutionAction,
+)
 from knack.receipts.warns import load_warns, WarnRecord
 from knack.roots.store import load_roots
 from knack.walk.registry import home_registry_dir, load_registry, Registry
@@ -19,6 +25,8 @@ from knack.walk.registry import home_registry_dir, load_registry, Registry
 RegistryFor = Callable[[str], Path | None]
 NO_RECEIPT = "no receipt with that hash"
 TimedWarn = tuple[datetime, WarnRecord]
+# What reading the registry yields: it, or None and why when it could not be read.
+ReadRegistry = tuple[Registry | None, str | None]
 
 
 class RootView(BaseModel):
@@ -63,6 +71,18 @@ class WarnView(BaseModel):
     same_session: bool
 
 
+class ResolutionView(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # The deny settled, how, by whom and why, and the allow receipt that records it.
+    of: str
+    action: ResolutionAction
+    by: str
+    reason: str
+    receipt_hash: str
+    time: str
+
+
 class VerdictView(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -83,6 +103,10 @@ class VerdictView(BaseModel):
     proof: RuleProof | None
     other_decisions: list[OtherDecision]
     warn: WarnView | None
+    # How a person settled this deny with knack resolve; None while unresolved.
+    resolution: ResolutionView | None
+    # Why the registry could not be read, so root and proof are None; None when it was.
+    registry_error: str | None
 
 
 class NoSuchReceipt(Exception):
@@ -94,7 +118,7 @@ def verdict_view(
 ) -> VerdictView:
     chain = load_receipts(receipts)
     receipt = _receipt_in(chain, wanted)
-    registry = _registry_of(receipt, registry_for)
+    registry, registry_error = _registry_of(receipt, registry_for)
     return VerdictView(
         hash=receipt.hash,
         hash_verified=receipt_hash(receipt) == receipt.hash,
@@ -110,6 +134,8 @@ def verdict_view(
         proof=_proof_of(receipt, registry),
         other_decisions=_others_on_branch(receipt, chain),
         warn=_warn_before(receipt, load_warns(warns)),
+        resolution=_resolution_of(receipt, chain),
+        registry_error=registry_error,
     )
 
 
@@ -178,9 +204,31 @@ def _days(count: int) -> str:
     return "1 day" if count == 1 else f"{count} days"
 
 
-def _registry_of(receipt: Receipt, registry_for: RegistryFor) -> Registry | None:
+def _registry_of(receipt: Receipt, registry_for: RegistryFor) -> ReadRegistry:
     path = registry_for(receipt.repo)
-    return load_registry(path) if path is not None and path.exists() else None
+    return _read_registry(path) if path is not None and path.exists() else (None, None)
+
+
+def _read_registry(path: Path) -> ReadRegistry:
+    # A registry this console cannot read, e.g. one a newer knack wrote, is never a 500.
+    try:
+        return load_registry(path), None
+    except (ValueError, OSError) as error:
+        return None, f"cannot read {path}: {str(error).splitlines()[0]}"
+
+
+def _resolution_of(receipt: Receipt, chain: list[Receipt]) -> ResolutionView | None:
+    # The allow that resolved this deny, or this receipt when it is that allow.
+    found = (
+        r for r in chain if r.resolution and receipt.hash in (r.hash, r.resolution.of)
+    )
+    return next((_resolution_view(r) for r in found), None)
+
+
+def _resolution_view(allow: Receipt) -> ResolutionView:
+    assert allow.resolution is not None
+    fields = allow.resolution.model_dump() | {"time": allow.time}
+    return ResolutionView.model_validate(fields | {"receipt_hash": allow.hash})
 
 
 def _cited_root(receipt: Receipt, registry: Registry | None) -> Root | None:
