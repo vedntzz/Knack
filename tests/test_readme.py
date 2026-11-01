@@ -108,3 +108,38 @@ def test_uv_lock_is_committable() -> None:
         text=True,
     )
     assert lock.is_file() and ignored.stdout == ""
+
+
+# Group C: numbers.
+DEMO_LOG = REPO_ROOT / "bench" / "demo_block.log"
+
+
+def demo_latencies() -> tuple[str, str]:
+    text = DEMO_LOG.read_text(encoding="utf-8")
+    verdict = re.search(r"^guard verdict: (\d+\.\d+) ms", text, re.M)
+    trip = re.search(r"^hook round trip: (\d+) ms", text, re.M)
+    assert verdict and trip
+    return verdict.group(1), trip.group(1)
+
+
+def test_the_bench_heading_is_rejectbench() -> None:
+    assert "### RejectBench [bench]" in README.read_text(encoding="utf-8").splitlines()
+
+
+def test_readme_cites_the_demo_latencies_from_the_committed_log() -> None:
+    verdict, trip = demo_latencies()
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert f"{verdict} ms" in text and f"{trip} ms" in text
+    assert "bench/demo_block.log" in text
+
+
+def test_readme_cites_the_repeat_hunt_with_its_reproduce_step() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert "5068 commits scanned, 0 repeat commits" in text
+    assert "python -m knack.reproduce repeats" in text
+
+
+def test_rejectbench_fresh_is_named_as_not_run() -> None:
+    lines = README.read_text(encoding="utf-8").splitlines()
+    [line] = [line for line in lines if "RejectBench-Fresh" in line]
+    assert "not run" in line and "bench/PREREGISTRATION-FRESH.md" in line

@@ -97,23 +97,33 @@ The violation and compliant counts cover the 12 installed rules. Each side has e
 
 The #15937 result is the reason for the second model. Its rule passes Spark's own variants (3/3) but catches only 1/3 of Spark Open's.
 
-### Agent bench [bench]
+### RejectBench [bench]
 
-A real coding agent (Muse Code 1.4.14, web off) worked 9 tickets, each written so that the obvious fix risks taking a rejected path. There were 3 arms: `none`, `veto` and `warn+veto`, with 3 repeats each. The design was frozen before the run in [`bench/PREREGISTRATION.md`](bench/PREREGISTRATION.md). The primary set is 72 runs, 24 per arm. It excludes fastapi-16049, whose rule was documented as false-positive-prone before the first run. Intervals are Wilson 95%.
+RejectBench: a real coding agent (Muse Code 1.4.14, web off) worked 9 tickets, each written so that the obvious fix risks taking a rejected path. There were 3 arms: `none`, `veto` and `warn+veto`, with 3 repeats each. The design was frozen before the run in [`bench/PREREGISTRATION.md`](bench/PREREGISTRATION.md). The primary set is 72 runs, 24 per arm. It excludes fastapi-16049, whose rule was documented as false-positive-prone before the first run. Intervals are Wilson 95%.
 
 | Arm | Blocked | Rejected path shipped | Repeat rate | Attempt rate | Judge agreement |
 |---|---|---|---|---|---|
-| none | 0/24 | 0/24 | 0/24 (0% [0–14%]) | 3/24 | 21/24 |
-| veto | 2/24 | 0/24 | 2/24 (8% [2–26%]) | 2/24 | 23/24 |
-| warn+veto | 3/24 | 1/24 | 4/24 (17% [7–36%]) | 3/24 | 21/24 |
+| none | 0/24 (0% [0–14%]) | 0/24 | 0/24 (0% [0–14%]) | 3/24 (12% [4–31%]) | 21/24 (88% [69–96%]) |
+| veto | 2/24 (8% [2–26%]) | 0/24 | 2/24 (8% [2–26%]) | 2/24 (8% [2–26%]) | 23/24 (96% [80–99%]) |
+| warn+veto | 3/24 (12% [4–31%]) | 1/24 | 4/24 (17% [7–36%]) | 3/24 (12% [4–31%]) | 21/24 (88% [69–96%]) |
 
 The step also checks that the regenerated report matches [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md) byte for byte.
 
 **Read this table together with the audit below. The raw numbers overstate what the guard did.**
 
+RejectBench-Fresh, a second set of tickets whose decisions all merged after the agent model's training cutoff, is pre-registered in [`bench/PREREGISTRATION-FRESH.md`](bench/PREREGISTRATION-FRESH.md) and not run: 1 of its 5 candidate tickets passed the screen, so the design is not frozen.
+
+### Repeats [repeats]
+
+After each of the 12 installed rules' decisions merged: 5068 commits scanned, 0 repeat commits (0 human, 0 bot), from `python -m knack.reproduce repeats`. A repeat is a rule match on a line a later first-parent commit added. The hunt needs full clones, so the script reads its record, [`bench/REPEATS.md`](bench/REPEATS.md), rather than re-running it.
+
 ### End to end [e2e]
 
 e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fixture clone with fake GitHub, Spark and Spark Open clients. It covers every loop: init, confirm pinning the rule sha, the warning, the alias edit denied, the decided fix allowed, argue HOLD and ESCALATE, resolve allow and retire, watch on a real merge, miss, false-block, the two-model self-check, the regression gate rolling back, reprove, the console JSON, receipts and the proof grid. #75025 is real. The watch merges #900001 and #900002 are synthetic e2e PRs, not apache/airflow PRs. `scripts/live-smoke.sh` (needs `KNACK_LIVE=1` and keys) runs the same paths against the real services.
+
+### The block, timed (not in `reproduce.sh`)
+
+`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. In the committed run, [`bench/demo_block.log`](bench/demo_block.log), the guard verdict took 18.7 ms (the ast-grep scan, from the deny receipt) and the hook round trip took 212 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Those two numbers and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
 
 ### Miss loop (not in `reproduce.sh`)
 
