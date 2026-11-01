@@ -72,6 +72,69 @@ Confirming pins the sha256 of the rule file. If the rule is recompiled later, it
 
 Knack has only been run on public repos; on a private repo, `knack init` and `knack watch` would send PR text to Meta (Spark) and Baseten (Spark Open), while the guard hook stays local and uses no network.
 
+## Muse Code setup
+
+Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. These are the two guard entries. `/abs/path/to/Knack/.venv/bin/python` stands for the absolute path of your clone's venv Python.
+
+```json
+{
+  "schema_version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.pretool || true'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.warn || true'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file` or `edit_file` goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule.
+- `UserPromptSubmit` is not written by `demo_block.sh`. It is the entry the bench's `warn+veto` arm writes ([`knack/bench/arms.py`](knack/bench/arms.py)), in the same shape and with no matcher. `knack.hooks.warn` puts a Confirmed decision and its quote into the agent's context when a prompt names it. The bench adds a `KNACK_REGISTRY=<bench registry>` prefix to point it at its seeded registry. Without that prefix, the hook finds the home registry from `git remote get-url origin`.
+- `|| true` makes a crashed hook exit 0 with no output, and Muse Code then allows the edit. The guard fails open.
+
+`knack watch` adds two more hooks. It puts a `PostToolBatch` entry in the same file (`sh -c '... -m knack.watch.hook tool-batch --registry <registry> || true'`), which notices merges made during an agent session. It also installs a git `post-merge` hook in the clone (`.git/hooks/post-merge`, or under `core.hooksPath`). `--muse-settings` points it at a different settings file.
+
+## Runs unattended
+
+Once `knack watch` is installed, these steps run with no person involved:
+
+- **Every merge.** The `post-merge` hook, or the `PostToolBatch` hook for a merge made inside an agent session, runs the pipeline on the PRs merged since the last run. Spark extracts each decision and compiles it into an ast-grep rule. The rule is proven against the PR's sides, variants and held-out sets, and installed only if it passes ([`knack/watch/run.py`](knack/watch/run.py), [`knack/pipeline/stages.py`](knack/pipeline/stages.py)). Then the Spark Open self-check runs: for every Confirmed rule the merge did not trip, Spark and Spark Open are each asked, blind, whether the change takes the rejected path. If both say yes, the change is recorded as a case on the spot ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)). The self-check is on by default when `BASETEN_API_KEY` is set and off with `--no-corroborate`.
+- **The miss loop.** A recorded case recompiles its rule ([`knack/miss/loop.py`](knack/miss/loop.py)). The candidate replaces the installed rule only if it passes every gate in [the miss loop](#miss-loop-not-in-reproducesh). If any gate fails, the candidate is saved for review and the old rule stays installed. The rollback belongs to a different gate, the correction regression gate ([`knack/roots/gate.py`](knack/roots/gate.py)). If a correction makes the extractor lose a root it used to find, the gate restores the registry and roots and exits 1. The e2e step "regression gate rolls back a bad correction" checks this.
+- **The guard.** At edit time the `PreToolUse` hook denies a matching edit, cites the decision and writes a receipt. No person and no model is involved.
+
+One step always waits for a person. When an agent disputes a deny with `knack argue` and both Spark and Spark Open escalate, the edit is held for a person as a provisional must-pass case. It becomes a case only after `knack resolve <receipt> allow --reason "<why>"` ([`knack/dispute/second.py`](knack/dispute/second.py)). Whether a decision can block at all is also a person's call: only `knack confirm` makes a root Confirmed.
+
+## Open weights
+
+Muse Spark Open is an open-weights Meta model, served on Baseten as `meta-models/muse-spark-open-1026` ([`knack/pipeline/spark_open.py`](knack/pipeline/spark_open.py)). It is the second model in every place where Knack wants a check that Spark did not write:
+
+- **Corroborating extractor:** it reads the same PRs, and a decision both models find is Corroborated ([`knack/pipeline/corroborate.py`](knack/pipeline/corroborate.py), `--corroborate`).
+- **Held-out variant writer:** it writes the violating and compliant variants that a rule must pass before install, and Spark never sees them ([`knack/pipeline/variants.py`](knack/pipeline/variants.py), [`knack/pipeline/heldout.py`](knack/pipeline/heldout.py)).
+- **Watch self-check:** it judges each merge blind, alongside Spark ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)).
+- **Argue second opinion:** it is asked independently when Spark escalates an objection ([`knack/dispute/second.py`](knack/dispute/second.py)).
+- **RejectBench blind judge:** it labels each bench diff without seeing the guard's verdict ([`knack/bench/blind.py`](knack/bench/blind.py), [`knack/bench/run.py`](knack/bench/run.py)).
+
+Neither model is in the verdict path.
+
+Limit: Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
+
 ## Reproduce every number
 
 From the clone, after [Get it running](#get-it-running), with no other knack or pytest process running:
@@ -178,7 +241,6 @@ When the guard misses an edit, that edit becomes a recorded case. Spark recompil
 - The recompiled #16062 rule has a broad branch: any integer of 4097 or more in a module that names the cached helpers is denied. A probe line `TIMEOUT_MS = 30000` in that module is blocked. It has 0 matches on the default branch and release 0.140.0 today, but unrelated constants in `fastapi/dependencies/models.py` can trip it.
 - The scorer counts moved code as a new match. The attempt replay does not. They disagree on `16062--warn+veto--0`.
 - In one pilot run the agent wrote upstream names that merged after the ticket's base. That looks like training-data recall.
-- Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
 
 ## Retractions
 

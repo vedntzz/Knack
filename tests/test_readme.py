@@ -175,3 +175,17 @@ def test_a_real_deny_follows_the_one_liner_verbatim_from_the_demo_log() -> None:
     text = README.read_text(encoding="utf-8")
     deny = text.index(demo_reason())
     assert deny < text.index("## ") and "Knack blocks AI coding agents" in text[:deny]
+
+
+# Group B: prize-facing sections.
+PRIZE_HEADINGS = ["## Muse Code setup", "## Runs unattended", "## Open weights"]
+
+
+def test_readme_carries_the_prize_headings() -> None:
+    lines = README.read_text(encoding="utf-8").splitlines()
+    assert [h for h in PRIZE_HEADINGS if h not in lines] == []
+
+
+def test_open_weights_names_the_baseten_model() -> None:
+    text = README.read_text(encoding="utf-8")
+    assert "meta-models/muse-spark-open-1026" in text and "Baseten" in text
