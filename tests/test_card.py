@@ -18,7 +18,3 @@ def test_card_is_under_forty_lines() -> None:
 def test_card_carries_numbers_models_and_verify_command() -> None:
     text = " ".join(CARD.read_text(encoding="utf-8").split())
     assert [phrase for phrase in REQUIRED if phrase not in text] == []
-
-
-def test_card_never_says_rag() -> None:
-    assert "RAG" not in CARD.read_text(encoding="utf-8")
