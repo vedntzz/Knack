@@ -1,0 +1,5 @@
+id: compiled-rule
+language: python
+severity: error
+message: Do not await.
+rule: {pattern: await $X}

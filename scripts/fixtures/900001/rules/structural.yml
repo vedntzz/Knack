@@ -1,0 +1,5 @@
+id: compiled-rule
+language: python
+severity: error
+message: Read blobs one at a time; do not await asyncio.gather over every read.
+rule: {pattern: $R = await asyncio.gather($$$)}

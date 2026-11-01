@@ -1,0 +1,9 @@
+id: compiled-rule
+language: python
+severity: error
+message: Read blobs one at a time; do not await a gather over reads.
+rule:
+  all:
+    - kind: await
+    - regex: "gather\\("
+    - has: {pattern: $X.read(), stopBy: end}
