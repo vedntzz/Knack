@@ -22,8 +22,8 @@ __all__ = ["Day", "day_feed", "day_json", "local_day"]
 
 
 def day_json(day: Day) -> str:
-    # The one serialization the CLI prints and the console serves.
-    return day_feed(day).model_dump_json(indent=2)
+    # The one serialization the CLI prints and the console serves, newline included.
+    return day_feed(day).model_dump_json(indent=2) + "\n"
 
 
 def day_feed(day: Day) -> DayFeed:

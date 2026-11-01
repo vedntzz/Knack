@@ -547,7 +547,8 @@ def _reprove_run(args: argparse.Namespace) -> Reprove:
 
 def _add_console_arguments(console: argparse.ArgumentParser) -> None:
     console.description = (
-        "serve GET /verdict/<receipt-hash> and its /rulings as JSON on loopback"
+        "serve GET /verdict/<receipt-hash>, its /rulings and /day (this clone's"
+        " knack day --json) as JSON on loopback"
     )
 
 
@@ -567,7 +568,7 @@ def _add_day_arguments(day: argparse.ArgumentParser) -> None:
 def _day_command(args: argparse.Namespace) -> int:
     # Read-only; a store it cannot read is a message and exit 2.
     try:
-        print(day_json(local_day(Path.cwd())))
+        print(day_json(local_day(Path.cwd())), end="")
     except (OSError, ValidationError) as error:
         print(f"knack day: {error}", file=sys.stderr)
         return 2
