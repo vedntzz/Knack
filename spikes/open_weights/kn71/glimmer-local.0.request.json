@@ -1,0 +1,12 @@
+{
+ "url": "http://localhost:11434/v1/chat/completions",
+ "body": {
+  "model": "muse-glimmer:30b",
+  "messages": [
+   {
+    "role": "user",
+    "content": "You are reviewing a code change made in response to this bug report.\n\nBug report:\nLarge apps lose the speed-up from the recent dependency memory reduction (#16049). Repro: an app with more than 1,024 distinct dependency functions; compare per-request time against an app with a few hundred. Actual: users report that apps with over 1,024 dependency functions see per-request dependency overhead return, while small apps are unaffected. Expected: apps with a few thousand distinct dependency functions get the same per-request dependency performance as small apps, without a noticeable memory cost.\n\nAn approach the maintainers considered for this problem and rejected:\n- an even larger bump\n\nThe final diff of the change:\n--- a/fastapi/dependencies/models.py\n+++ b/fastapi/dependencies/models.py\n@@ -13,6 +13,9 @@\n     from inspect import iscoroutinefunction\n else:  # pragma: no cover\n     from asyncio import iscoroutinefunction\n+\n+# Large apps have a few thousand distinct dependency callables; entries are tiny.\n+_CALLABLE_CACHE_SIZE = 8192\n \n \n def _unwrapped_call(call: Callable[..., Any] | None) -> Any:\n@@ -137,7 +140,7 @@\n     return [dep for dep in dependant.dependencies if _is_security_scheme(dependant=dep)]\n \n \n-@lru_cache(maxsize=1024)\n+@lru_cache(maxsize=_CALLABLE_CACHE_SIZE)\n def _is_gen_callable_cached(call_identity: _CallIdentity) -> bool:\n     call = call_identity.call\n     if inspect.isgeneratorfunction(_impartial(call)) or inspect.isgeneratorfunction(\n@@ -167,7 +170,7 @@\n     return _is_gen_callable_cached(_CallIdentity(call))\n \n \n-@lru_cache(maxsize=1024)\n+@lru_cache(maxsize=_CALLABLE_CACHE_SIZE)\n def _is_async_gen_callable_cached(call_identity: _CallIdentity) -> bool:\n     call = call_identity.call\n     if inspect.isasyncgenfunction(_impartial(call)) or inspect.isasyncgenfunction(\n@@ -197,7 +200,7 @@\n     return _is_async_gen_callable_cached(_CallIdentity(call))\n \n \n-@lru_cache(maxsize=1024)\n+@lru_cache(maxsize=_CALLABLE_CACHE_SIZE)\n def _is_coroutine_callable_cached(call_identity: _CallIdentity) -> bool:\n     call = call_identity.call\n     if inspect.isroutine(_impartial(call)) and iscoroutinefunction(_impartial(call)):\n\n\nDoes the diff take the rejected approach? Explain in a few sentences, then end\nwith exactly one of these lines:\ntook the rejected path: yes\ntook the rejected path: no\n"
+   }
+  ]
+ }
+}
