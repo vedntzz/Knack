@@ -18,7 +18,7 @@ from knack.pipeline.compile import (
     retry_prompt,
     with_rule_id,
 )
-from knack.pipeline.heldout import HeldOut, score_heldout
+from knack.pipeline.heldout import HeldOut, holds_install_bar, score_heldout
 from knack.pipeline.models import Alternative, Decision, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.prove import (
@@ -407,9 +407,8 @@ def _compared(
 
 
 def _holds(new: HeldOut, floor: int) -> bool:
-    # An empty set proves nothing, so it never passes.
-    recall = new.violations > 0 and new.caught >= floor
-    return recall and new.compliant > 0 and new.allowed == new.compliant
+    # An empty set proves nothing, so it never passes; init and watch share this bar.
+    return holds_install_bar(new, floor)
 
 
 def _counts(new: HeldOut, floor: int) -> str:

@@ -8,7 +8,13 @@ from knack.contracts.models import Root
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, with_rule_id
 from knack.pipeline.corroborate import corroborated_roots
 from knack.pipeline.extract import extract_all
-from knack.pipeline.heldout import HeldOut, HELDOUT_DIR, not_run, score_heldout
+from knack.pipeline.heldout import (
+    HeldOut,
+    HELDOUT_DIR,
+    install_failure,
+    not_run,
+    score_heldout,
+)
 from knack.pipeline.models import Compiled, Decision, Extraction, PullRequest, Selection
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.progress import (
@@ -222,9 +228,9 @@ def _compile_safely(run: Run, target: Target, trees: Trees) -> Compiled:
     try:
         prompt, attempt = _compile_pr(run, target, trees)
         compiled = _record(run, target, attempt)
+        return _with_heldout(run, compiled, prompt, _rule_text(run, target, attempt))
     except Exception as error:
         return _failed(target, error)
-    return _with_heldout(run, compiled, prompt)
 
 
 def _compile_pr(run: Run, target: Target, trees: Trees) -> tuple[str, Attempt]:
@@ -249,21 +255,38 @@ def _sides(
     return verifier_sides(target.pr.number, *code, work, variants)
 
 
-def _with_heldout(run: Run, compiled: Compiled, prompt: str) -> Compiled:
+def _with_heldout(run: Run, compiled: Compiled, prompt: str, text: str) -> Compiled:
     # Scored after the last attempt, so the compiler never sees the held-out set.
     if compiled.rule is None:
         return compiled
-    heldout = _heldout_safely(run, compiled.number, compiled.rule, prompt)
+    heldout = _heldout_safely(run, compiled.number, text, prompt)
+    failure = install_failure(heldout)
+    if failure is not None:
+        return _discarded_by_heldout(compiled, heldout, failure)
+    return _written(compiled, compiled.rule, heldout, text)
+
+
+def _written(compiled: Compiled, rule: Path, heldout: HeldOut, text: str) -> Compiled:
+    # Only a rule that cleared the held-out bar reaches disk.
+    rule.write_text(text, encoding="utf-8")
     proof = with_heldout(compiled.proof, heldout)
     return compiled.model_copy(update={"heldout": heldout, "proof": proof})
 
 
-def _heldout_safely(run: Run, number: int, rule: Path, prompt: str) -> HeldOut:
-    # Held-out only reports: its failure is "not run" and never discards the rule.
+def _discarded_by_heldout(
+    compiled: Compiled, heldout: HeldOut, failure: str
+) -> Compiled:
+    # The score stays for the log; nothing is written, so a kept rule file is untouched.
+    update = {"rule": None, "proof": None, "heldout": heldout}
+    return compiled.model_copy(update=update | {"failed_checks": [failure]})
+
+
+def _heldout_safely(run: Run, number: int, text: str, prompt: str) -> HeldOut:
+    # A writer or scan failure is "not run", which the install bar then discards.
     writer = _writer(run)
     try:
         sides = variant_files(_work(run, number) / HELDOUT_DIR, prompt, writer)
-        return score_heldout(rule.read_text(encoding="utf-8"), sides, writer.model)
+        return score_heldout(text, sides, writer.model)
     except Exception as error:
         return not_run(writer.model, error)
 
@@ -278,21 +301,23 @@ def _side(run: Run, target: Target, side: str, work: Path) -> dict[str, Path]:
 
 
 def _record(run: Run, target: Target, attempt: Attempt) -> Compiled:
-    rule = _install_rule(run, target, attempt)
+    rule = _rule_path(run, target, attempt)
     fields = {"number": target.pr.number, "rule": rule, "root_ids": target.root_ids}
     checks = {"attempts": attempt.number, "failed_checks": failed_checks(attempt.proof)}
     proof = rule_proof(attempt.proof, target.pr, attempt.number) if rule else None
     return Compiled.model_validate(fields | checks | {"proof": proof})
 
 
-def _install_rule(run: Run, target: Target, attempt: Attempt) -> Path | None:
-    # A proven rule is written under its own id; a discarded one writes nothing.
-    path = run.out / "rules" / f"{target.pr.number}.yml"
+def _rule_path(run: Run, target: Target, attempt: Attempt) -> Path | None:
+    # Where a proven rule goes; it is written only once held-out clears the bar.
     if not attempt.proven:
         return None
+    return run.out / "rules" / f"{target.pr.number}.yml"
+
+
+def _rule_text(run: Run, target: Target, attempt: Attempt) -> str:
     rule_id = f"{root_prefix(run.repo)}-{target.pr.number}"
-    path.write_text(with_rule_id(attempt.rule, rule_id) + "\n", encoding="utf-8")
-    return path
+    return with_rule_id(attempt.rule, rule_id) + "\n"
 
 
 def _failed(target: Target, error: Exception) -> Compiled:
