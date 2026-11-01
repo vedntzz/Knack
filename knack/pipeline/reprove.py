@@ -23,7 +23,7 @@ from knack.pipeline.select import pull_request
 from knack.pipeline.sources import fetch_side
 from knack.pipeline.variants import saved_variants, variant_authors
 from knack.roots.pin import rule_sha
-from knack.walk.registry import load_registry, Registry, RegistryEntry
+from knack.walk.registry import load_registry, Registry, RegistryEntry, repo_data
 
 Log = Callable[[str], None]
 HELDOUT_SETS = ("same", "cross")
@@ -76,8 +76,8 @@ class Reproved:
 
 
 def default_variants(registry: Path) -> Path:
-    # data/registry/fastapi.json -> data/variants/fastapi.
-    return registry.parent.parent / "variants" / registry.stem
+    # data/registry/fastapi.json or a home registry for fastapi/fastapi -> data/variants/fastapi.
+    return repo_data(registry, "variants")
 
 
 def reprove_registry(run: Reprove) -> list[str]:

@@ -85,11 +85,17 @@ def agreed(answers: list[ModelAnswer]) -> bool:
 
 def settle(ports: Settle, case: EditCase, asked: Asked) -> LoopOutcome | None:
     # Both yes: recorded with both answers, then the miss loop; otherwise logged only.
+    receipted = log_check(ports.checks, ports.log, case, asked)
+    return _looped(ports, receipted) if receipted else None
+
+
+def log_check(checks: Path, log: Log, case: EditCase, asked: Asked) -> EditCase | None:
+    # Every check is kept; the case carrying both answers comes back only when they agreed.
     receipted = case.model_copy(update={"answers": asked.answers})
     recorded = agreed(asked.answers)
-    _append_check(ports.checks, _check(receipted, asked, recorded))
-    ports.log(_settled_line(receipted, asked, recorded))
-    return _looped(ports, receipted) if recorded else None
+    _append_check(checks, _check(receipted, asked, recorded))
+    log(_settled_line(receipted, asked, recorded))
+    return receipted if recorded else None
 
 
 def load_checks(path: Path) -> list[SelfCheck]:
@@ -130,8 +136,15 @@ def _check(case: EditCase, asked: Asked, recorded: bool) -> SelfCheck:
 
 def _settled_line(case: EditCase, asked: Asked, recorded: bool) -> str:
     said = ", ".join(f"{a.model} {'yes' if a.yes else 'no'}" for a in asked.answers)
-    then = f"recording {case.kind} case" if recorded else "logged only"
+    then = _then(case, asked.trigger) if recorded else "logged only"
     return f"self-check {case.rule_id} {case.file} ({asked.question}): {said}; {then}"
+
+
+def _then(case: EditCase, trigger: Trigger) -> str:
+    # An objection's agreement waits for a person; a merge's is recorded at once.
+    if trigger == "argue":
+        return f"holding a provisional {case.kind} case for a person"
+    return f"recording {case.kind} case"
 
 
 def _append_check(path: Path, check: SelfCheck) -> None:

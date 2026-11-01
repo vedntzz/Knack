@@ -5,6 +5,9 @@ from pydantic import BaseModel, ConfigDict
 from knack.contracts.models import RuleProof
 from knack.git import git_root, origin_repo
 
+# This repo's data folder: committed variants and held-out sets per guarded repo.
+KNACK_DATA = Path(__file__).resolve().parents[2] / "data"
+
 
 class RegistryEntry(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -21,6 +24,15 @@ class Registry(BaseModel):
     repo: str
     roots_dir: Path
     rules: list[RegistryEntry]
+
+
+def repo_data(registry: Path, kind: str) -> Path:
+    # A <kind> folder beside the registry wins; else knack's data/<kind>/<repo name>.
+    beside = registry.parent.parent / kind / registry.stem
+    if beside.is_dir():
+        return beside
+    name = load_registry(registry).repo.split("/")[-1].lower()
+    return KNACK_DATA / kind / name
 
 
 def home_registry_dir(repo: str) -> Path:

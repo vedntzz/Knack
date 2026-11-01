@@ -15,7 +15,13 @@ from conftest import (
     write_tree,
 )
 from knack.miss.cases import CaseKind, cases_dir, EditCase, load_cases, save_case
-from knack.miss.loop import Loop, outcome_lines, record_and_recompile
+from knack.miss.loop import (
+    default_heldout,
+    default_loop,
+    Loop,
+    outcome_lines,
+    record_and_recompile,
+)
 from test_prove import EDIT_ADDS, MEMORIZED_ON_BASE, NARROWED, PINGS
 
 RULE_ID = "widgets-9"
@@ -223,3 +229,44 @@ def test_a_kept_rule_leaves_its_candidate_on_disk_for_review(tmp_path: Path) -> 
     assert outcome.candidate_path is not None
     assert outcome.candidate_path.read_text() == STRUCTURAL.strip() + "\n"
     assert f"candidate rule: {outcome.candidate_path}" in outcome_lines(outcome)
+
+
+REPO_DATA = Path(__file__).parents[2] / "data"
+
+
+def home_registry(home: Path, repo: str) -> Path:
+    # Where knack init installs: ~/.knack/registries/<owner-name>/registry.json.
+    path = home / ".knack" / "registries" / repo.replace("/", "-") / "registry.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"repo": repo, "roots_dir": "roots", "rules": []}))
+    return path
+
+
+def test_a_home_registry_reads_the_repos_data_heldout(tmp_path: Path) -> None:
+    found = default_heldout(home_registry(tmp_path, "apache/airflow"))
+    assert found == REPO_DATA / "heldout" / "airflow" and (found / "75025").is_dir()
+
+
+def test_the_heldout_set_is_named_by_the_guarded_repo(tmp_path: Path) -> None:
+    found = default_heldout(home_registry(tmp_path, "fastapi/fastapi"))
+    assert found == REPO_DATA / "heldout" / "fastapi"
+
+
+def test_the_shipped_registry_reads_its_own_heldout() -> None:
+    found = default_heldout(REPO_DATA / "registry" / "airflow.json")
+    assert found.resolve() == (REPO_DATA / "heldout" / "airflow").resolve()
+
+
+def test_held_out_sets_beside_a_registry_still_win(tmp_path: Path) -> None:
+    registry = home_registry(tmp_path, "apache/airflow")
+    beside = registry.parent.parent / "heldout" / registry.stem
+    beside.mkdir(parents=True)
+    assert default_heldout(registry) == beside
+
+
+def test_the_default_loop_uses_the_repos_heldout(tmp_path: Path) -> None:
+    registry = home_registry(tmp_path, "apache/airflow")
+    loop = default_loop(
+        FakeGitHub(tmp_path), FakeSpark([]), FakeSpark([]), registry, print
+    )
+    assert loop.heldout == REPO_DATA / "heldout" / "airflow"

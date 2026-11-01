@@ -6,15 +6,17 @@ import pytest
 from knack import cli
 from knack.dispute.rulings import load_rulings
 from knack.dispute.second import Second
-from knack.miss.cases import cases_dir, EditCase, load_cases, save_case
-from knack.miss.loop import LoopOutcome
-from knack.miss.selfcheck import load_checks, Settle
+from knack.miss.cases import cases_dir, EditCase, load_cases
+from knack.miss.provisional import load_provisional
+from knack.miss.selfcheck import load_checks
 from knack.miss.sources import Places
 from knack.receipts.chain import append_receipt, Receipt
 from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
 from test_cli_argue import clone, home_of, QUOTE_75025, RESTATES_REJECTED, spark_says
 
 __all__ = ["clone"]
+# Taken before conftest's autouse fixture swaps it for a credential error.
+LIVE_SECOND_PORTS = getattr(cli, "_second_ports")
 OPEN_MODEL = "meta-models/muse-spark-open-1026"
 NOT_COVERED = "The quotes say nothing about pinned clients."
 OBJECTION = "A pinned client can only send sort=state; the alias is needed until March."
@@ -29,18 +31,6 @@ class FakeJudge:
     def ask(self, prompt: str) -> str:
         self.prompts.append(prompt)
         return self.answer
-
-
-class FakeLoop:
-    # Stands in for record_and_recompile: saves the cases, then reports kept.
-    def __init__(self, registry: Path) -> None:
-        self.registry, self.runs = registry, list[list[EditCase]]()
-
-    def __call__(self, cases: list[EditCase]) -> LoopOutcome:
-        self.runs.append(cases)
-        for case in cases:
-            save_case(cases_dir(self.registry), case)
-        return LoopOutcome(rule_id=cases[0].rule_id, recompiled=False, installed=False)
 
 
 def ruling(decision: str, reply: str, quotes: list[str]) -> str:
@@ -59,18 +49,16 @@ def snapshot_receipt(clone: Path, rule_id: str = "airflow-75025") -> Receipt:
 
 
 class Ports:
-    # Fake Spark Open and loop, wired in where argue builds its live ones.
+    # Fake Spark Open, wired in where argue builds its live one; there is no loop to wire.
     def __init__(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, answer: str
     ) -> None:
         self.registry = tmp_path / "reg" / "registry.json"
-        self.open, self.loop = FakeJudge(OPEN_MODEL, answer), FakeLoop(self.registry)
+        self.open = FakeJudge(OPEN_MODEL, answer)
         self.checks = tmp_path / "reg" / "self_checks.jsonl"
         receipts = tmp_path / "home" / ".knack" / "verdicts.jsonl"
         places = Places(receipts, edits_dir(receipts), [], tmp_path / "tickets.jsonl")
-        self.second = Second(
-            self.open, places, Settle(self.registry, self.checks, self.loop, print)
-        )
+        self.second = Second(self.open, places, self.registry, print)
         monkeypatch.setattr(cli, "_second_ports", self.ports)
 
     def ports(self, registry: Path) -> Second:
@@ -80,7 +68,7 @@ class Ports:
         return load_cases(cases_dir(self.registry), "airflow-75025")
 
 
-def test_both_escalate_records_a_must_pass_case_from_the_deny_and_runs_the_loop(
+def test_both_escalate_record_a_provisional_case_and_never_run_the_loop(
     clone: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -90,7 +78,8 @@ def test_both_escalate_records_a_must_pass_case_from_the_deny_and_runs_the_loop(
     ports = Ports(tmp_path, monkeypatch, ruling("escalate", "Not covered.", []))
     denied = snapshot_receipt(clone)
     assert cli.main(["argue", OBJECTION]) == 0
-    [[case]] = ports.loop.runs
+    case = load_provisional(ports.registry, denied.hash)
+    assert case is not None and ports.cases() == []
     assert (case.kind, case.rule_id, case.file) == (
         "must-pass",
         "airflow-75025",
@@ -99,7 +88,39 @@ def test_both_escalate_records_a_must_pass_case_from_the_deny_and_runs_the_loop(
     assert (case.before, case.after) == (BEFORE, AFTER)
     assert denied.hash in case.source and "auto" in case.source
     assert [a.model for a in case.answers] == ["muse-spark-1.3", OPEN_MODEL]
-    assert "kept airflow-75025" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "provisional" in out and f"knack resolve {denied.hash} allow" in out
+    assert "recompil" not in out and "kept airflow-75025" not in out
+
+
+def test_the_agreement_is_logged_with_the_provisional_cases_key(
+    clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "escalate", NOT_COVERED, [])
+    ports = Ports(tmp_path, monkeypatch, ruling("escalate", "Not covered.", []))
+    denied = snapshot_receipt(clone)
+    cli.main(["argue", OBJECTION])
+    [check] = load_checks(ports.checks)
+    case = load_provisional(ports.registry, denied.hash)
+    assert case is not None and (check.trigger, check.case_key) == ("argue", case.key)
+
+
+def test_an_objection_never_builds_a_compiler_or_a_loop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Only Spark Open is needed; GitHub and the compiler are never even constructed.
+    def refuse(*args: object) -> object:
+        raise AssertionError("argue must not build the miss loop")
+
+    monkeypatch.setattr(cli, "live_clients", refuse)
+    monkeypatch.setattr(cli, "record_and_recompile", refuse)
+
+    def partner(name: str) -> FakeJudge:
+        return FakeJudge(OPEN_MODEL, "")
+
+    monkeypatch.setattr(cli, "partner_client", partner)
+    second: Second = LIVE_SECOND_PORTS(tmp_path / "reg" / "registry.json")
+    assert second.judge.model == OPEN_MODEL
 
 
 def test_spark_open_holding_is_logged_only(
@@ -110,7 +131,7 @@ def test_spark_open_holding_is_logged_only(
     ports = Ports(tmp_path, monkeypatch, held)
     snapshot_receipt(clone)
     assert cli.main(["argue", OBJECTION]) == 0
-    assert ports.loop.runs == [] and ports.cases() == []
+    assert ports.cases() == [] and not (ports.registry.parent / "provisional").exists()
     [check] = load_checks(ports.checks)
     assert (check.trigger, check.case_key) == ("argue", None)
     assert [a.answer for a in check.answers][1] == held

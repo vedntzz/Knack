@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 from knack import cli
 from knack.contracts.models import Verdict
+from knack.miss.cases import EditCase
+from knack.miss.provisional import save_provisional
 from knack.receipts.chain import append_receipt, guard_receipt, load_receipts, Receipt
 from knack.roots.corrections import Correction
 from knack.walk.registry import home_registry_dir
@@ -86,3 +88,16 @@ def test_resolve_needs_an_action_and_a_reason(home: Path) -> None:
     assert raised.value.code == 2
     with pytest.raises(SystemExit):
         cli.main(["resolve", "a" * 64, "allow"])
+
+
+def test_resolve_allow_names_the_promoted_must_pass_case(
+    home: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    fields = {"kind": "must-pass", "rule_id": "widgets-3", "file": "a.py"}
+    fields |= {"before": None, "after": "x = 2\n", "source": f"receipt {deny.hash}"}
+    save_provisional(registry, deny.hash, EditCase.model_validate(fields))
+    args = ["resolve", deny.hash, "allow", "--reason", "ok here", "--by", "maria"]
+    assert cli.main([*args, "--registry", str(registry)]) == 0
+    out = capsys.readouterr().out
+    assert "provisional case is now must-pass" in out and "widgets-3" in out

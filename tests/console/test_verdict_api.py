@@ -8,7 +8,13 @@ from knack.console.app import create_app
 from knack.console.links import CONSOLE_URL, verdict_url
 from knack.contracts.models import MatchedCode, Root, RuleProof, Verdict
 from knack.dispute.rulings import append_ruling, RulingRecord
-from knack.receipts.chain import append_receipt, guard_receipt, Receipt
+from knack.receipts.chain import (
+    append_receipt,
+    guard_receipt,
+    Receipt,
+    Resolution,
+    resolution_receipt,
+)
 from knack.receipts.warns import record_warn
 
 REPO = "apache/airflow"
@@ -501,3 +507,62 @@ def test_no_readable_merge_time_has_no_postmark(
 ) -> None:
     world.write_root(root_fields() | {"merged_at": merged_at})
     assert get(world, world.receipt(deny(), at(5)))["root"]["postmark"] is None
+
+
+def resolved(
+    world: World, denied: Receipt, action: Literal["allow", "retire"]
+) -> Receipt:
+    # What knack resolve appends after a person settles the deny.
+    done = Resolution(of=denied.hash, action=action, by="lead", reason="pinned client")
+    return append_receipt(world.receipts, resolution_receipt(denied, done, at(9)))
+
+
+def test_a_ruled_and_resolved_deny_answers_with_its_resolution(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "A pinned client needs it.", "escalate")
+    allowed = resolved(world, denied, "allow")
+    assert get(world, denied)["resolution"] == {
+        "of": denied.hash,
+        "action": "allow",
+        "by": "lead",
+        "reason": "pinned client",
+        "receipt_hash": allowed.hash,
+        "time": at(9),
+    }
+    assert get_rulings(world, denied.hash).status_code == 200
+
+
+def test_the_resolving_allow_carries_the_same_resolution(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "A pinned client needs it.", "escalate")
+    allowed = resolved(world, denied, "retire")
+    found = get(world, allowed)["resolution"]
+    assert (found["of"], found["action"], found["receipt_hash"]) == (
+        denied.hash,
+        "retire",
+        allowed.hash,
+    )
+
+
+def test_an_unresolved_deny_has_no_resolution(world: World) -> None:
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "A pinned client needs it.", "escalate")
+    assert get(world, denied)["resolution"] is None
+
+
+def test_a_registry_this_console_cannot_read_still_answers(world: World) -> None:
+    # A registry written by a newer knack (e.g. a proof field added later) is never a 500.
+    denied = world.receipt(deny(), at(5))
+    world.ruling(denied, "A pinned client needs it.", "escalate")
+    resolved(world, denied, "allow")
+    body = json.loads(world.registry.read_text())
+    body["rules"][0]["added_later"] = True
+    world.registry.write_text(json.dumps(body))
+    found = get(world, denied)
+    assert (found["root"], found["proof"]) == (None, None)
+    assert "registry.json" in found["registry_error"]
+    assert found["resolution"]["action"] == "allow"
+
+
+def test_a_readable_registry_has_no_registry_error(world: World) -> None:
+    assert get(world, world.receipt(deny(), at(5)))["registry_error"] is None

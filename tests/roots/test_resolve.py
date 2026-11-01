@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pytest
 from knack.contracts.models import Verdict
+from knack.miss.cases import case_path, cases_dir, EditCase, load_cases
+from knack.miss.provisional import load_provisional, save_provisional
 from knack.receipts.chain import (
     append_receipt,
     guard_receipt,
@@ -220,3 +222,64 @@ def test_old_correction_lines_without_a_receipt_hash_still_load(log: Path) -> No
     log.write_text(line)
     [record] = recent_corrections(log)
     assert record.receipt_hash is None
+
+
+def provisional_case(deny: Receipt) -> EditCase:
+    # What argue keeps when Spark and Spark Open both escalate on this deny.
+    fields = {"kind": "must-pass", "rule_id": "widgets-3", "file": "a.py"}
+    fields |= {"before": "x = 1\n", "after": "x = 2\n"}
+    return EditCase.model_validate(fields | {"source": f"receipt {deny.hash} (auto)"})
+
+
+def test_a_provisional_case_is_not_a_case_the_loop_sees(
+    registry: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    save_provisional(registry, deny.hash, provisional_case(deny))
+    assert load_cases(cases_dir(registry), "widgets-3") == []
+
+
+def test_allow_promotes_the_provisional_case_to_must_pass(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    save_provisional(registry, deny.hash, provisional_case(deny))
+    named = (receipts, deny.hash, "allow", "pinned client", "maria", log, registry)
+    done = resolve_deny(*named)
+    [case] = load_cases(cases_dir(registry), "widgets-3")
+    assert (case.kind, case.file, case.after) == ("must-pass", "a.py", "x = 2\n")
+    assert "maria" in case.note and "pinned client" in case.note
+    assert done.promoted == case_path(cases_dir(registry), case)
+    assert load_provisional(registry, deny.hash) is None
+
+
+def test_retire_never_promotes_the_provisional_case(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    save_provisional(registry, deny.hash, provisional_case(deny))
+    done = resolve_deny(
+        receipts, deny.hash, "retire", "superseded", "bo", log, registry
+    )
+    assert done.promoted is None
+    assert load_cases(cases_dir(registry), "widgets-3") == []
+    assert load_provisional(registry, deny.hash) is not None
+
+
+def test_allow_without_a_provisional_case_promotes_nothing(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    done = resolve_deny(receipts, deny.hash, "allow", "ok", "maria", log, registry)
+    assert done.promoted is None
+    assert load_cases(cases_dir(registry), "widgets-3") == []
+
+
+def test_another_denys_provisional_case_is_left_alone(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, other = receipted(receipts), receipted(receipts, edit="f" * 64)
+    save_provisional(registry, other.hash, provisional_case(other))
+    resolve_deny(receipts, deny.hash, "allow", "ok", "maria", log, registry)
+    assert load_cases(cases_dir(registry), "widgets-3") == []
+    assert load_provisional(registry, other.hash) is not None

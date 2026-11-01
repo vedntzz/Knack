@@ -1,23 +1,26 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 from knack.contracts.models import Ruling
 from knack.dispute.argue import ruling_prompt, SPARK_MODEL
 from knack.dispute.latest import Disputed
 from knack.miss.cases import EditCase, ModelAnswer
-from knack.miss.loop import LoopOutcome
+from knack.miss.provisional import save_provisional
 from knack.miss.selfcheck import (
     answer_json,
     ask_judge,
     Asked,
+    Log,
+    log_check,
     prompt_sha256,
-    settle,
-    Settle,
+    self_checks_path,
 )
 from knack.miss.sources import case_from_receipt, Places
 from knack.pipeline.ports import Spark
 
 QUESTION = "the quotes do not answer the objection, so the deny should not hold"
-AUTO_NOTE = "auto: Spark escalated, and Spark Open, asked independently, escalated too"
+AUTO_NOTE = "auto, provisional: Spark escalated, and Spark Open, asked independently, escalated too"
+HELD = 'provisional must-pass case {path}; a case only after: knack resolve {hash} allow --reason "<why>"'
 # Spark Open has no schema mode, so the shape argue's schema enforces is asked for in words.
 JSON_REPLY = """
 Reply with JSON only: {"decision": "hold" or "escalate", "reply": "one or two sentences", "cited_quotes": ["exact words from a quote"]}
@@ -26,10 +29,11 @@ Reply with JSON only: {"decision": "hold" or "escalate", "reply": "one or two se
 
 @dataclass(frozen=True)
 class Second:
-    # Spark Open, where the deny's edit snapshot is, and the miss loop to settle with.
+    # Spark Open, where the deny's edit snapshot is, and the registry the case waits beside.
     judge: Spark
     places: Places
-    settle: Settle
+    registry: Path
+    log: Log
 
 
 def spark_escalated(done: Disputed) -> bool:
@@ -43,15 +47,28 @@ def escalates(text: str) -> bool:
     return Ruling.model_validate(answer_json(text)).decision == "escalate"
 
 
-def second_opinion(
-    objection: str, done: Disputed, second: Second
-) -> LoopOutcome | None:
-    # The case comes first, so a deny with no edit snapshot asks Spark Open nothing.
+def second_opinion(objection: str, done: Disputed, second: Second) -> Path | None:
+    # Agreement only holds a provisional case; the miss loop never runs from an objection.
     case = _auto_case(done, second.places)
+    asked = _asked(objection, done, second.judge)
+    checks = self_checks_path(second.registry)
+    agreed = log_check(checks, second.log, case, asked)
+    return _held(second, done.record.receipt_hash, agreed) if agreed else None
+
+
+def _asked(objection: str, done: Disputed, judge: Spark) -> Asked:
+    # The case comes first in second_opinion, so a deny with no edit snapshot asks no one.
     confirmed = [root for root in done.roots if root.status == "Confirmed"]
     prompt = ruling_prompt(objection, confirmed) + JSON_REPLY
-    answers = [_spark_answer(done), ask_judge(second.judge, prompt, escalates)]
-    return settle(second.settle, case, Asked("argue", QUESTION, answers))
+    answers = [_spark_answer(done), ask_judge(judge, prompt, escalates)]
+    return Asked("argue", QUESTION, answers)
+
+
+def _held(second: Second, receipt_hash: str, case: EditCase) -> Path:
+    # Waits beside the registry until a person's knack resolve allow promotes it.
+    path = save_provisional(second.registry, receipt_hash, case)
+    second.log(HELD.format(path=path, hash=receipt_hash))
+    return path
 
 
 def _auto_case(done: Disputed, places: Places) -> EditCase:

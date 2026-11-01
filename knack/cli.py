@@ -26,7 +26,6 @@ from knack.index.build import build_index
 from knack.miss.cases import CaseKind
 from knack.miss.loop import (
     default_heldout,
-    default_loop,
     default_work,
     Loop,
     LoopOutcome,
@@ -34,7 +33,6 @@ from knack.miss.loop import (
     record_and_recompile,
     UnknownRule,
 )
-from knack.miss.selfcheck import self_checks_path, Settle
 from knack.miss.sources import MissSourceError, Places, resolve_source
 from knack.pipeline.clients import (
     adversary_client,
@@ -346,12 +344,21 @@ def _resolve_command(args: argparse.Namespace) -> int:
         done = resolve_deny(*named, corrections_path(), args.registry)
     except (ResolveError, RootStoreError, ValidationError, OSError) as error:
         return _loop_refused("resolve", str(error), 2)
-    print(_resolved_line(done))
+    print("\n".join([_resolved_line(done), *_promoted_lines(done)]))
     return 0
 
 
 def _by(args: argparse.Namespace) -> str:
     return args.by or reviewer_name(Path.cwd())
+
+
+def _promoted_lines(done: Resolved) -> list[str]:
+    # The case is proven by every later recompile of the rule; nothing recompiles now.
+    if done.promoted is None:
+        return []
+    return [
+        f"provisional case is now must-pass for {done.receipt.rule_id}: {done.promoted}"
+    ]
 
 
 def _resolved_line(done: Resolved) -> str:
@@ -583,13 +590,8 @@ def _second_opinion_quietly(objection: str, done: Disputed) -> None:
 
 
 def _second_ports(registry: Path) -> Second:
-    # Spark compiles; Spark Open judges and writes the fresh set. Keys first, so none missing asks no one.
-    github, compiler = live_clients(DEFAULT_EXTRACTOR)
-    judge = partner_client(DEFAULT_EXTRACTOR)
-    loop = default_loop(github, compiler, judge, registry, print)
-    run_loop = partial(record_and_recompile, loop)
-    settle = Settle(registry, self_checks_path(registry), run_loop, print)
-    return Second(judge, _receipt_places(), settle)
+    # Only Spark Open is asked: an objection never builds the compiler or the miss loop.
+    return Second(partner_client(DEFAULT_EXTRACTOR), _receipt_places(), registry, print)
 
 
 def _receipt_places() -> Places:

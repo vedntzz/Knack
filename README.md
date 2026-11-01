@@ -20,7 +20,7 @@ Knack blocks AI coding agents from edits that contradict a team's recorded decis
 
 **Plain code guards.** The models are in the proof loop: they extract, compile and attack rules before install. They are not in the verdict path. A rule is installed only if it passes the held-out bar: it catches at least 2 of 3 violating variants and allows all 3 compliant ones. At edit time, a PreToolUse hook runs plain code: ast-grep plus a check for matches that are new in the edit. No model and no network are involved. The hook denies the edit with a citation. If the guard itself fails, it logs the error to `.knack/guard_errors.log` and allows the edit.
 
-**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain.
+**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain. If Spark and Spark Open both escalate, the edit is held as a provisional case. It becomes a must-pass case for the next recompile only after a person's `knack resolve ... allow`. An objection never recompiles a rule.
 
 Every decision carries one honest label, plus a `seeded` flag:
 
@@ -97,7 +97,7 @@ The step also checks that the regenerated report matches [`bench/REPORT-1030c.md
 
 ### End to end [e2e]
 
-e2e steps passed: 8/8 (`scripts/e2e.sh`). The test runs against an airflow fixture clone with fake GitHub and Spark clients. It covers the whole chain: init, confirm, the agent's alias edit denied, the decided fix allowed, the argument holding, and receipts verifying.
+e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fixture clone with fake GitHub, Spark and Spark Open clients. It covers every loop: init, confirm pinning the rule sha, the warning, the alias edit denied, the decided fix allowed, argue HOLD and ESCALATE, resolve allow and retire, watch on a real merge, miss, false-block, the two-model self-check, the regression gate rolling back, reprove, the console JSON, receipts and the proof grid. #75025 is real. The watch merges #900001 and #900002 are synthetic e2e PRs, not apache/airflow PRs. `scripts/live-smoke.sh` (needs `KNACK_LIVE=1` and keys) runs the same paths against the real services.
 
 ### Miss loop (not in `reproduce.sh`)
 
