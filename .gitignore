@@ -8,3 +8,9 @@ __pycache__/
 AGENTS.md
 spikes/batch/*/src/
 bench/artifacts/
+
+# local run logs and tool state
+.codex/
+bench/*.log
+bench/runs-*.jsonl
+spikes/heldout_cross*
