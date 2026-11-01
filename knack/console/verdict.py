@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from knack.contracts.models import MatchedCode, Root, RuleProof
 from knack.dispute.rulings import RulingRecord, rulings_for
+from knack.home import expand_user_path
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import REGISTRY_ENV
 from knack.receipts.chain import (
@@ -149,7 +150,7 @@ def home_registry_for(repo: str) -> Path | None:
     # The registry the hook guards with: KNACK_REGISTRY, else the repo's home one.
     value = os.environ.get(REGISTRY_ENV)
     if value:
-        return Path(value).expanduser().resolve()
+        return expand_user_path(value)
     path = home_registry_dir(repo) / "registry.json"
     return path if path.exists() else None
 

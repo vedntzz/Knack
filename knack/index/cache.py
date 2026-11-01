@@ -3,11 +3,12 @@ import tempfile
 from pathlib import Path
 
 from knack.git import head_commit, repo_slug
+from knack.home import knack_home
 from knack.index.build import build_index, Index, load_index, write_index
 
 
 def default_cache_dir() -> Path:
-    return Path.home() / ".knack" / "cache"
+    return knack_home() / "cache"
 
 
 def repo_index(repo_root: Path, repo: str) -> Index:

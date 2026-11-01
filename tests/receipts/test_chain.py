@@ -193,6 +193,7 @@ def test_receipts_live_in_the_home_knack_folder(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert receipts_path() == tmp_path / ".knack" / "verdicts.jsonl"
 
 
@@ -216,6 +217,7 @@ def test_cli_verify_defaults_to_the_home_receipts(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     append_receipt(receipts_path(), fields(deny()))
     assert knack_main(["receipts", "verify"]) == 0
     assert "1 receipt" in capsys.readouterr().out

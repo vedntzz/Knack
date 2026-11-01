@@ -113,6 +113,7 @@ EOF
 
 # A sandbox HOME: the real ~/.knack and Muse settings are never read or written.
 export HOME="$WORK/home"
+export KNACK_HOME="$HOME/.knack"
 mkdir -p "$HOME"
 # No credential reaches the hook; git reads no user config.
 unset GITHUB_TOKEN MODEL_API_KEY BASETEN_API_KEY KNACK_REGISTRY

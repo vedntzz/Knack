@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from knack.contracts.models import Root
+from knack.home import knack_home
 
 # Only these judge an extraction; allow and retire resolve a deny after ESCALATE.
 EXTRACTION_ACTIONS = ("confirm", "reject")
@@ -30,7 +31,7 @@ class Correction(BaseModel):
 
 def corrections_path() -> Path:
     # One log per user, shared by every registry they correct.
-    return Path.home() / ".knack" / "corrections.jsonl"
+    return knack_home() / "corrections.jsonl"
 
 
 def append_correction(correction: Correction, path: Path) -> None:

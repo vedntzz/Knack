@@ -80,6 +80,7 @@ def home_log(root: Path) -> Path:
 def set_env(monkeypatch: pytest.MonkeyPatch, root: Path, registry: Path) -> None:
     # Home lives under tmp so the index cache and log never touch the real one.
     monkeypatch.setenv("HOME", str(root / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.setenv("KNACK_REGISTRY", str(registry))
 
 

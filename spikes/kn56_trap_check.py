@@ -3,8 +3,9 @@ import sys
 from pathlib import Path
 
 from knack.bench.attempts import new_matches
+from knack.home import knack_home
 
-REG = Path.home() / ".knack/registries"
+REG = knack_home() / "registries"
 LINT = "docs/lint.py"
 CONF = "docs/conf.py"
 I18N = "tests/i18n/test_compilation.py"

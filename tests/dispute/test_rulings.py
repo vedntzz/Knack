@@ -29,6 +29,7 @@ def test_rulings_live_beside_the_receipts(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert rulings_path() == tmp_path / ".knack" / "rulings.jsonl"
 
 

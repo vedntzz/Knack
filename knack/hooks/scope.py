@@ -4,6 +4,7 @@ from typing import Any
 
 from knack.git import git_root, origin_repo, repo_slug
 from knack.guard.check import log_error_quietly
+from knack.home import expand_user_path, knack_home
 from knack.walk.registry import clone_home_registry, load_registry, Registry
 
 JsonDict = dict[str, Any]
@@ -17,14 +18,14 @@ def event_cwd(event: JsonDict) -> Path:
 
 def home_error_log() -> Path:
     # Knack files stay in the user's home, never inside the guarded repo.
-    return Path.home() / ".knack" / "guard_errors.log"
+    return knack_home() / "guard_errors.log"
 
 
 def hook_registry_path(event: JsonDict) -> Path | None:
     # KNACK_REGISTRY wins; unset, the clone's home registry, when one is installed.
     value = os.environ.get(REGISTRY_ENV)
     if value:
-        return Path(value).expanduser().resolve()
+        return expand_user_path(value)
     path = clone_home_registry(event_cwd(event))
     return path if path is not None and path.exists() else None
 

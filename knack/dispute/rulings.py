@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from knack.home import knack_home
+
 
 class RulingRecord(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -20,7 +22,7 @@ class RulingRecord(BaseModel):
 
 
 def rulings_path() -> Path:
-    return Path.home() / ".knack" / "rulings.jsonl"
+    return knack_home() / "rulings.jsonl"
 
 
 def append_ruling(path: Path, record: RulingRecord) -> None:

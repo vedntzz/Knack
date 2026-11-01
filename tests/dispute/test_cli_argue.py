@@ -31,6 +31,7 @@ def clone(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     subprocess.run(["git", "init", "-q", str(path)], check=True)
     subprocess.run(["git", "-C", str(path), "remote", "add", "origin", AIRFLOW_URL])
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.setenv("KNACK_REGISTRY", str(REGISTRY))
     monkeypatch.chdir(path)
     return path.resolve()

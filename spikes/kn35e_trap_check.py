@@ -3,10 +3,11 @@ import sys
 from pathlib import Path
 
 from knack.bench.attempts import new_matches
+from knack.home import knack_home
 
 KNACK = Path("/Users/vedant/Documents/knack")
 BATCH = KNACK / "spikes/batch"
-HOME = Path.home() / ".knack/registries"
+HOME = knack_home() / "registries"
 
 PUB = "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py"
 UI = "airflow-core/src/airflow/api_fastapi/core_api/routes/ui/dags.py"

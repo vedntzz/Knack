@@ -278,6 +278,7 @@ def test_without_the_env_the_repos_home_registry_is_used(
 
     monkeypatch.delenv("KNACK_REGISTRY", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert home_registry_for(REPO) is None
     home = tmp_path / ".knack" / "registries" / "apache-airflow"
     home.mkdir(parents=True)

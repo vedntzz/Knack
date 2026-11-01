@@ -9,7 +9,7 @@ from typing import Any
 from knack.contracts.models import Root
 from knack.hooks.scope import REGISTRY_ENV
 from knack.roots.store import load_roots, write_root
-from knack.walk.registry import home_registry_dir, load_registry, Registry
+from knack.walk.registry import load_registry, Registry, registry_dir_in
 
 MUSE_DIR = Path(".config") / "muse"
 SETTINGS = MUSE_DIR / "settings.json"
@@ -61,7 +61,7 @@ def install_bench_registry(source: Path, home: Path) -> Path:
 
 def registry_in(home: Path, repo: str) -> Path:
     # The folder home_registry_dir names, under any home rather than the user's.
-    return home / home_registry_dir(repo).relative_to(Path.home())
+    return registry_dir_in(home / ".knack", repo)
 
 
 def _arm_hooks(arm: str) -> list[Hook]:

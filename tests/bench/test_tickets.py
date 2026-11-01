@@ -6,7 +6,12 @@ import pytest
 from knack.bench.tickets import BenchTicket, key_terms, load_tickets, TicketError
 from knack.contracts.models import Root
 from knack.roots.store import write_root
-from knack.walk.registry import home_registry_dir, Registry, RegistryEntry
+from knack.walk.registry import (
+    home_registry_dir,
+    Registry,
+    registry_dir_in,
+    RegistryEntry,
+)
 from pydantic import ValidationError
 
 REPO_ROOT = Path(__file__).parents[2]
@@ -21,6 +26,7 @@ PROBLEM = "Loading a large bucket exhausts file descriptors and the worker dies.
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     return tmp_path / "home"
 
 
@@ -205,11 +211,21 @@ KN35E_ADDED = {"airflow-75025", "fastapi-15937"}
 BENCH_REPOS = ["apache/airflow", "fastapi/fastapi"]
 
 
-@pytest.mark.skipif(
-    not all((home_registry_dir(r) / "registry.json").exists() for r in BENCH_REPOS),
-    reason="needs the airflow and fastapi home registries from knack import",
-)
-def test_real_tickets_are_the_preregistered_nine() -> None:
+def read_real_registries(
+    monkeypatch: pytest.MonkeyPatch, real_knack_home: Path, repos: list[str]
+) -> None:
+    # Read-only: tickets load from the user's imported registries, or the test skips.
+    if not all(
+        (registry_dir_in(real_knack_home, r) / "registry.json").exists() for r in repos
+    ):
+        pytest.skip("needs the home registries from knack import")
+    monkeypatch.setenv("KNACK_HOME", str(real_knack_home))
+
+
+def test_real_tickets_are_the_preregistered_nine(
+    monkeypatch: pytest.MonkeyPatch, real_knack_home: Path
+) -> None:
+    read_real_registries(monkeypatch, real_knack_home, BENCH_REPOS)
     expected = CROSS_MODEL_PASSED | KN35E_ADDED
     assert {t.rule for t in load_tickets(REAL_TICKETS)} == expected
 
@@ -219,9 +235,8 @@ FRESH_TICKETS = REPO_ROOT / "bench" / "tickets-fresh.jsonl"
 FRESH_PASSED = {"django-22111"}
 
 
-@pytest.mark.skipif(
-    not (home_registry_dir("django/django") / "registry.json").exists(),
-    reason="needs the django home registry from knack import",
-)
-def test_fresh_tickets_are_the_screened_set() -> None:
+def test_fresh_tickets_are_the_screened_set(
+    monkeypatch: pytest.MonkeyPatch, real_knack_home: Path
+) -> None:
+    read_real_registries(monkeypatch, real_knack_home, ["django/django"])
     assert {t.rule for t in load_tickets(FRESH_TICKETS)} == FRESH_PASSED

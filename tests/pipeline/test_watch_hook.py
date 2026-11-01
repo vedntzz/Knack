@@ -30,6 +30,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def repo(tmp_path: Path, isolated_git: None, monkeypatch: pytest.MonkeyPatch) -> Path:
     # A merged clone with its baseline before the merge; HOME is a temp dir.
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
     monkeypatch.delenv("BASETEN_API_KEY", raising=False)

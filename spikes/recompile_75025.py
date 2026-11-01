@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, retry_prompt, rule_text, with_rule_id
+from knack.home import knack_home, user_home
 from knack.pipeline.heldout import score_heldout
 from knack.pipeline.prove import (
     _rule_file,
@@ -23,9 +24,9 @@ from knack.pipeline.variants import KINDS
 
 KNACK = Path(__file__).parent.parent
 SRC = KNACK / "spikes/batch/apache-airflow/src/75025"
-HOME_REG = Path.home() / ".knack/registries/apache-airflow"
+HOME_REG = knack_home() / "registries/apache-airflow"
 MAIN, OLD = HOME_REG / "work/tree", HOME_REG / "work/release-3.3.2"
-SANDBOX_DAGS = Path.home() / "Documents/knack-sandbox/routes/public/dags.py"
+SANDBOX_DAGS = user_home() / "Documents/knack-sandbox/routes/public/dags.py"
 DAGS = "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py"
 FIXTURE = KNACK / "tests/hooks/fixtures/edit_75025_alias.json"
 INSTALL = [KNACK / "data/rules/airflow/75025.yml", HOME_REG / "rules/75025.yml"]

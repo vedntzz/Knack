@@ -2,6 +2,19 @@
 
 Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
+## Get it running
+
+Prerequisites: git, [uv](https://docs.astral.sh/uv/), jq (one check in the table below uses it) and Python 3.11. If Python 3.11 is not installed, `uv sync` downloads it, which needs network once. ast-grep comes from the pinned `ast-grep-cli==0.51.0` dependency, so there is nothing else to install. `uv sync --frozen` installs the exact versions pinned in the committed `uv.lock` into `.venv`.
+
+```sh
+git clone https://github.com/vedntzz/Knack.git
+cd Knack
+uv sync --frozen --extra dev --python 3.11
+source .venv/bin/activate
+```
+
+The commands below assume the venv is active, so `python` is the venv's.
+
 ## Verify any claim in 60 seconds
 
 | Claim | Artifact | Check |
@@ -42,10 +55,13 @@ Knack has only been run on public repos; on a private repo, `knack init` and `kn
 
 ## Reproduce every number
 
+From the clone, after [Get it running](#get-it-running), with no other knack or pytest process running:
+
 ```sh
-uv venv && uv pip install --python .venv/bin/python -e ".[dev]"
 bash scripts/reproduce.sh
 ```
+
+The last line is the verdict: `PROOF: PASS` (exit 0) means every step ran and every regenerated file matched its committed copy; `PROOF: FAIL (<step>)` (exit 1) names the first step that did not. FAIL cells in the grid are measured results, by design: held-out fails on 5 rules, variants on 2 and rename on 1, every one of those rules sits at the warn tier so it can never block, and the run is still green. `reproduce.sh` never rewrites `bench/PROOF-GRID.md`; it regenerates the grid, prints it and fails if it differs from the committed file by a byte. The script refuses to start while another knack or pytest process is running, because its e2e step checks that your real knack home is untouched and another run can write there.
 
 The script reads only committed files. It uses no network, no model and no home registry. It prints each number beside the command that produced it, and it exits 0 only if every step ran. Each number below is tagged with the section of `scripts/reproduce.sh` that prints it, written as **[section]**.
 
@@ -156,6 +172,8 @@ These are not built yet:
 - **Status:** `knack status`, showing what is guarded in this clone, each root's label, and its last held-out score.
 
 ## Setup
+
+Knack keeps its per-user files in `~/.knack`, or in `$KNACK_HOME` when `KNACK_HOME` is set: the home registries, `verdicts.jsonl`, `warns.jsonl`, `rulings.jsonl`, `corrections.jsonl`, `guard_errors.log` and caches. The test suite points `HOME` and `KNACK_HOME` at a temp folder for every test.
 
 Each repo has one home registry: `~/.knack/registries/<owner-name>/registry.json`. `knack init` and `knack watch` write it. The hooks, `walk`, `confirm` and `reject` read it. `knack import --registry data/registry/airflow.json` merges an existing registry in without overwriting reviewed roots, and `KNACK_REGISTRY` overrides the registry path. The hooks stay silent unless `git remote get-url origin` has a home registry.
 

@@ -16,6 +16,7 @@ from registry_fixture import make_registry, raw_entries, root, status_on_disk
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     return tmp_path / "home"
 
 

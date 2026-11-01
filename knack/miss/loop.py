@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from knack.contracts.models import Root
+from knack.home import knack_home
 from knack.hooks.pretool_guard import rule_name
 from knack.miss.cases import cases_dir, EditCase, load_cases, save_case
 from knack.pipeline.compile import (
@@ -130,7 +131,7 @@ def default_heldout(registry: Path) -> Path:
 
 def default_work(registry: Path) -> Path:
     name = f"{registry.resolve().parent.name}-{registry.stem}"
-    return Path.home() / ".knack" / "cache" / "miss" / name
+    return knack_home() / "cache" / "miss" / name
 
 
 def record_and_recompile(loop: Loop, cases: list[EditCase]) -> LoopOutcome:

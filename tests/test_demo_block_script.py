@@ -72,3 +72,8 @@ def test_demo_leaves_the_real_home_and_names_no_credential() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
     assert 'export HOME="$WORK/home"' in text
     assert "unset GITHUB_TOKEN MODEL_API_KEY BASETEN_API_KEY KNACK_REGISTRY" in text
+
+
+def test_demo_pins_knack_home_inside_its_sandbox_home() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'export KNACK_HOME="$HOME/.knack"' in text

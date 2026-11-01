@@ -156,6 +156,7 @@ def test_cli_prints_the_feed_and_writes_nothing(
     deny = world.receipt(deny_verdict(), time=(now - timedelta(minutes=1)).isoformat())
     world.commit("Drop alias sort keys", date=now.isoformat())
     monkeypatch.setenv("HOME", str(world.home.parent))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.setenv("KNACK_REGISTRY", str(world.registry))
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.chdir(world.clone)

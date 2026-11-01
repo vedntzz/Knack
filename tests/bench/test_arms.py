@@ -8,12 +8,7 @@ import pytest
 from knack.bench.arms import ArmError, prepare_home
 from knack.contracts.models import DecisionStatus, Root
 from knack.roots.store import load_roots, write_root
-from knack.walk.registry import (
-    home_registry_dir,
-    load_registry,
-    Registry,
-    RegistryEntry,
-)
+from knack.walk.registry import load_registry, Registry, registry_dir_in, RegistryEntry
 
 REPO = "acme/widgets"
 AUTH = b'{"schema_version": 2, "providers": {"meta": {"storage": "keychain"}}}\n'
@@ -162,13 +157,13 @@ def test_real_settings_and_home_registry_are_untouched(
     assert snapshot(real_home) == before
 
 
-@pytest.mark.skipif(
-    not (home_registry_dir("apache/airflow") / "registry.json").exists(),
-    reason="needs the apache/airflow home registry",
-)
-def test_your_real_settings_and_home_registry_are_byte_identical(runs: Path) -> None:
-    real = home_registry_dir("apache/airflow")
-    watched = [Path.home() / ".config" / "muse", real]
+def test_your_real_settings_and_home_registry_are_byte_identical(
+    runs: Path, real_home: Path, real_knack_home: Path
+) -> None:
+    real = registry_dir_in(real_knack_home, "apache/airflow")
+    if not (real / "registry.json").exists():
+        pytest.skip("needs the apache/airflow home registry")
+    watched = [real_home / ".config" / "muse", real]
     before = snapshot(*watched)
     home = prepare_home("warn+veto", real / "registry.json", runs)
     assert home.is_relative_to(runs)

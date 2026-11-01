@@ -254,6 +254,7 @@ def test_cli_walk_without_registry_uses_the_clone_home_registry(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     home = home_registry_dir("apache/airflow")
     home.mkdir(parents=True)
     (home / "registry.json").write_text(load_registry(REGISTRY).model_dump_json())
@@ -269,6 +270,7 @@ def test_cli_walk_without_registry_outside_a_clone_exits_2(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert cli.main(["walk", TICKET_75025, "--repo", str(tmp_path)]) == 2
     err = capsys.readouterr().err
     assert "knack walk:" in err and "--registry" in err

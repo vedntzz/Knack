@@ -14,6 +14,7 @@ from knack.bench.muse import muse_env
 from knack.bench.sandbox import BaseFiles, build_sandbox
 from knack.bench.tickets import BenchTicket, load_tickets
 from knack.guard.runner import AST_GREP
+from knack.home import user_home
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.ports import Spark
 from knack.pipeline.spark import SparkApi
@@ -83,12 +84,12 @@ def live_doctor(tickets: Path, cache: Path) -> bool:
 
 def live_kit(tickets: Path, cache: Path, scratch: Path) -> DoctorKit:
     clients = (GitHubApi, SparkApi, SparkOpenApi, shutil.which, version_line)
-    return DoctorKit(os.environ, *clients, tickets, Path.home(), cache, scratch)
+    return DoctorKit(os.environ, *clients, tickets, user_home(), cache, scratch)
 
 
 def version_line(argv: list[str]) -> str:
     # No bench secret and no auto-update reach the version command.
-    limit, env = VERSION_TIMEOUT_SECONDS, muse_env(Path.home())
+    limit, env = VERSION_TIMEOUT_SECONDS, muse_env(user_home())
     done = subprocess.run(
         argv, env=env, capture_output=True, text=True, timeout=limit, check=True
     )
