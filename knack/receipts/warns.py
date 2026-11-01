@@ -3,6 +3,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from knack.home import knack_home
+
 
 class WarnRecord(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -17,7 +19,7 @@ class WarnRecord(BaseModel):
 
 
 def warns_path() -> Path:
-    return Path.home() / ".knack" / "warns.jsonl"
+    return knack_home() / "warns.jsonl"
 
 
 def record_warn(

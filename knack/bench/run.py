@@ -26,8 +26,9 @@ from knack.bench.classify import (
 )
 from knack.bench.doctor import live_doctor
 from knack.bench.muse import ExecResult, Muse, MuseCli
-from knack.bench.sandbox import BaseFiles, build_sandbox
+from knack.bench.sandbox import BaseFiles, build_sandbox, default_cache
 from knack.bench.tickets import BenchTicket, load_tickets
+from knack.home import user_home
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.ports import Spark
 from knack.pipeline.spark_open import SparkOpenApi
@@ -298,7 +299,7 @@ def _setup(
     work = args.work or Path(tempfile.mkdtemp(prefix="work_"))
     github, judge = GitHubApi(github_token), SparkOpenApi(judge_key)
     clients = (github, MuseCli(api_key=model_key), judge)
-    homes = (args.cache, Path.home(), args.timeout, args.artifacts)
+    homes = (args.cache, user_home(), args.timeout, args.artifacts)
     return RunSetup(work, *clients, *homes)
 
 
@@ -330,9 +331,7 @@ def _add_paths(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out", type=Path, default=Path("bench/runs.jsonl"))
     parser.add_argument("--work", type=Path, default=None)
     parser.add_argument("--artifacts", type=Path, default=DEFAULT_ARTIFACTS)
-    parser.add_argument(
-        "--cache", type=Path, default=Path.home() / ".knack/cache/bench"
-    )
+    parser.add_argument("--cache", type=Path, default=default_cache())
 
 
 def _positive(value: str) -> int:

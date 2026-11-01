@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from knack.contracts.models import RuleProof
 from knack.git import git_root, origin_repo
+from knack.home import knack_home
 
 # This repo's data folder: committed variants and held-out sets per guarded repo.
 KNACK_DATA = Path(__file__).resolve().parents[2] / "data"
@@ -37,7 +38,12 @@ def repo_data(registry: Path, kind: str) -> Path:
 
 def home_registry_dir(repo: str) -> Path:
     # Where knack init installs by default, and where knack watch looks.
-    return Path.home() / ".knack" / "registries" / repo.replace("/", "-").lower()
+    return registry_dir_in(knack_home(), repo)
+
+
+def registry_dir_in(knack_dir: Path, repo: str) -> Path:
+    # A repo's registry folder under any knack home: registries/<owner-name>.
+    return knack_dir / "registries" / repo.replace("/", "-").lower()
 
 
 class NoCloneRegistry(Exception):

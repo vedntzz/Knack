@@ -108,6 +108,7 @@ def real_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     registry = Registry(repo=REPO, roots_dir=Path("roots"), rules=[entry])
     (out / "registry.json").write_text(registry.model_dump_json())
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     return home
 
 

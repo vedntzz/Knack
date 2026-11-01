@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from knack.contracts.models import MatchedCode, Root, Verdict
 from knack.guard.check import GUARD_ERROR_REASON
+from knack.home import knack_home
 
 JsonDict = dict[str, Any]
 Decision = Literal["allow", "deny", "guard-error"]
@@ -55,7 +56,7 @@ class Receipt(BaseModel):
     branch: str | None = None
     session_id: str | None = None
     matched: list[MatchedCode] | None = None
-    # The saved snapshot of the edit this verdict was on, under ~/.knack/edits.
+    # The saved snapshot of the edit this verdict was on, under <knack home>/edits.
     edit_sha256: str | None = None
     # Set only on the receipt knack resolve appends.
     resolution: Resolution | None = None
@@ -71,7 +72,7 @@ class ChainReport(BaseModel):
 
 
 def receipts_path() -> Path:
-    return Path.home() / ".knack" / "verdicts.jsonl"
+    return knack_home() / "verdicts.jsonl"
 
 
 def guard_receipt(

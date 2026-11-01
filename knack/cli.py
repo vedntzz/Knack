@@ -23,6 +23,7 @@ from knack.dispute.rulings import append_ruling, RulingRecord, rulings_path
 from knack.dispute.second import Second, second_opinion, spark_escalated
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
+from knack.home import user_home
 from knack.index.build import build_index
 from knack.miss.cases import CaseKind
 from knack.miss.loop import (
@@ -90,8 +91,10 @@ MISS_HELP = "a receipt hash of the allow, a bench run id, or an edit JSON file"
 FALSE_BLOCK_HELP = "the receipt hash of the deny (or an edit JSON file)"
 HELDOUT_HELP = "folder of <pr>/same and <pr>/cross held-out sets; defaults to ../heldout/<registry name>"
 LOOP_REGISTRY_HELP = "defaults to the home registry of the clone you are in"
-WORK_HELP = "defaults to ~/.knack/cache/miss/<registry>"
-RECEIPTS_HELP = "defaults to ~/.knack/verdicts.jsonl"
+WORK_HELP = (
+    "defaults to $KNACK_HOME/cache/miss/<registry> (KNACK_HOME defaults to ~/.knack)"
+)
+RECEIPTS_HELP = "defaults to $KNACK_HOME/verdicts.jsonl"
 RUNS_HELP = "bench run files; defaults to bench/runs*.jsonl"
 KEPT = "the old rule is kept"
 RESOLVE_REGISTRY_HELP = "defaults to the home registry of the receipt's repo"
@@ -239,7 +242,7 @@ def _clients_or_explain(args: argparse.Namespace) -> Extractors | None:
 
 
 def _add_watch_arguments(watch: argparse.ArgumentParser) -> None:
-    muse = Path.home() / ".config" / "muse" / "settings.json"
+    muse = user_home() / ".config" / "muse" / "settings.json"
     watch.add_argument("--registry", type=Path)
     watch.add_argument("--muse-settings", type=Path, default=muse)
     second = watch.add_mutually_exclusive_group()
@@ -462,7 +465,7 @@ def _bench_report(runs: Path, exclude: str | None) -> int:
 def _add_receipts_arguments(receipts: argparse.ArgumentParser) -> None:
     actions = receipts.add_subparsers(dest="action", required=True)
     verify = actions.add_parser("verify")
-    verify.add_argument("--path", type=Path, help="defaults to ~/.knack/verdicts.jsonl")
+    verify.add_argument("--path", type=Path, help=RECEIPTS_HELP)
 
 
 def _receipts_command(args: argparse.Namespace) -> int:

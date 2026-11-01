@@ -27,6 +27,7 @@ from knack.watch.state import write_seen
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.delenv("KNACK_REGISTRY", raising=False)
     return tmp_path / "home"
 

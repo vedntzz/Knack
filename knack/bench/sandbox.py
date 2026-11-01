@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Protocol
 
 from knack.bench.tickets import BenchTicket
+from knack.home import knack_home
 
 GIT_TIMEOUT_SECONDS = 30
 # A plain developer identity, so the sandbox history names nothing of the bench.
@@ -22,7 +23,7 @@ class BaseFiles(Protocol):
 
 
 def default_cache() -> Path:
-    return Path.home() / ".knack" / "cache" / "bench"
+    return knack_home() / "cache" / "bench"
 
 
 def build_sandbox(

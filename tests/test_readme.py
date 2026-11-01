@@ -50,3 +50,61 @@ def test_no_tracked_file_describes_knack_as_rag() -> None:
         p.name for p in tracked_text_files() if p != Path(__file__) and mentions_rag(p)
     ]
     assert hits == []
+
+
+VERIFY_HEADING = "## Verify any claim in 60 seconds"
+CLONE = "git clone https://github.com/vedntzz/Knack.git"
+
+
+def readme_before_verify_table() -> str:
+    text = README.read_text(encoding="utf-8")
+    return text[: text.index(VERIFY_HEADING)]
+
+
+def test_a_stranger_gets_the_clone_command_before_the_verify_table() -> None:
+    assert CLONE in readme_before_verify_table()
+
+
+def test_prerequisites_name_uv_jq_and_python_311_and_the_download() -> None:
+    top = " ".join(readme_before_verify_table().split())
+    [line] = [s for s in top.split("Prerequisites:")[1:]]
+    for wanted in ["uv", "jq", "Python 3.11", "download"]:
+        assert wanted in line, wanted
+
+
+def test_the_venv_is_activated_before_the_verify_table() -> None:
+    assert "source .venv/bin/activate" in readme_before_verify_table()
+
+
+def test_readme_says_what_a_green_run_is_and_why_grid_cells_fail() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert "`PROOF: PASS`" in text and "`PROOF: FAIL (<step>)`" in text
+    assert "FAIL cells in the grid are measured results, by design" in text
+
+
+def test_readme_says_reproduce_checks_the_grid_rather_than_rewriting_it() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert "`reproduce.sh` never rewrites `bench/PROOF-GRID.md`" in text
+
+
+def test_readme_names_knack_home() -> None:
+    assert "`KNACK_HOME`" in README.read_text(encoding="utf-8")
+
+
+INSTALL = "uv sync --frozen --extra dev --python 3.11"
+
+
+def test_the_install_resolves_the_committed_lock() -> None:
+    # --frozen installs uv.lock's exact versions and fails rather than re-resolve.
+    assert INSTALL in readme_before_verify_table()
+    assert "uv pip install" not in README.read_text(encoding="utf-8")
+
+
+def test_uv_lock_is_committable() -> None:
+    lock = REPO_ROOT / "uv.lock"
+    ignored = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "check-ignore", "uv.lock"],
+        capture_output=True,
+        text=True,
+    )
+    assert lock.is_file() and ignored.stdout == ""

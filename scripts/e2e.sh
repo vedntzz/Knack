@@ -7,6 +7,8 @@ set -u -o pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PY="${PYTHON:-$ROOT/.venv/bin/python}"
 REAL_HOME="$HOME"
+# The user's knack folder, wherever KNACK_HOME points it.
+REAL_KNACK="${KNACK_HOME:-$REAL_HOME/.knack}"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/knack-e2e.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -26,9 +28,9 @@ ESCALATING="The public API docs promise order_by=state until its deprecation win
 BAD_LESSON="a PR description is never a decision record"
 FAILED=0
 
-# A fingerprint of everything the run must not touch: real ~/.knack and Muse settings.
+# A fingerprint of everything the run must not touch: the real knack home and Muse settings.
 real_state() {
-  find "$REAL_HOME/.knack" "$REAL_HOME/.config/muse" -type f 2>/dev/null \
+  find "$REAL_KNACK" "$REAL_HOME/.config/muse" -type f 2>/dev/null \
     -exec shasum {} + 2>/dev/null | sort
 }
 
@@ -400,6 +402,7 @@ untouched() { test "$(real_state)" = "$BEFORE"; }
 
 BEFORE="$(real_state)"
 export HOME="$WORK/home"
+export KNACK_HOME="$HOME/.knack"
 mkdir -p "$HOME"
 # No live credential or registry override reaches any step; git reads no user config.
 unset GITHUB_TOKEN MODEL_API_KEY BASETEN_API_KEY KNACK_REGISTRY

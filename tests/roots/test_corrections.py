@@ -26,6 +26,7 @@ def test_corrections_live_in_the_home_knack_folder(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert corrections_path() == tmp_path / ".knack" / "corrections.jsonl"
 
 

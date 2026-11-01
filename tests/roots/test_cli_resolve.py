@@ -16,6 +16,7 @@ NOW = "2026-10-31T09:00:00+00:00"
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     return tmp_path / "home"
 
 

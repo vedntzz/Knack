@@ -13,6 +13,7 @@ from test_watch_run import head, write_registry
 def repo(tmp_path: Path, isolated_git: None, monkeypatch: pytest.MonkeyPatch) -> Path:
     # A clone of acme/widgets as cwd, with knack init's registry in a temp HOME.
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     repo = make_repo(tmp_path / "widgets")
     monkeypatch.chdir(repo)
     return repo

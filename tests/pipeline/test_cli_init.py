@@ -53,6 +53,7 @@ def test_init_defaults_to_the_home_registry_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     assert cli.main(["init", "--repo", "Acme/Widgets", "--prs", "1"]) == 0
     expected = tmp_path / "home" / ".knack" / "registries" / "acme-widgets"
     assert (expected / "registry.json").exists()

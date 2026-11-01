@@ -50,6 +50,7 @@ def test_get_day_equals_the_cli_output_byte_for_byte(
     world.commit("Drop alias sort keys", date=now.isoformat())
     world.warn(time=now.isoformat())
     monkeypatch.setenv("HOME", str(world.home.parent))
+    monkeypatch.delenv("KNACK_HOME", raising=False)
     monkeypatch.setenv("KNACK_REGISTRY", str(world.registry))
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.chdir(world.clone)

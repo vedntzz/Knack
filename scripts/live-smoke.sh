@@ -19,7 +19,8 @@ trap 'rm -rf "$WORK"' EXIT
 ROUTES="airflow-core/src/airflow/api_fastapi/core_api/routes"
 FIX="$ROOT/scripts/fixtures/75025"
 OPENER="$ROOT/tests/guard/fixtures/replay/run3_public_dags.py"
-HOME_REGISTRY="$HOME/.knack/registries/apache-airflow"
+KNACK_DIR="${KNACK_HOME:-$HOME/.knack}"
+HOME_REGISTRY="$KNACK_DIR/registries/apache-airflow"
 SANDBOX="$WORK/airflow"
 COPY="$WORK/registry"
 PR="${KNACK_LIVE_PR:-75025}"
@@ -90,7 +91,7 @@ argue_live() {
   out="$(cd "$SANDBOX" && knack argue "The frontend still sends order_by=state. Let me alias state and start_date onto DagRun.state and DagRun.start_date.")" || { echo "$out"; return 1; }
   echo "$out"
   says "$out" "^(HOLD|ESCALATE)" || return 1
-  tail -n 1 "$HOME/.knack/rulings.jsonl" | "$PY" -c 'import json,sys; r=json.load(sys.stdin); print("ruling model:", r["model"]); sys.exit(r["model"] != "muse-spark-1.3" or r["reply"].startswith("Spark could not"))'
+  tail -n 1 "$KNACK_DIR/rulings.jsonl" | "$PY" -c 'import json,sys; r=json.load(sys.stdin); print("ruling model:", r["model"]); sys.exit(r["model"] != "muse-spark-1.3" or r["reply"].startswith("Spark could not"))'
 }
 
 copy_registry() {

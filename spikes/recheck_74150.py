@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from knack.home import knack_home
 from knack.pipeline.compile import with_rule_id
 from knack.pipeline.heldout import score_heldout
 from knack.pipeline.prove import failed_checks, ProofCase, prove, verifier_sides
@@ -15,7 +16,7 @@ from spikes.heldout_cross import side
 KNACK = Path(__file__).parent.parent
 SRC = KNACK / "spikes/batch/apache-airflow/src/74150"
 V3 = KNACK / "spikes/batch/apache-airflow/rules/74150.v3.yml"
-HOME_REG = Path.home() / ".knack/registries/apache-airflow"
+HOME_REG = knack_home() / "registries/apache-airflow"
 MAIN, OLD = HOME_REG / "work/tree", HOME_REG / "work/release-3.3.2"
 INSTALL = [KNACK / "data/rules/airflow/74150.yml", HOME_REG / "rules/74150.yml"]
 

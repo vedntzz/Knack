@@ -77,3 +77,15 @@ def test_e2e_passes_every_step_and_exits_0(tmp_path: Path) -> None:
         line for line in done.stdout.splitlines() if line.startswith("PASS ")
     ]
     assert "FAIL" not in done.stdout
+
+
+def test_e2e_pins_knack_home_inside_its_sandbox_home() -> None:
+    # An exported KNACK_HOME would otherwise send every step to the user's folder.
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'export KNACK_HOME="$HOME/.knack"' in text
+
+
+def test_e2e_fingerprints_the_users_knack_home_wherever_it_is() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'REAL_KNACK="${KNACK_HOME:-$REAL_HOME/.knack}"' in text
+    assert 'find "$REAL_KNACK" "$REAL_HOME/.config/muse"' in text
