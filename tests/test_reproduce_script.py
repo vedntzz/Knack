@@ -1,4 +1,5 @@
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -22,17 +23,33 @@ SECTIONS = [
 ]
 # A number line: the number, then the command that printed it.
 NUMBER_LINE = re.compile(r"^\S.*\d.*  \$ \S")
+SYSTEM_PATH = "/usr/bin:/bin"
+# The pattern reproduce.sh hands awk with -v, where gawk warns on any backslash escape.
+OTHERS_LINE = re.compile(r"^OTHERS='(.*)'$", re.MULTILINE)
 
 
 def run_reproduce(
-    home: Path, python: str = sys.executable, alone: bool = True
-) -> subprocess.CompletedProcess[str]:
+    home: Path,
+    python: str = sys.executable,
+    alone: bool = True,
+    path: str = SYSTEM_PATH,
+) ->subprocess.CompletedProcess[str]:
     # alone: the suite's HOME is a temp dir, so another session's pytest cannot touch it.
-    env = {"HOME": str(home), "PATH": "/usr/bin:/bin", "PYTHON": python}
+    env = {"HOME": str(home), "PATH": path, "PYTHON": python}
     env |= {"KNACK_REPRODUCE_IGNORE_OTHERS": "1"} if alone else {}
     return subprocess.run(
         ["bash", str(SCRIPT)], capture_output=True, text=True, timeout=900, env=env
     )
+
+
+def gawk_first_path(tmp_path: Path) -> str:
+    # Puts gawk first as awk when installed; ubuntu CI's awk is gawk already.
+    gawk = shutil.which("gawk")
+    if gawk is None:
+        return SYSTEM_PATH
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "awk").symlink_to(gawk)
+    return f"{tmp_path / 'bin'}:{SYSTEM_PATH}"
 
 
 def summary_lines(out: str) -> list[str]:
@@ -131,6 +148,20 @@ def test_reproduce_refuses_to_start_beside_another_knack_or_pytest(
     ]
     assert len(done.stderr.strip().splitlines()) == 1
     assert str(stand_in.pid) in done.stderr
+
+
+def test_the_awk_pattern_has_no_backslash_escapes() -> None:
+    (others,) = OTHERS_LINE.findall(SCRIPT.read_text(encoding="utf-8"))
+    assert "\\" not in others
+
+
+def test_refusal_stderr_carries_no_awk_warning(tmp_path: Path) -> None:
+    stand_in = subprocess.Popen(["bash", "-c", "exec -a 'pytest -q' sleep 60"])
+    try:
+        done = run_reproduce(tmp_path, alone=False, path=gawk_first_path(tmp_path))
+    finally:
+        stand_in.kill()
+    assert done.returncode == 1 and "awk:" not in done.stderr, done.stderr
 
 
 def test_a_shell_whose_command_text_mentions_pytest_is_not_a_run(

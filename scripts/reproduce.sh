@@ -29,7 +29,7 @@ REPORT="bench/REPORT-1030c.md"
 EXCLUDED="fastapi-16049"
 GRID="bench/PROOF-GRID.md"
 # Command lines of a knack or pytest run: the module, the CLI, the scripts, or pytest.
-OTHERS='pytest|-m knack|knack\.cli|/bin/knack( |$)|scripts/(e2e|reproduce|demo_block|live-smoke)\.sh'
+OTHERS='pytest|-m knack|knack[.]cli|/bin/knack( |$)|scripts/(e2e|reproduce|demo_block|live-smoke)[.]sh'
 SECTION=""
 FIRST_FAILED=""
 
