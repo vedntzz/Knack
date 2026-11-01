@@ -16,6 +16,7 @@ from knack.bench.report import bench_report, ReportError
 from knack.bench.run import RunRecord
 from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
+from knack.day.feed import day_json, local_day
 from knack.dispute.argue import ask_spark
 from knack.dispute.latest import disputed, Disputed, NothingToDispute, ruling_text
 from knack.dispute.rulings import append_ruling, RulingRecord, rulings_path
@@ -147,7 +148,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"reject": _add_reject_arguments, "bench": _add_bench_arguments}
     adders |= {"argue": _add_argue_arguments, "console": _add_console_arguments}
     adders |= {"miss": _add_miss_arguments, "false-block": _add_false_block_arguments}
-    adders |= {"backfill-merged": _add_backfill_arguments}
+    adders |= {"backfill-merged": _add_backfill_arguments, "day": _add_day_arguments}
     return adders | {
         "receipts": _add_receipts_arguments,
         "resolve": _add_resolve_arguments,
@@ -558,6 +559,21 @@ def _console_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_day_arguments(day: argparse.ArgumentParser) -> None:
+    day.description = "today's commits, PRs and receipts for this clone, oldest first"
+    day.add_argument("--json", action="store_true", required=True)
+
+
+def _day_command(args: argparse.Namespace) -> int:
+    # Read-only; a store it cannot read is a message and exit 2.
+    try:
+        print(day_json(local_day(Path.cwd())))
+    except (OSError, ValidationError) as error:
+        print(f"knack day: {error}", file=sys.stderr)
+        return 2
+    return 0
+
+
 def _add_argue_arguments(argue: argparse.ArgumentParser) -> None:
     argue.add_argument("objection", help="why the latest deny in this clone is wrong")
 
@@ -768,7 +784,11 @@ def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
     handlers |= {"argue": _argue_command, "console": _console_command}
     handlers |= {"miss": _miss_command, "false-block": _false_block_command}
     handlers |= {"backfill-merged": _backfill_command, "reprove": _reprove_command}
-    return handlers | {"receipts": _receipts_command, "resolve": _resolve_command}
+    return handlers | {
+        "receipts": _receipts_command,
+        "resolve": _resolve_command,
+        "day": _day_command,
+    }
 
 
 def _add_source_arguments(loop: argparse.ArgumentParser) -> None:

@@ -128,6 +128,13 @@ class GitHubApi:
             _shallow_clone(f"https://github.com/{repo}.git", ref, dest)
         return dest
 
+    def branch_pulls(self, repo: str, branch: str) -> list[dict[str, Any]]:
+        # The latest-updated page from the branch, then into it; a day fits in one.
+        path, owner = f"/repos/{repo}/pulls", repo.split("/")[0]
+        newest = {"state": "all", "sort": "updated", "direction": "desc"}
+        head = self._get(path, head=f"{owner}:{branch}", per_page=PAGE, **newest)
+        return head + self._get(path, base=branch, per_page=PAGE, **newest)
+
     def _get(self, path: str, **params: object) -> Any:
         query = f"?{urlencode(params)}" if params else ""
         return request_json(f"{API}{path}{query}", self.headers)

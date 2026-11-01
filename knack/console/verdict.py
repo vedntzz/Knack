@@ -205,7 +205,11 @@ def _days(count: int) -> str:
 
 
 def _registry_of(receipt: Receipt, registry_for: RegistryFor) -> ReadRegistry:
-    path = registry_for(receipt.repo)
+    return registry_at(registry_for(receipt.repo))
+
+
+def registry_at(path: Path | None) -> ReadRegistry:
+    # No registry for the repo is (None, None): nothing to read, nothing wrong.
     return _read_registry(path) if path is not None and path.exists() else (None, None)
 
 
