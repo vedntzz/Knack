@@ -44,6 +44,7 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
     "tests/pipeline/test_spark_open.py": frozenset({"key"}),
 }
 ALL_PLACEHOLDERS = frozenset(v for values in PLACEHOLDERS.values() for v in values)
+SHELL_VARIABLE = re.compile(r"\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*\})")
 
 
 class Hit(NamedTuple):
@@ -67,8 +68,16 @@ def is_placeholder(hit: Hit) -> bool:
     return hit.value in PLACEHOLDERS.get(hit.path, frozenset())
 
 
+def is_shell_variable(hit: Hit) -> bool:
+    return SHELL_VARIABLE.fullmatch(hit.value) is not None
+
+
 def leaks_in_text(path: str, text: str) -> list[Hit]:
-    return [hit for hit in hits_in_text(path, text) if not is_placeholder(hit)]
+    return [
+        hit
+        for hit in hits_in_text(path, text)
+        if not is_placeholder(hit) and not is_shell_variable(hit)
+    ]
 
 
 def leaks_in_file(path: str) -> list[Hit]:
@@ -110,6 +119,10 @@ REFERENCES = [
     'GITHUB_TOKEN="$(gh auth token)"',
     "PASS GITHUB_TOKEN: authenticated as vedntzz",
     'KEYS = ("GITHUB_TOKEN", "MODEL_API_KEY", "BASETEN_API_KEY")',
+    'curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com',
+    "Authorization: Bearer $GITHUB_TOKEN",
+    "${GITHUB_TOKEN}",
+    "Authorization: Bearer ${GITHUB_TOKEN}",
 ]
 
 
@@ -122,6 +135,12 @@ def test_every_pattern_catches_its_planted_secret(pattern: str) -> None:
 @pytest.mark.parametrize("line", REFERENCES)
 def test_a_reference_to_a_secret_is_not_a_leak(line: str) -> None:
     assert leaks_in_text("x.yml", line) == []
+
+
+def test_a_real_token_behind_authorization_bearer_is_still_a_leak() -> None:
+    line = "Authorization: Bearer " + "gh" + "p_" + "k7Qm2Xv9" * 5
+    found = {hit.pattern for hit in leaks_in_text("x.sh", line)}
+    assert "authorization_header" in found and "github_token" in found
 
 
 def test_placeholder_is_allowed_only_in_the_file_that_uses_it() -> None:
