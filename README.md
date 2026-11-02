@@ -17,6 +17,8 @@ Console: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0
 To dispute: knack argue "<your reason>"
 ```
 
+To open that Console link on a fresh clone, run the command in [See it in the console](#see-it-in-the-console).
+
 Problem statement: Build for Your World, because the world an agent works in is a team's own codebase, and that world's rules are the decisions the team already argued out in review, which the agent has never read.
 
 ## Get it running
@@ -28,9 +30,25 @@ git clone https://github.com/vedntzz/Knack.git
 cd Knack
 uv sync --frozen --extra dev --python 3.11
 source .venv/bin/activate
+bash scripts/reproduce.sh
 ```
 
-The commands below assume the venv is active, so `python` is the venv's.
+The last command checks every claim below and takes about 70–80 s once installed, ending `PROOF: PASS`. A cold first install takes longer, because `uv sync` may download Python 3.11 first. The commands below assume the venv is active, so `python` is the venv's.
+
+## See it in the console
+
+One command serves the block above from the committed one-story receipts ([`mockups/fixtures/one_story/`](mockups/fixtures/one_story/)) and the committed airflow registry. It reads no `~/.knack`, needs no API keys and binds to loopback only:
+
+```sh
+KNACK_CONSOLE_RECEIPTS=$PWD/mockups/fixtures/one_story/receipts.jsonl KNACK_REGISTRY=$PWD/data/registry/airflow.json knack console
+```
+
+Then open:
+
+- The block page for receipt `0e7ab6083866`, the deny's Console link: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9
+- The repo's memory: http://127.0.0.1:7655/
+
+`tests/test_readme_console.py` starts the console exactly this way, in a HOME with no `~/.knack`, and checks that both links return 200 and that the block page shows the full #75025 quote.
 
 ## Verify any claim: reproduce.sh runs in 80 s
 
