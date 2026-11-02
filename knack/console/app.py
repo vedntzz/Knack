@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from knack.console.events import deny_events
+from knack.console.events import console_events
 from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
 from knack.console.pages.argue import argue_router
 from knack.console.pages.day import day_router
@@ -50,7 +50,7 @@ def create_app(
     app, places = _bare_app(), (receipts, warns, rulings, registry_for)
     for router in (verdict_router, argue_router, held_router):
         app.include_router(router(*places))
-    _add_pages(app, receipts, poll_seconds)
+    _add_pages(app, (receipts, rulings), poll_seconds)
     _add_home(app, receipts, day)
     return app
 
@@ -88,16 +88,16 @@ def _add_day_route(app: FastAPI, day: Day) -> None:
             return JSONResponse(status_code=503, content={"detail": str(error)})
 
 
-def _add_pages(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
-    # Every page's static files, and the deny stream they listen on.
+def _add_pages(app: FastAPI, tailed: tuple[Path, Path], poll_seconds: float) -> None:
+    # Every page's static files, and the stream of denies, rulings and resolutions.
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
-    _add_events(app, receipts, poll_seconds)
+    _add_events(app, tailed, poll_seconds)
 
 
-def _add_events(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
+def _add_events(app: FastAPI, tailed: tuple[Path, Path], poll_seconds: float) -> None:
     @app.get("/events")
     def events() -> StreamingResponse:
-        stream = deny_events(receipts, poll_seconds)
+        stream = console_events(*tailed, poll_seconds)
         return StreamingResponse(stream, media_type=EVENT_STREAM, headers=NO_CACHE)
 
 
