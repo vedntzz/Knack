@@ -17,7 +17,7 @@ from knack.watch.credentials import KEY_FILES, watch_key
 from test_corroborate import FakeSparkOpen
 from test_watch_hook import post_merge, repo as repo  # noqa: F401
 
-# Fake values, shaped like nothing the secret scan looks for.
+# Fake values, registered as placeholders in tests/test_no_secrets.py.
 FILE_KEYS = {
     "GITHUB_TOKEN": "fake-watch-file-token-7d1e",
     "MODEL_API_KEY": "fake-watch-file-model-5b2f",
@@ -48,11 +48,8 @@ def refusal(name: str) -> str:
 
 
 def test_each_key_has_its_own_file() -> None:
-    assert KEY_FILES == {
-        "GITHUB_TOKEN": "github_token",
-        "MODEL_API_KEY": "model_api_key",
-        "BASETEN_API_KEY": "baseten_api_key",
-    }
+    files = [KEY_FILES[name] for name in NAMES]
+    assert files == ["baseten_api_key", "github_token", "model_api_key"]
 
 
 @pytest.mark.parametrize("name", NAMES)

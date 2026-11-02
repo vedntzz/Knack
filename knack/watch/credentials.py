@@ -6,10 +6,9 @@ from knack.home import knack_home
 from knack.pipeline.clients import MissingCredentials, RefusedCredentials
 
 # Hooks do not inherit the shell's environment, so watch also reads each key from a file.
+# Each key's file is its name in lower case, e.g. $KNACK_HOME/github_token.
 KEY_FILES = {
-    "GITHUB_TOKEN": "github_token",
-    "MODEL_API_KEY": "model_api_key",
-    "BASETEN_API_KEY": "baseten_api_key",
+    name: name.lower() for name in ("GITHUB_TOKEN", "MODEL_API_KEY", "BASETEN_API_KEY")
 }
 NOT_FOUND = (
     "{name} is not set and {path} does not exist; "
