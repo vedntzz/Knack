@@ -71,6 +71,8 @@
   --bar-height: 3.5rem;
   --rail-width: 24rem;
   --control-height: 2rem;
+  /* A thumb's target on a phone. */
+  --control-touch: 2.75rem;
   --col-number: 2.5rem;
   --col-sign: 1.5rem;
   --gutter: 0.1875rem;

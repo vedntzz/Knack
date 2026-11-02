@@ -45,9 +45,10 @@ function copy() {
   document.querySelectorAll("[data-copy], [data-copy-text]").forEach((button) => {
     button.addEventListener("click", async () => {
       const text = button.dataset.copyText ?? document.getElementById(button.dataset.copy).textContent;
+      const label = (button.dataset.label ??= button.textContent);
       await navigator.clipboard?.writeText(text);
       button.textContent = "Copied";
-      setTimeout(() => { button.textContent = "Copy"; }, 1600);
+      setTimeout(() => { button.textContent = label; }, 1600);
     });
   });
 }
