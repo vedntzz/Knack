@@ -25,6 +25,7 @@ from knack.walk.registry import home_registry_dir, load_registry, Registry
 # The registry file that guards a repo, or None when it has none.
 RegistryFor = Callable[[str], Path | None]
 NO_RECEIPT = "no receipt with that hash"
+NO_RULING = "no ruling on that receipt"
 TimedWarn = tuple[datetime, WarnRecord]
 # What reading the registry yields: it, or None and why when it could not be read.
 ReadRegistry = tuple[Registry | None, str | None]
@@ -111,6 +112,11 @@ class VerdictView(BaseModel):
 
 
 class NoSuchReceipt(Exception):
+    pass
+
+
+class NoSuchRuling(NoSuchReceipt):
+    # The receipt exists, but no ruling of the kind a page shows answers it.
     pass
 
 

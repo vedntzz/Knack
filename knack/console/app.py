@@ -7,9 +7,22 @@ from fastapi.staticfiles import StaticFiles
 
 from knack.console.events import deny_events
 from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
+from knack.console.pages.argue import argue_router
+from knack.console.pages.held import held_router
 from knack.console.pages.verdict import verdict_router
-from knack.console.render import missing_html, waiting_html, wants_html
-from knack.console.verdict import home_registry_for, NoSuchReceipt, RegistryFor
+from knack.console.render import (
+    missing_html,
+    NO_RECEIPT_SAID,
+    NO_RULING_SAID,
+    waiting_html,
+    wants_html,
+)
+from knack.console.verdict import (
+    home_registry_for,
+    NoSuchReceipt,
+    NoSuchRuling,
+    RegistryFor,
+)
 from knack.day.feed import day_json, local_day
 from knack.day.models import Day
 from knack.dispute.rulings import rulings_path
@@ -21,6 +34,7 @@ STATIC = Path(__file__).parent / "static"
 NO_CACHE = {"cache-control": "no-cache"}
 EVENT_STREAM = "text/event-stream"
 RECEIPTS_ENV = "KNACK_CONSOLE_RECEIPTS"
+RULINGS = "rulings.jsonl"
 
 
 def create_app(
@@ -32,8 +46,9 @@ def create_app(
     poll_seconds: float = 0.25,
 ) -> FastAPI:
     # Routes only: each page is its own router.
-    app = _bare_app()
-    app.include_router(verdict_router(receipts, warns, rulings, registry_for))
+    app, places = _bare_app(), (receipts, warns, rulings, registry_for)
+    for router in (verdict_router, argue_router, held_router):
+        app.include_router(router(*places))
     _add_pages(app, receipts, poll_seconds)
     if day is not None:
         _add_day_route(app, day)
@@ -75,7 +90,8 @@ def _add_events(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
 
 def _not_found(request: Request, error: Exception) -> Response:
     if wants_html(request):
-        return HTMLResponse(missing_html(), status_code=404)
+        said = NO_RULING_SAID if isinstance(error, NoSuchRuling) else NO_RECEIPT_SAID
+        return HTMLResponse(missing_html(said), status_code=404)
     return JSONResponse(status_code=404, content={"detail": str(error)})
 
 
@@ -84,7 +100,7 @@ def serve() -> None:
     import uvicorn
 
     # GET /day reads the clone the console was started in.
-    places = (console_receipts(), warns_path(), rulings_path(), home_registry_for)
+    places = (console_receipts(), warns_path(), console_rulings(), home_registry_for)
     app = create_app(*places, local_day(Path.cwd()))
     uvicorn.run(app, host=CONSOLE_HOST, port=CONSOLE_PORT)
 
@@ -93,3 +109,9 @@ def console_receipts() -> Path:
     # KNACK_CONSOLE_RECEIPTS points the console at kept receipts, e.g. the demo's.
     kept = os.environ.get(RECEIPTS_ENV)
     return expand_user_path(kept) if kept else receipts_path()
+
+
+def console_rulings() -> Path:
+    # Kept receipts bring the rulings kept beside them, as they bring their edits.
+    kept = os.environ.get(RECEIPTS_ENV)
+    return expand_user_path(kept).with_name(RULINGS) if kept else rulings_path()

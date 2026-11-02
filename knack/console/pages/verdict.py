@@ -22,7 +22,7 @@ from knack.console.verdict import (
     verdict_view,
     VerdictView,
 )
-from knack.dispute.rulings import RulingRecord
+from knack.dispute.rulings import RulingRecord, rulings_for
 from knack.receipts.chain import load_receipts
 from knack.receipts.edits import edits_dir, EditSnapshot, load_edit
 
@@ -37,18 +37,23 @@ def verdict_router(
 ) -> APIRouter:
     # Files are read per request, so a deny or ruling made after start is found.
     router = APIRouter()
-    _add_verdict(router, receipts, warns, registry_for)
+    _add_verdict(router, receipts, warns, rulings, registry_for)
     _add_rulings(router, receipts, rulings)
     return router
 
 
 def _add_verdict(
-    router: APIRouter, receipts: Path, warns: Path, registry_for: RegistryFor
+    router: APIRouter,
+    receipts: Path,
+    warns: Path,
+    rulings: Path,
+    registry_for: RegistryFor,
 ) -> None:
     @router.get("/verdict/{receipt_hash}", response_model=VerdictView)
     def verdict(receipt_hash: str, request: Request) -> Response:
         view = verdict_view(receipt_hash, receipts, warns, registry_for)
-        return _shown(view, receipts) if wants_html(request) else _json(view)
+        argued = bool(rulings_for(rulings, receipt_hash))
+        return _shown(view, receipts, argued) if wants_html(request) else _json(view)
 
 
 def _add_rulings(router: APIRouter, receipts: Path, rulings: Path) -> None:
@@ -57,9 +62,9 @@ def _add_rulings(router: APIRouter, receipts: Path, rulings: Path) -> None:
         return deny_rulings(receipt_hash, receipts, rulings)
 
 
-def _shown(view: VerdictView, receipts: Path) -> HTMLResponse:
+def _shown(view: VerdictView, receipts: Path, argued: bool) -> HTMLResponse:
     snapshot = snapshot_of(receipts, view.hash)
-    return HTMLResponse(verdict_html(verdict_page(view, snapshot), receipts))
+    return HTMLResponse(verdict_html(verdict_page(view, snapshot), receipts, argued))
 
 
 def _json(view: VerdictView) -> JSONResponse:
@@ -95,12 +100,12 @@ def stamp(time: str) -> str:
     return f"{moment:%b} {moment.day} {moment.year}, {moment:%H:%M:%S} UTC"
 
 
-def verdict_html(found: VerdictPage, receipts: Path) -> str:
+def verdict_html(found: VerdictPage, receipts: Path, argued: bool = False) -> str:
     view = found.view
     title = f"{STATUS[view.outcome]}: {tail(view.file)} · knack"
     frame = {"layout": "verdict", "state": view.outcome, "bar": bar(view)}
     frame |= {"preload": PRELOAD, "scripts": SCRIPTS, "events": EVENTS}
-    parts = {"head": head(found), "board": board(found), "rail": rail(found)}
+    parts = {"head": head(found), "board": board(found), "rail": rail(found, argued)}
     shown = verify(view, shown_path(receipts))
     return page("verdict.html", escape(title), **frame, **parts, verify=shown)
 
@@ -178,12 +183,13 @@ def marked(text: str, names: list[str]) -> str:
     )
 
 
-def note(found: VerdictPage) -> str:
+def note(found: VerdictPage, with_offered: bool = True) -> str:
     root = found.view.root
     if root is None:
         return f'<figure class="note paper" data-beat="note">{gap("The decision")}</figure>'
     said = {"url": escape(root.source_url), "quote": quote(root, found.view)}
-    said |= {"attribution": attribution(found, root), "offered": offered(root)}
+    said |= {"attribution": attribution(found, root)}
+    said |= {"offered": offered(root) if with_offered else ""}
     return partial("note.html", **said)
 
 
@@ -226,17 +232,30 @@ def offered(root: RootView) -> str:
     return f'<p class="offered"><b>Offered, not taken:</b> {escape(root.rejected_alternative)}</p>'
 
 
-def rail(found: VerdictPage) -> str:
+def rail(found: VerdictPage, argued: bool) -> str:
     if not found.blocked:
         return ""
-    return f'<aside class="rail">{fix(found)}{figures(found)}</aside>'
+    return f'<aside class="rail">{fix(found, argued)}{figures(found)}</aside>'
 
 
-def fix(found: VerdictPage) -> str:
-    todo = f"Delete {lines_of(found.delete)}." if found.delete else gap("Matched lines")
-    kept = f"<p>{already_right(found.right)}</p>"
+def fix(found: VerdictPage, argued: bool) -> str:
+    todo, kept = fix_lines(found)
     pr = escape(found.pr or "the decision")
-    return partial("fix.html", todo=todo, kept=kept, pr=pr)
+    return partial(
+        "fix.html", todo=todo, kept=kept, pr=pr, argue_it=argue_it(found, argued)
+    )
+
+
+def fix_lines(found: VerdictPage) -> tuple[str, str]:
+    # The instruction and the lines already right, as the fix card shows them.
+    todo = f"Delete {lines_of(found.delete)}." if found.delete else gap("Matched lines")
+    return todo, f"<p>{already_right(found.right)}</p>"
+
+
+def argue_it(found: VerdictPage, argued: bool) -> str:
+    # Once a ruling answers this deny, the words lead to how it was argued.
+    href = f"/verdict/{found.view.hash}/argue"
+    return f'<a href="{href}">argue it</a>' if argued else "argue it"
 
 
 def already_right(span: LineSpan | None) -> str:

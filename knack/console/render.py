@@ -14,6 +14,10 @@ SCRIPTS = LIVE + "".join(
     f'<script type="module" src="/static/{name}.js"></script>\n'
     for name in ("motion", "console")
 )
+TURNS = "".join(
+    f'<script type="module" src="/static/{name}.js"></script>\n'
+    for name in ("turns", "console")
+)
 EVENTS = ' data-events="/events"'
 # Every base.html slot a page may leave out.
 UNSET = {"preload": "", "scripts": "", "events": "", "bar": "", "verify": ""}
@@ -38,8 +42,12 @@ def waiting_html() -> str:
     return page("waiting.html", "Waiting · knack", scripts=LIVE, events=EVENTS)
 
 
-def missing_html() -> str:
-    return page("missing.html", "No such receipt · knack")
+NO_RECEIPT_SAID = "No receipt with that hash."
+NO_RULING_SAID = "No ruling on that receipt."
+
+
+def missing_html(said: str = NO_RECEIPT_SAID) -> str:
+    return page("missing.html", f"{said[:-1]} · knack", said=said)
 
 
 def wants_html(request: Request) -> bool:
