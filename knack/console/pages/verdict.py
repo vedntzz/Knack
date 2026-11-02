@@ -287,7 +287,9 @@ def alarms(found: Figures | None, repo: str) -> str:
         return f"<li>{gap('False alarms')}</li>"
     name = escape(repo.split("/")[-1].capitalize())
     on = f" and release {escape(found.release)}" if found.release else ""
-    return figure(str(found.false_alarms), "", f"false alarms on {name}’s code{on}")
+    return figure(
+        str(found.false_alarms), "", f"false alarms on {name}’s default branch{on}"
+    )
 
 
 def timing(view: VerdictView) -> str:
