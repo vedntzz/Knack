@@ -27,6 +27,8 @@ from knack.receipts.chain import load_receipts
 from knack.receipts.edits import edits_dir, EditSnapshot, load_edit
 
 STATUS = {"deny": "Blocked", "allow": "Allowed", "guard-error": "Guard error"}
+# What each Copy in the verify row copies, said to a screen reader.
+RECEIPT, COMMAND = "the receipt hash", "the verify command"
 # Backticked spans in the human's words become code, as GitHub rendered them.
 TICKED = re.compile(r"`([^`]+)`")
 EDIT = "The agent’s edit"
@@ -308,14 +310,17 @@ def shown_path(receipts: Path) -> str:
 def verify(view: VerdictView, receipts: str) -> str:
     # The receipt, the command that checks it, and the rule, each copyable in full.
     command = f"knack receipts verify --path {receipts}"
-    receipt = {"short": view.hash[:8], "copy_receipt": copy_button(view.hash)}
-    check = {"command": escape(command), "copy_command": copy_button(command)}
+    receipt = {"short": view.hash[:8], "copy_receipt": copy_button(view.hash, RECEIPT)}
+    check = {"command": escape(command), "copy_command": copy_button(command, COMMAND)}
     rule = {"rule": escape(view.rule_id), "label": decision_label(view.root)}
     return partial("verify.html", **receipt, **check, **rule)
 
 
-def copy_button(text: str) -> str:
-    named = f'data-copy-text="{escape(text)}" aria-live="polite"'
+def copy_button(text: str, what: str) -> str:
+    # Named for what it copies, so two Copy buttons in one row read apart.
+    named = (
+        f'data-copy-text="{escape(text)}" aria-label="Copy {what}" aria-live="polite"'
+    )
     return f'<button type="button" class="copy" {named}>Copy</button>'
 
 
