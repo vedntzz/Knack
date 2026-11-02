@@ -18,6 +18,7 @@ from knack.miss.coverage import (
     CoverageInputs,
     HELDOUT_SETS,
 )
+from knack.miss.repair import added_candidate
 from knack.pipeline.compile import (
     Attempt,
     compile_prompt,
@@ -29,6 +30,7 @@ from knack.pipeline.heldout import HeldOut, holds_install_bar, score_heldout
 from knack.pipeline.models import Alternative, Decision, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.prove import (
+    ALLOW_SIDE,
     edit_checks,
     failed_checks,
     GuardEdit,
@@ -261,10 +263,23 @@ def _recompiled(loop: Loop, target: Target, built: Built, old: Attempt) -> LoopO
     # The old rule and its failures are the first feedback, so the fix starts from it.
     loop.log(_recompiling_line(target.rule_id, old.proof, loop.compiler.model))
     prompt = retry_prompt(built.compile_prompt, old, built.case)
-    attempt = compile_rule(loop.compiler, built.case, prompt)
+    compiled = compile_rule(loop.compiler, built.case, prompt)
+    attempt = _candidate(old, compiled, built.case)
     rules = Rules(new=attempt.rule, old=old.rule)
     gates = _gates(loop, target, attempt, rules, built)
     return _settled(target, attempt, gates, _saved_candidate(loop, target, attempt))
+
+
+def _candidate(old: Attempt, compiled: Attempt, case: ProofCase) -> Attempt:
+    # A miss repair adds to the old rule; a false block needs Spark's narrower rule.
+    if _blocks_an_allowed_edit(old.proof):
+        return compiled
+    rule = added_candidate(old.rule, compiled.rule)
+    return Attempt(rule=rule, number=compiled.number, proof=prove(rule, case))
+
+
+def _blocks_an_allowed_edit(proof: Proof) -> bool:
+    return any(row.side == ALLOW_SIDE and row.matches for row in proof.rows)
 
 
 def _gates(

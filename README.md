@@ -231,7 +231,7 @@ e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fix
 
 When the guard misses an edit, that edit becomes a recorded case. Spark recompiles the rule, and the new rule is installed only if code checks show that it denies every must-fail case, allows every must-pass case, catches at least as many held-out violations as the old rule, allows every compliant variant, and has 0 matches on the default branch and the latest release. The recompile needs a model, so these numbers come from the committed logs in [`bench/misses/`](bench/misses/) and are not regenerated.
 
-A repaired rule must still deny everything the old rule denied ([`knack/miss/coverage.py`](knack/miss/coverage.py)).
+Repairs add to the old rule and never replace it: the candidate is the old rule's branches plus any new branches from Spark's recompile ([`knack/miss/repair.py`](knack/miss/repair.py)). The one exception is a false block. Adding branches cannot stop a match, so for a false block Spark's rule is the candidate as compiled. Either way, a repaired rule must still deny everything the old rule denied ([`knack/miss/coverage.py`](knack/miss/coverage.py)).
 
 | Rule | Recorded case | Loop runs | Held-out caught, same / cross (old rule) | False positives |
 |---|---|---|---|---|
