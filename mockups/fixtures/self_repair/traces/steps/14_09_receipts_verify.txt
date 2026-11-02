@@ -1,0 +1,5 @@
+$ /Users/vedant/Documents/knack/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack/3a5afe81-575b-4930-9588-1d6b21e93531/scratchpad/kn97/traced.py receipts verify
+
+/private/var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/home/.knack/verdicts.jsonl: 19 receipts, chain intact
+
+exit 0, wall 162.7 ms

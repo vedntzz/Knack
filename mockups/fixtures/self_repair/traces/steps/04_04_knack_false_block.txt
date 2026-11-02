@@ -1,0 +1,14 @@
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/traced.py false-block f679bf658d9f754750c54a518084987983aa0ac46fae79250c6d1f8f185bc78a --registry /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/data/registry/airflow.json --work /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/work
+
+recorded must-pass case airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] for airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/cases/airflow-75025/must-pass-6633cbc47011.json
+airflow-75025 fails: guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] adds no new match; guard allow airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] adds a new match; recompiling with muse-spark-1.3
+PASS cases: every must-fail edit denied, every must-pass edit allowed
+PASS proof: base, guard-allow, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 3.3.2
+PASS no coverage loss: every input v1 denied is still denied
+PASS held-out same: 2/3 violations caught (old rule 2), 3/3 compliant allowed
+PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed
+PASS fresh cross-model: 3/3 violations caught (old rule 3), 3/3 compliant allowed (/var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/work/75025/fresh-20261102T200131Z-33aea6)
+candidate rule: /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/work/75025/candidate-20261102T200146Z-c9845e.yml
+installed airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/../rules/airflow/75025.yml (2 attempt(s))
+
+exit 0, wall 265641.2 ms

@@ -1,0 +1,7 @@
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/traced.py confirm airflow-75025-1 --registry /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/data/registry/airflow.json --by Vedant Srivastava
+
+gate: re-extracting 2 PR(s) with Confirmed roots
+airflow-75025-1: Confirmed -> Confirmed, pinned to rule 865e1a983ffe rolled back
+  airflow-75774-1 (#75774) no longer extracted: rejected alternative 'sliding re-defer timeout that put timeout=self.timeout on the sleep re-defer only' quoting 'put `timeout=self.timeout` on the sleep re-defer only'
+
+exit 1, wall 30141.8 ms

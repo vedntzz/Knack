@@ -1,0 +1,171 @@
+sandbox: /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH
+started 2026-11-02T19:57:19Z
+installed: clone at #75025's head, PreToolUse hook; registry is KNACK_REGISTRY
+rule v1 sha: ecf207d0e1efce2759eb92b2beba21e9576eaf0c5d832ca4acdfca1079a4b0d5
+== 01_evasion_allowed (exit 0) ==
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/steps.py hook /Users/vedant/Documents/knack-gate /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH 01_evasion_allowed miss allow
+
+exit 0, 210.5 ms, decision allow
+(no output: the hook allowed the edit)
+
+exit 0, wall 249.9 ms
+
+evasion allow receipt: b27a4e1127569e2bcd56de277ef042975f8fe637266812b88d1e402720dc858d
+== 02_compliant_denied (exit 0) ==
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/steps.py hook /Users/vedant/Documents/knack-gate /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH 02_compliant_denied compliant deny
+
+exit 0, 124.0 ms, decision deny
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "Knack blocked this edit.\nDecision: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.\nDecided by: Pushkal Gupta (author); approved and merged by bbovenzi\nWhy: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.\nRejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.\nQuote: \"I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`. The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one. Happy to alias instead if you would rather keep the advertised names working.\"\nSource: https://github.com/apache/airflow/pull/75025\nMatched: {a: b for a, b in [(\"last_run_state\", DagRun.state), (\"last_run_start_date\", DagRun.start_date)]} (line 6)\nConsole: http://127.0.0.1:7655/verdict/f679bf658d9f754750c54a518084987983aa0ac46fae79250c6d1f8f185bc78a (open with: knack console)\nTo dispute: knack argue \"<your reason>\""}}
+
+exit 0, wall 162.6 ms
+
+compliant deny receipt: f679bf658d9f754750c54a518084987983aa0ac46fae79250c6d1f8f185bc78a
+== 03_record_must_fail (exit 0) ==
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/steps.py record /Users/vedant/Documents/knack-gate /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH b27a4e1127569e2bcd56de277ef042975f8fe637266812b88d1e402720dc858d
+
+recorded must-fail case airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] for airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/cases/airflow-75025/must-fail-2ccf5ea40fa8.json
+
+exit 0, wall 104.7 ms
+
+== 04_knack_false_block (exit 0) ==
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/traced.py false-block f679bf658d9f754750c54a518084987983aa0ac46fae79250c6d1f8f185bc78a --registry /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/data/registry/airflow.json --work /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/work
+
+recorded must-pass case airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] for airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/cases/airflow-75025/must-pass-6633cbc47011.json
+airflow-75025 fails: guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] adds no new match; guard allow airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] adds a new match; recompiling with muse-spark-1.3
+PASS cases: every must-fail edit denied, every must-pass edit allowed
+PASS proof: base, guard-allow, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 3.3.2
+PASS no coverage loss: every input v1 denied is still denied
+PASS held-out same: 2/3 violations caught (old rule 2), 3/3 compliant allowed
+PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed
+PASS fresh cross-model: 3/3 violations caught (old rule 3), 3/3 compliant allowed (/var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/work/75025/fresh-20261102T200131Z-33aea6)
+candidate rule: /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/work/75025/candidate-20261102T200146Z-c9845e.yml
+installed airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/../rules/airflow/75025.yml (2 attempt(s))
+
+exit 0, wall 265641.2 ms
+
+rule v2 sha: 865e1a983ffe12941abd400da11efbe14e6a7ec97735455b61218abe464b2303
+--- /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/rule/v1.yml	2026-11-02 14:57:20
++++ /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/rule/v2.yml	2026-11-02 15:01:46
+@@ -4,53 +4,65 @@
+ message: Do not expose `state` or `start_date` as DAG sort keys; neither column exists on DagModel. Use `last_run_state`/`last_run_start_date` instead, do not alias `state`/`start_date` onto DagRun.
+ rule:
+   any:
+-    - all:
+-        - kind: string
+-        - regex: "^[\"']-?(state|start_date)[\"']$"
+-        - inside:
+-            stopBy: end
+-            all:
+-              - pattern: SortParam($$$)
+-              - has:
+-                  stopBy: end
+-                  regex: DagModel
+-    - all:
+-        - kind: pair
+-        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*DagRun\\.(state|start_date)"
+-    - all:
+-        - kind: pair
+-        - regex: "[\"'](state|start_date)[\"']\\s*:\\s*[\"']last_run_(state|start_date)[\"']"
+-    - all:
+-        - kind: tuple
++  - all:
++    - kind: string
++    - regex: ^["']-?(state|start_date)["']$
++    - inside:
++        stopBy: end
++        all:
++        - pattern: SortParam($$$)
+         - has:
+-            kind: string
+-            regex: "^[\"'](state|start_date)[\"']$"
+-        - has:
+-            regex: "DagRun\\.(state|start_date)"
+-    - all:
+-        - pattern: getattr(DagRun, $$$)
+-        - inside:
+             stopBy: end
+-            regex: SortParam
+-        - inside:
+-            stopBy: end
+             regex: DagModel
+-    - all:
+-        - kind: dictionary_comprehension
+-        - regex: "DagRun\\.(state|start_date)|getattr\\s*\\(\\s*DagRun"
+-        - inside:
+-            stopBy: end
+-            regex: SortParam
+-        - inside:
+-            stopBy: end
+-            regex: DagModel
+-    - all:
+-        - kind: string
+-        - regex: "last_run|last_dag_run"
+-        - inside:
+-            stopBy: end
+-            regex: "DAG1_ID"
+-        - not:
+-            inside:
+-              stopBy: end
+-              regex: "Ordering with|is disallowed"
++  - all:
++    - kind: pair
++    - regex: '["''](state|start_date)["'']\s*:\s*DagRun\.(state|start_date)'
++  - all:
++    - kind: pair
++    - regex: '["''](state|start_date)["'']\s*:\s*["'']last_run_(state|start_date)["'']'
++  - all:
++    - kind: tuple
++    - has:
++        kind: string
++        regex: ^["'](state|start_date)["']$
++    - has:
++        regex: DagRun\.(state|start_date)
++  - all:
++    - pattern: getattr(DagRun, $$$)
++    - inside:
++        stopBy: end
++        regex: SortParam
++    - inside:
++        stopBy: end
++        regex: DagModel
++  - all:
++    - kind: string
++    - regex: last_run|last_dag_run
++    - inside:
++        stopBy: end
++        regex: DAG1_ID
++    - not:
++        inside:
++          stopBy: end
++          regex: Ordering with|is disallowed
++  - all:
++    - kind: pair
++    - has:
++        kind: string
++        regex: ^["'](state|start_date)["']$
++    - has:
++        stopBy: end
++        regex: DagRun\.(state|start_date)
++  - all:
++    - kind: keyword_argument
++    - regex: ^(state|start_date)\s*=\s*DagRun\.(state|start_date)
++  - all:
++    - kind: tuple
++    - has:
++        kind: string
++        regex: ^["'](state|start_date)["']$
++    - has:
++        stopBy: end
++        regex: DagRun\.(state|start_date)
++  - pattern: dict($$$, state=DagRun.state, $$$)
++  - pattern: dict($$$, start_date=DagRun.start_date, $$$)
+== 05_knack_confirm (exit 1) ==
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/traced.py confirm airflow-75025-1 --registry /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH/data/registry/airflow.json --by Vedant Srivastava
+
+gate: re-extracting 2 PR(s) with Confirmed roots
+airflow-75025-1: Confirmed -> Confirmed, pinned to rule 865e1a983ffe rolled back
+  airflow-75774-1 (#75774) no longer extracted: rejected alternative 'sliding re-defer timeout that put timeout=self.timeout on the sleep re-defer only' quoting 'put `timeout=self.timeout` on the sleep re-defer only'
+
+exit 1, wall 30141.8 ms
+
+STOPPED at: 5: confirm failed (sandbox kept: /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH)

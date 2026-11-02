@@ -1,0 +1,5 @@
+$ /Users/vedant/Documents/knack-gate/.venv/bin/python /private/tmp/claude-501/-Users-vedant-Documents-knack-gate/b06305d8-a49e-408d-8c09-1f332c8c59fa/scratchpad/kn114/steps.py record /Users/vedant/Documents/knack-gate /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T//knack-kn114.itVgOH b27a4e1127569e2bcd56de277ef042975f8fe637266812b88d1e402720dc858d
+
+recorded must-fail case airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] for airflow-75025 -> /var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/data/registry/cases/airflow-75025/must-fail-2ccf5ea40fa8.json
+
+exit 0, wall 104.7 ms
