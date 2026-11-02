@@ -16,12 +16,15 @@ HOLD_OBJECTION = (
     " so the advertised names keep working."
 )
 ESCALATE_OBJECTION = (
-    "A customer dashboard pins order_by=state in a contract that runs until March;"
-    " removing it breaks them."
+    "Airflow's REST API is documented and public; removing order_by values in a"
+    " minor release may need a deprecation cycle first, which #75025 never discusses."
 )
+# The real Muse Code PreToolUse payload the block step replays the edit inside.
+CAPTURED_EVENT = REPO_ROOT / "tests" / "hooks" / "fixtures" / "edit_event.json"
 UPHOLD_REASON = (
-    "The decision stands; the customer can sort by last_run_state"
-    " and last_run_start_date."
+    "The decision stands: these two sort options never worked (they returned an"
+    " error), so there was nothing to deprecate. Sort by last_run_state and"
+    " last_run_start_date."
 )
 STEPS = ["block", "argue_hold", "argue_escalate", "resolve", "corrected", "verify"]
 ALIAS_LINES = [
@@ -149,6 +152,13 @@ def test_corrected_edit_passes_the_hook_on_its_own_merits(story: Path) -> None:
     assert step["stdout"] == ""
 
 
+def test_both_hook_receipts_name_the_agent_the_captured_payload_names(
+    story: Path,
+) -> None:
+    receipts = (deny(story), guarded(story)[-1])
+    assert [r.agent for r in receipts] == [captured_agent()] * 2
+
+
 def test_corrected_edit_is_the_blocked_edit_with_lines_135_136_deleted(
     story: Path,
 ) -> None:
@@ -171,10 +181,15 @@ def test_whole_chain_verifies_intact(story: Path) -> None:
     assert step["stdout"].endswith("chain intact")
 
 
+def captured_agent() -> str:
+    found: str = json.loads(CAPTURED_EVENT.read_text())["model"]
+    return found
+
+
 def test_rulings_name_every_model_asked_and_the_agent(story: Path) -> None:
     for ruling in rulings(story):
         assert ruling["models"], ruling
-        assert "agent" in ruling
+        assert ruling["agent"] == captured_agent()
     escalated = [m["model"] for m in rulings(story)[1]["models"]]
     assert escalated == ["fake-spark", "fake-spark-open"]
 

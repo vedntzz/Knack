@@ -118,25 +118,31 @@ def test_uv_lock_is_committable() -> None:
 
 # Group C: numbers.
 DEMO_LOG = REPO_ROOT / "bench" / "demo_block.log"
+LIVE_SPIKE = REPO_ROOT / "spikes" / "one_story_live.md"
+# Superseded figures from bench/demo_block.log; the live one-story spike replaced them.
+OLD_LATENCIES = ("18.7 ms", "212 ms")
 
 
-def demo_latencies() -> tuple[str, str]:
-    text = DEMO_LOG.read_text(encoding="utf-8")
-    verdict = re.search(r"^guard verdict: (\d+\.\d+) ms", text, re.M)
-    trip = re.search(r"^hook round trip: (\d+) ms", text, re.M)
-    assert verdict and trip
-    return verdict.group(1), trip.group(1)
+def live_latencies() -> list[str]:
+    # The spike's latency lines: this run's block figures and the range across today's runs.
+    text = LIVE_SPIKE.read_text(encoding="utf-8")
+    labels = ("Guard verdict, today's runs", "Hook round trip, today's runs")
+    ranges = [re.search(rf"^- {label}: (.+ ms)\.$", text, re.M) for label in labels]
+    block = re.findall(r"this run: (\S+ ms) \(block\)", text)
+    return [m.group(1) for m in ranges if m] + block
 
 
 def test_the_bench_heading_is_rejectbench() -> None:
     assert "### RejectBench [bench]" in README.read_text(encoding="utf-8").splitlines()
 
 
-def test_readme_cites_the_demo_latencies_from_the_committed_log() -> None:
-    verdict, trip = demo_latencies()
+def test_readme_cites_this_runs_latency_from_the_live_spike() -> None:
+    cited = live_latencies()
     text = " ".join(README.read_text(encoding="utf-8").split())
-    assert f"{verdict} ms" in text and f"{trip} ms" in text
-    assert "bench/demo_block.log" in text
+    assert len(cited) == 4 and [n for n in cited if n not in text] == []
+    assert "this run" in text and "2026-11-02" in text
+    assert "spikes/one_story_live.md" in text
+    assert [n for n in OLD_LATENCIES if n in text] == []
 
 
 def test_readme_cites_the_repeat_hunt_with_its_reproduce_step() -> None:

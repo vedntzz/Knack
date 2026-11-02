@@ -1,0 +1,8 @@
+exit 0
+
+-- stdout --
+0e7ab6083866: upheld by Vedant Srivastava (airflow-75025, airflow-75025-1): The decision stands: these two sort options never worked (they returned an error), so there was nothing to deprecate. Sort by last_run_state and last_run_start_date.
+held case closed, no case added for airflow-75025: <sandbox>/home/.knack/registries/apache-airflow/provisional/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9.json
+
+-- stderr --
+

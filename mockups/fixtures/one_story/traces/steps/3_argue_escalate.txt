@@ -1,0 +1,11 @@
+exit 0
+
+-- stdout --
+ESCALATE: held for a person
+The quotes do not discuss a deprecation cycle for removing documented public order_by values in a minor release. A person will decide.
+To resolve: knack resolve 0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9 allow|retire|uphold --reason "<why>"
+self-check airflow-75025 airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py (the quotes do not answer the objection, so the deny should not hold): muse-spark-1.3 yes, meta-models/muse-spark-open-1026 yes; holding a provisional must-pass case for a person
+provisional must-pass case <sandbox>/home/.knack/registries/apache-airflow/provisional/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9.json; a case only after: knack resolve 0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9 allow --reason "<why>"
+
+-- stderr --
+
