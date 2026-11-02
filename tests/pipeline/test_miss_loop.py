@@ -45,6 +45,12 @@ severity: error
 message: m
 rule: {pattern: return await asyncio.gather($$$)}
 """
+# RETURNS_ONLY plus STRUCTURAL: catches bare returns but falsely blocks PINGS.
+RETURNS_AND_ASSIGNED = RETURNS_ONLY.replace(
+    "rule: {pattern: return await asyncio.gather($$$)}",
+    "rule:\n  any:\n    - pattern: return await asyncio.gather($$$)\n"
+    "    - pattern: $R = await asyncio.gather($$$)",
+)
 # Violations no gather pattern on an assignment catches.
 BARE = "import asyncio\n\nasync def f{n}(xs):\n    return await asyncio.gather(*[x.read() for x in xs])\n"
 
@@ -117,6 +123,16 @@ def test_a_miss_recompiles_and_installs_a_rule_that_passes_every_gate(
     assert "asyncio.gather($$$)" in rule_text(ports)
 
 
+def test_a_miss_repair_installs_the_old_rule_plus_the_new_branch(
+    tmp_path: Path,
+) -> None:
+    ports, _ = loop(tmp_path, MEMORIZED_ON_BASE, STRUCTURAL)
+    outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
+    assert outcome.installed and outcome.rule is not None
+    assert "results = await asyncio.gather($$$)" in rule_text(ports)
+    assert "$R = await asyncio.gather($$$)" in rule_text(ports)
+
+
 def test_no_coverage_loss_is_reported_like_the_other_gates(tmp_path: Path) -> None:
     ports, _ = loop(tmp_path, MEMORIZED_ON_BASE, STRUCTURAL)
     outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
@@ -154,23 +170,31 @@ def test_recall_no_worse_than_the_old_rule_installs(tmp_path: Path) -> None:
     assert cross.detail == "0/3 violations caught (old rule 0), 3/3 compliant allowed"
 
 
-def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
-    # The old rule catches every bare return; the recompiled one catches none.
-    # The coverage gate also names every other bare return only the old rule denied.
+def test_a_miss_repair_keeps_the_old_rules_recall(tmp_path: Path) -> None:
+    # The recompile alone catches no bare return; the old branch it adds to does.
     bare = [BARE.format(n=n) for n in range(3)]
     held = heldout(tmp_path, bare)
     ports, _ = loop(tmp_path, RETURNS_ONLY, STRUCTURAL, heldout=held)
-    old = rule_text(ports)
     outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
+    cross = next(g for g in outcome.gates if g.name == "held-out cross")
+    assert outcome.installed and outcome.reasons == []
+    assert cross.detail == "3/3 violations caught (old rule 3), 3/3 compliant allowed"
+
+
+def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
+    # A false-block repair is Spark's rule as compiled, so it can lose recall.
+    bare = [BARE.format(n=n) for n in range(3)]
+    held = heldout(tmp_path, bare)
+    ports, _ = loop(tmp_path, RETURNS_AND_ASSIGNED, NARROWED, heldout=held)
+    old = rule_text(ports)
+    outcome = record_and_recompile(ports, [edit("must-pass", PINGS)])
     assert not outcome.installed and rule_text(ports) == old
-    assert outcome.reasons == [
-        "no coverage loss: no longer denies held-out cross violation_1.py; "
-        "no longer denies held-out cross violation_2.py; "
-        "no longer denies held-out cross violation_3.py; "
-        "no longer denies held-out same violation_2.py; "
-        "no longer denies variant-violation violation_2.py",
-        "held-out cross: 0/3 violations caught (old rule 3), 3/3 compliant allowed",
-    ]
+    failed = {g.name for g in outcome.gates if not g.passed}
+    assert {"cases", "proof"}.isdisjoint(failed) and "no coverage loss" in failed
+    assert (
+        "held-out cross: 0/3 violations caught (old rule 3), 3/3 compliant allowed"
+        in outcome.reasons
+    )
 
 
 def test_a_flagged_compliant_file_fails_whatever_the_old_rule_did(
@@ -208,6 +232,8 @@ def test_a_false_block_recompiles_a_rule_that_allows_the_edit(tmp_path: Path) ->
     ports, _ = loop(tmp_path, STRUCTURAL, NARROWED)
     outcome = record_and_recompile(ports, [edit("must-pass", PINGS)])
     assert outcome.installed and "read" in rule_text(ports)
+    # Adding to the old rule cannot narrow it, so Spark's rule replaces it.
+    assert "any:" not in rule_text(ports)
 
 
 def test_earlier_cases_stay_in_every_later_recompile(tmp_path: Path) -> None:
@@ -242,7 +268,9 @@ def test_a_kept_rule_leaves_its_candidate_on_disk_for_review(tmp_path: Path) -> 
     ports, _ = loop(tmp_path, MEMORIZED_ON_BASE, STRUCTURAL, heldout=held)
     outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
     assert outcome.candidate_path is not None
-    assert outcome.candidate_path.read_text() == STRUCTURAL.strip() + "\n"
+    saved = outcome.candidate_path.read_text()
+    assert saved == f"{outcome.rule}\n" and "results = await" in saved
+    assert "$R = await asyncio.gather($$$)" in saved
     assert f"candidate rule: {outcome.candidate_path}" in outcome_lines(outcome)
 
 

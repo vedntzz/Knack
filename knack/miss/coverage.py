@@ -78,12 +78,12 @@ def _adds(rule: Path, edit: GuardEdit) -> bool:
 
 def _unexercised_dropped(old: str, new: str, inputs: CoverageInputs) -> list[Any]:
     # No input can show a missing branch is covered, so only keeping it verbatim is safe.
-    kept = _branches(new)
-    dropped = [branch for branch in _branches(old) if branch not in kept]
+    kept = rule_branches(new)
+    dropped = [branch for branch in rule_branches(old) if branch not in kept]
     return [b for b in dropped if not denied(_branch_rule(old, b), inputs)]
 
 
-def _branches(rule_yaml: str) -> list[Any]:
+def rule_branches(rule_yaml: str) -> list[Any]:
     # The top-level any's branches, or the whole rule as one; unreadable has none.
     try:
         rule: Any = yaml.safe_load(rule_yaml)["rule"]
