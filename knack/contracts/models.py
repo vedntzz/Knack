@@ -15,6 +15,22 @@ DecisionStatus = Literal[
     "Confirmed", "Corroborated", "Inferred", "Uncorroborated", "Unknown"
 ]
 NonEmptyStr = Annotated[str, Field(min_length=1)]
+# Said when a model, host, trace or agent was not on record; never guessed.
+NOT_RECORDED = "not recorded"
+
+
+class ModelCall(BaseModel):
+    # One model call: the model its response named, where it ran, its response id.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model: str
+    host: str
+    trace_id: str = NOT_RECORDED
+
+
+class FoundBy(ModelCall):
+    # A model that found a root: Spark extracted it, Spark Open corroborated it.
+    role: Literal["extracted", "corroborated"]
 
 
 class Root(BaseModel):
@@ -30,8 +46,8 @@ class Root(BaseModel):
     status: DecisionStatus
     rejected_alternative: str | None = None
     seeded: bool = False
-    # Every extractor that found this root; empty when a human wrote it.
-    models: list[str] = []
+    # Every model that found this root; bare names predate KN-105, empty when a human wrote it.
+    models: list[FoundBy | str] = []
     # When the cited PR merged; None for roots stored before KN-60 or not from a PR.
     merged_at: str | None = None
     # Who confirmed it, and the sha256 of the rule file they confirmed; None before KN-62.

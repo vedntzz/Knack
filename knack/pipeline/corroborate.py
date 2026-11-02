@@ -1,24 +1,33 @@
 import re
 
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, Root
+from knack.pipeline.calls import found_by
 from knack.pipeline.models import Alternative, Extraction
-from knack.pipeline.roots import labelled_roots, Labels, Pair, roots_for, verbatim_pairs
+from knack.pipeline.roots import (
+    extracted_by,
+    labelled_roots,
+    Labels,
+    Pair,
+    roots_for,
+    verbatim_pairs,
+)
 
 WORD = re.compile(r"\w+")
 # A shared quote shorter than this is too common to show two readings agree.
 MIN_QUOTE_WORDS = 4
-# (primary model, second model)
-Models = tuple[str, str]
+# (the primary extractor, the second reading's corroborator)
+Finders = tuple[FoundBy, FoundBy]
 
 
 def corroborated_roots(
-    repo: str, extraction: Extraction, other: Extraction | None, models: Models
+    repo: str, extraction: Extraction, other: Extraction | None
 ) -> list[Root]:
-    # Without a second reading there is nothing to compare, so roots stay Inferred.
+    # Without a second reading Spark Open never ran here, so roots stay Inferred.
     if other is None:
-        return roots_for(repo, extraction, models[0])
-    ours = _labelled(verbatim_pairs(extraction), other, models[0], models)
-    theirs = _labelled(_only_theirs(extraction, other), extraction, models[1], models)
+        return roots_for(repo, extraction)
+    both = (extracted_by(extraction), found_by(other.call, "corroborated"))
+    ours = _labelled(verbatim_pairs(extraction), other, both[0], both)
+    theirs = _labelled(_only_theirs(extraction, other), extraction, both[1], both)
     return labelled_roots(repo, extraction, ours + theirs)
 
 
@@ -39,15 +48,15 @@ def _only_theirs(ours: Extraction, other: Extraction) -> list[Pair]:
 
 
 def _labelled(
-    pairs: list[Pair], other: Extraction, finder: str, models: Models
+    pairs: list[Pair], other: Extraction, finder: FoundBy, both: Finders
 ) -> list[tuple[Pair, Labels]]:
     # finder is the model whose reading these pairs came from.
-    return [(pair, _labels(pair, other, finder, models)) for pair in pairs]
+    return [(pair, _labels(pair, other, finder, both)) for pair in pairs]
 
 
-def _labels(pair: Pair, other: Extraction, finder: str, models: Models) -> Labels:
+def _labels(pair: Pair, other: Extraction, finder: FoundBy, both: Finders) -> Labels:
     if _found_in(pair[1], other):
-        return {"status": "Corroborated", "models": list(models)}
+        return {"status": "Corroborated", "models": list(both)}
     return {"status": "Uncorroborated", "models": [finder]}
 
 

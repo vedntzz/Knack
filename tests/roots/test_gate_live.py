@@ -27,7 +27,7 @@ def confirmed_live_root(gate: Gate) -> Root:
     # Read the PR live, then treat its first root as one a human confirmed.
     summary = gate.github.summary(REPO, PR).model_dump()
     pr = PullRequest(**summary, base_sha="", head_sha="", python_files=[])
-    found = roots_for(REPO, extract_pr(gate.github, gate.spark, REPO, pr), "live")[0]
+    found = roots_for(REPO, extract_pr(gate.github, gate.spark, REPO, pr))[0]
     return found.model_copy(update={"status": "Confirmed"})
 
 

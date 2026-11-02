@@ -1,4 +1,4 @@
-from knack.contracts.models import Leaf, Root, WalkResponse
+from knack.contracts.models import FoundBy, Leaf, Root, WalkResponse
 
 
 def format_walk(response: WalkResponse) -> str:
@@ -14,9 +14,13 @@ def _leaf_line(leaf: Leaf) -> str:
     return f"{leaf.risk:<6} {place}  {leaf.status}  {cited}"
 
 
+def _model_name(found: FoundBy | str) -> str:
+    return found if isinstance(found, str) else found.model
+
+
 def _root_lines(root: Root) -> str:
     # Shows the honest labels next to the verbatim source.
-    source = ",".join(root.models) or "human"
+    source = ",".join(_model_name(m) for m in root.models) or "human"
     labels = f"{root.status} seeded={root.seeded} extracted_by={source}"
     citation = f"{root.decided_by}, {root.source_url}"
     return f'{root.id}  {labels}\n  "{root.quote}" ({citation})'

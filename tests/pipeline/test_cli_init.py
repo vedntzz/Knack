@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from conftest import clean_tree, FakeGitHub, FakeSpark, STRUCTURAL
 from knack import cli
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, NOT_RECORDED, Root
 from knack.pipeline import spark_open
 from knack.pipeline.clients import (
     adversary_client,
@@ -17,7 +17,19 @@ from knack.walk.registry import load_registry, Registry
 
 
 class FakeSparkOpen(FakeSpark):
-    model = spark_open.MODEL
+    # Reports the model and host a Spark Open response names, but no response id.
+    model = last_model = spark_open.MODEL
+    host = spark_open.HOST
+    last_trace_id = None
+
+
+def found_by(model: str, host: str, role: str) -> FoundBy:
+    return FoundBy.model_validate({"model": model, "host": host, "role": role})
+
+
+OPEN_EXTRACTED = found_by(spark_open.MODEL, spark_open.HOST, "extracted")
+OPEN_CORROBORATED = found_by(spark_open.MODEL, spark_open.HOST, "corroborated")
+SPARK_UNREPORTED = found_by(NOT_RECORDED, NOT_RECORDED, "extracted")
 
 
 @pytest.fixture
@@ -108,7 +120,7 @@ def test_spark_open_roots_record_the_spark_open_model(
     models = {
         tuple(Root.model_validate_json(path.read_text()).models) for path in roots
     }
-    assert fakes == ["spark-open"] and models == {(spark_open.MODEL,)}
+    assert fakes == ["spark-open"] and models == {(OPEN_EXTRACTED,)}
 
 
 def test_an_unknown_extractor_is_a_usage_error() -> None:
@@ -174,7 +186,7 @@ def test_init_corroborate_reads_every_pr_with_the_partner_too(
     ]
     assert (fakes, partners) == (["spark"], ["spark"])
     assert [(r.status, r.models) for r in roots] == [
-        ("Corroborated", ["fake-spark", spark_open.MODEL])
+        ("Corroborated", [SPARK_UNREPORTED, OPEN_CORROBORATED])
     ]
 
 

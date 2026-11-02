@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, Root
 from knack.roots.seed import EXTRACTION_MODEL, main, roots_from_extraction
-from knack.roots.store import load_roots, RootStoreError
+from knack.roots.store import load_roots, RootStoreError, write_root
 
 REPO = Path(__file__).parents[2]
 DECISIONS = REPO / "spikes" / "batch" / "apache-airflow" / "decisions.jsonl"
@@ -169,3 +169,19 @@ def test_repo_root_files_are_migrated_to_models() -> None:
     files = sorted((Path(__file__).parents[2] / "data" / "roots").rglob("*.json"))
     raw = [json.loads(path.read_text(encoding="utf-8")) for path in files]
     assert raw and all("models" in data and "model" not in data for data in raw)
+
+
+def test_75025_records_spark_extracted_and_spark_open_corroborated() -> None:
+    root = Root.model_validate_json(CONFIRMED_75025.read_text(encoding="utf-8"))
+    found = [(m.host, m.role) for m in root.models if isinstance(m, FoundBy)]
+    assert found == [
+        ("api.meta.ai", "extracted"),
+        ("inference.baseten.co", "corroborated"),
+    ]
+    assert all(isinstance(m, FoundBy) and m.trace_id for m in root.models)
+
+
+def test_75025_is_exactly_what_the_store_writes(tmp_path: Path) -> None:
+    root = Root.model_validate_json(CONFIRMED_75025.read_text(encoding="utf-8"))
+    write_root(root, tmp_path / "75025.json")
+    assert (tmp_path / "75025.json").read_bytes() == CONFIRMED_75025.read_bytes()
