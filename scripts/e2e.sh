@@ -297,7 +297,7 @@ kept_step() {
 }
 
 false_block_step() {
-  # An edit the rule wrongly denies becomes a must-pass case; the narrowed rule allows it.
+  # An edit the rule wrongly denies becomes a must-pass case; only the branch that blocked it goes.
   local out
   out="$(loop false-block false_block_pings narrow)" || { echo "$out"; return 1; }
   echo "$out"
