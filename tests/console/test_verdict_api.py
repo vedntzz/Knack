@@ -307,6 +307,8 @@ def test_a_denys_rulings_are_listed_in_the_order_argued(world: World) -> None:
         "reply": "The quote answers this.",
         "cited_quotes": [QUOTE],
         "model": "muse-spark-1.3",
+        "models": [],
+        "agent": "not recorded",
     }
     assert (second["objection"], second["decision"]) == (
         "A pinned client needs it.",
