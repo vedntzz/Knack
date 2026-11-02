@@ -13,6 +13,7 @@ from knack.home import knack_home
 from knack.hooks.pretool_guard import rule_name
 from knack.miss.cases import cases_dir, EditCase, load_cases, save_case
 from knack.miss.coverage import (
+    contradicted_branches,
     coverage_inputs,
     coverage_losses,
     CoverageInputs,
@@ -30,7 +31,6 @@ from knack.pipeline.heldout import HeldOut, holds_install_bar, score_heldout
 from knack.pipeline.models import Alternative, Decision, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.prove import (
-    ALLOW_SIDE,
     edit_checks,
     failed_checks,
     GuardEdit,
@@ -271,15 +271,10 @@ def _recompiled(loop: Loop, target: Target, built: Built, old: Attempt) -> LoopO
 
 
 def _candidate(old: Attempt, compiled: Attempt, case: ProofCase) -> Attempt:
-    # A miss repair adds to the old rule; a false block needs Spark's narrower rule.
-    if _blocks_an_allowed_edit(old.proof):
-        return compiled
-    rule = added_candidate(old.rule, compiled.rule)
+    # Old branches stay unless a must-pass edit contradicts them; Spark's new ones join.
+    dropped = contradicted_branches(old.rule, case.guard_allows)
+    rule = added_candidate(old.rule, compiled.rule, dropped)
     return Attempt(rule=rule, number=compiled.number, proof=prove(rule, case))
-
-
-def _blocks_an_allowed_edit(proof: Proof) -> bool:
-    return any(row.side == ALLOW_SIDE and row.matches for row in proof.rows)
 
 
 def _gates(

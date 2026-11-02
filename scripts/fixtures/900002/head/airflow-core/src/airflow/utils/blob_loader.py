@@ -10,4 +10,5 @@ async def load(items):
 
 async def load_tasks(blobs):
     tasks = [b.read() for b in blobs]
-    return await asyncio.gather(*tasks)
+    done = await asyncio.gather(*tasks)
+    return done

@@ -5,12 +5,13 @@ import yaml
 from knack.miss.coverage import rule_branches
 
 
-def added_candidate(old: str, new: str) -> str:
-    # v1's branches, then each branch of the recompile that v1 lacks; nothing is dropped.
-    kept = rule_branches(old)
+def added_candidate(old: str, new: str, dropped: list[Any] | None = None) -> str:
+    # v1's branches but the dropped ones, then each recompiled branch neither holds.
+    gone = dropped or []
+    kept = [b for b in rule_branches(old) if b not in gone]
     if not kept:
         return new
-    added = [b for b in rule_branches(new) if b not in kept]
+    added = [b for b in rule_branches(new) if b not in kept + gone]
     return _with_branches(old, kept + _unique(added))
 
 

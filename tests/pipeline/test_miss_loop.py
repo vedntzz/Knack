@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import yaml
 from conftest import (
     BASE,
     clean_tree,
@@ -51,6 +52,14 @@ RETURNS_AND_ASSIGNED = RETURNS_ONLY.replace(
     "rule:\n  any:\n    - pattern: return await asyncio.gather($$$)\n"
     "    - pattern: $R = await asyncio.gather($$$)",
 )
+# A kept branch PINGS never trips, and STRUCTURAL's branch that falsely blocks it.
+KEPT_AND_BLOCKING = RETURNS_ONLY.replace(
+    "rule: {pattern: return await asyncio.gather($$$)}",
+    "rule:\n  any:\n    - pattern: results = await asyncio.gather($$$)\n"
+    "    - pattern: $R = await asyncio.gather($$$)",
+)
+# One branch for every awaited gather: bare returns and PINGS alike.
+AWAITED = RETURNS_ONLY.replace("return await asyncio", "await asyncio")
 # Violations no gather pattern on an assignment catches.
 BARE = "import asyncio\n\nasync def f{n}(xs):\n    return await asyncio.gather(*[x.read() for x in xs])\n"
 
@@ -182,10 +191,10 @@ def test_a_miss_repair_keeps_the_old_rules_recall(tmp_path: Path) -> None:
 
 
 def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
-    # A false-block repair is Spark's rule as compiled, so it can lose recall.
+    # Its one branch blocks PINGS, so Spark's rule replaces it and can lose recall.
     bare = [BARE.format(n=n) for n in range(3)]
     held = heldout(tmp_path, bare)
-    ports, _ = loop(tmp_path, RETURNS_AND_ASSIGNED, NARROWED, heldout=held)
+    ports, _ = loop(tmp_path, AWAITED, NARROWED, heldout=held)
     old = rule_text(ports)
     outcome = record_and_recompile(ports, [edit("must-pass", PINGS)])
     assert not outcome.installed and rule_text(ports) == old
@@ -195,6 +204,15 @@ def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
         "held-out cross: 0/3 violations caught (old rule 3), 3/3 compliant allowed"
         in outcome.reasons
     )
+
+
+def test_a_false_block_keeps_the_old_branch_that_holds_recall(tmp_path: Path) -> None:
+    # Only the assigned-gather branch blocks PINGS; the bare-return branch stays.
+    held = heldout(tmp_path, [BARE.format(n=n) for n in range(3)])
+    ports, _ = loop(tmp_path, RETURNS_AND_ASSIGNED, NARROWED, heldout=held)
+    outcome = record_and_recompile(ports, [edit("must-pass", PINGS)])
+    assert outcome.installed, outcome.reasons
+    assert "return await asyncio.gather($$$)" in rule_text(ports)
 
 
 def test_a_flagged_compliant_file_fails_whatever_the_old_rule_did(
@@ -234,6 +252,17 @@ def test_a_false_block_recompiles_a_rule_that_allows_the_edit(tmp_path: Path) ->
     assert outcome.installed and "read" in rule_text(ports)
     # Adding to the old rule cannot narrow it, so Spark's rule replaces it.
     assert "any:" not in rule_text(ports)
+
+
+def test_a_false_block_drops_only_the_old_branch_that_blocks_the_edit(
+    tmp_path: Path,
+) -> None:
+    ports, _ = loop(tmp_path, KEPT_AND_BLOCKING, NARROWED)
+    outcome = record_and_recompile(ports, [edit("must-pass", PINGS)])
+    assert outcome.rule is not None
+    kept = yaml.safe_load(outcome.rule)["rule"]["any"]
+    assert kept[0] == {"pattern": "results = await asyncio.gather($$$)"}
+    assert {"pattern": "$R = await asyncio.gather($$$)"} not in kept
 
 
 def test_earlier_cases_stay_in_every_later_recompile(tmp_path: Path) -> None:
