@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Knack blocked an agent edit that brings back the aliasing apache/airflow #75025 chose against, with the author's words.">
+<title>Blocked: edit_file on routes/public/dags.py, Knack</title>
+<style>
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-500.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-600.woff2") format("woff2"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-700.woff2") format("woff2"); font-weight: 700; font-display: block; }
+@font-face { font-family: "JBMono"; src: url("fixtures/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "JBMono"; src: url("fixtures/fonts/jetbrains-mono-600.woff2") format("woff2"); font-weight: 600; font-display: block; }
+
+:root {
+  /* sumi and shu: ink ground, one raised step, washi text, one grey, the seal, the gold link */
+  --sumi: #1f1e1c;
+  --raised: #272623;
+  --washi: #eae6dc;
+  --grey: #9a958a;
+  --shu: #e35941;
+  --kuchiba: #c9a04a;
+  --font: "Plex", system-ui, sans-serif;
+  --mono: "JBMono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius: 6px;
+  --gap: 28px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; background: var(--sumi); color: var(--washi); font-family: var(--font); }
+body { font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--washi); color: var(--sumi); }
+code { font-family: var(--mono); font-size: 0.9em; }
+button, summary { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; text-decoration: underline 1px var(--grey); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--washi); outline-offset: 3px; border-radius: 4px; }
+button:disabled { cursor: default; color: var(--grey); }
+
+/* The screen is a 1280×720 app frame; 1080p is the same frame at device scale 1.5. */
+.screen { width: 1280px; height: 720px; display: grid; grid-template-rows: 44px 1fr; transform-origin: 0 0; }
+
+.bar { display: flex; align-items: center; gap: 24px; padding: 0 var(--gap); font-size: 13px; }
+.wordmark { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+.crumbs { display: flex; gap: 8px; color: var(--grey); }
+.crumbs b { color: var(--washi); font-weight: 500; }
+.crumbs span + span::before { content: "/"; margin-right: 8px; }
+.bar .right { margin-left: auto; color: var(--grey); }
+
+.canvas { display: grid; grid-template-columns: minmax(0, 1fr) 372px; grid-template-rows: auto minmax(0, 1fr) auto; gap: 16px 32px; padding: 8px var(--gap) 12px; min-height: 0; }
+
+/* title: the seal, then the two facts */
+.title { grid-column: 1 / -1; }
+.status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--grey); }
+.status strong { color: var(--shu); font-weight: 700; font-size: 20px; line-height: 24px; }
+.status svg { display: block; }
+h1 { margin-top: 4px; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+h1 span { display: block; }
+h1 code { font: inherit; }
+
+/* the agent's diff, with the human's comment inside it */
+.diff { background: var(--raised); border-radius: var(--radius); overflow: hidden; align-self: start; }
+.file { display: flex; align-items: baseline; gap: 12px; padding: 4px 12px 4px 16px; line-height: 28px; font-size: 13px; }
+.file .path { font-family: var(--mono); font-size: 12px; color: var(--grey); }
+.file .path b { color: var(--washi); font-weight: 600; }
+.file .count { margin-left: auto; color: var(--grey); }
+.rows { font-family: var(--mono); font-size: 13px; line-height: 20px; }
+.row { display: grid; grid-template-columns: 40px 40px 20px minmax(0, 1fr) auto; white-space: pre; border-left: 3px solid var(--raised); }
+.row .n { text-align: right; padding-right: 8px; color: var(--grey); font-variant-numeric: tabular-nums; }
+.row .sign { color: var(--grey); text-align: center; }
+.row .why { font-family: var(--font); font-size: 12px; color: var(--grey); padding-right: 12px; white-space: nowrap; }
+.row.del { background: var(--sumi); border-left-color: var(--sumi); }
+.row.hit { border-left-color: var(--kuchiba); }
+.tok { color: var(--kuchiba); font-weight: 600; }
+
+/* the comment: a band of ground inside the diff, tied to the matched rows by the gold edge */
+.thread { padding: 12px 20px 12px 100px; background: var(--sumi); border-left: 3px solid var(--kuchiba); font-family: var(--font); white-space: normal; }
+.lead { font-size: 16px; line-height: 24px; font-weight: 600; }
+.lead code, .said code, .chip { font-family: var(--mono); background: var(--raised); border-radius: 3px; padding: 0 4px; }
+.lead code { font-size: 14px; font-weight: 600; }
+.evidence { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip { font-size: 13px; line-height: 24px; padding: 0 8px; }
+.chip.gone { color: var(--grey); text-decoration: line-through 1.5px var(--grey); }
+.evidence svg { display: block; margin: 0 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.who { margin-top: 8px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--grey); }
+.who img { width: 28px; height: 28px; border-radius: 50%; display: block; }
+.who b { color: var(--washi); font-weight: 600; font-size: 14px; }
+.said { margin-top: 8px; font-size: 14px; line-height: 22px; max-width: 92ch; }
+.said code { font-size: 12.5px; }
+.said .no { text-decoration: underline 2px var(--kuchiba); text-underline-offset: 5px; text-decoration-skip-ink: none; }
+.offered { margin-top: 8px; font-size: 14px; color: var(--grey); }
+.offered b { color: var(--washi); font-weight: 600; }
+details { margin-top: 8px; }
+summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; line-height: 24px; color: var(--washi); text-decoration: underline 1px var(--grey); text-underline-offset: 3px; }
+summary::-webkit-details-marker { display: none; }
+summary svg { transition: transform 160ms var(--ease-out); }
+details[open] summary svg { transform: rotate(90deg); }
+.change { margin-top: 8px; background: var(--raised); border-radius: 4px; padding: 4px 0; }
+.change .where { padding: 0 12px 4px; font-size: 12px; color: var(--grey); }
+.change .row { grid-template-columns: 24px minmax(0, 1fr); border-left: 0; font-family: var(--mono); font-size: 12.5px; }
+.change .row.del { background: var(--raised); color: var(--grey); }
+
+/* the rail: the fix first, then the decision, then the proof */
+.rail { display: flex; flex-direction: column; align-self: start; gap: 24px; font-size: 14px; line-height: 21px; }
+.rail h2 { font-size: 14px; font-weight: 600; color: var(--grey); margin-bottom: 8px; }
+.fix { background: var(--raised); border-radius: var(--radius); padding: 16px 20px 20px; }
+.fix .do { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.fix .ok { margin-top: 4px; font-size: 15px; line-height: 22px; }
+.actions { margin-top: 20px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 16px; }
+.actions small { font-size: 13px; line-height: 18px; color: var(--grey); }
+.actions small code { font-size: 12px; color: var(--washi); white-space: nowrap; }
+.argue { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px 0 16px; border-radius: var(--radius); color: var(--washi); font-weight: 600; transition: transform 140ms var(--ease-out); }
+.argue:active, .argue.pressed { transform: scale(0.97); }
+.dismiss { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 16px; color: var(--grey); font-weight: 500; }
+kbd { font-family: var(--mono); font-weight: 400; font-size: 12px; line-height: 18px; padding: 0 4px; border-radius: 4px; background: var(--raised); color: var(--grey); }
+.argue kbd { background: var(--sumi); color: var(--washi); }
+.dismiss kbd { background: var(--sumi); }
+.decision p { font-size: 15px; line-height: 22px; }
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.figures b { display: block; font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.figures b small { font-size: 16px; line-height: 1; font-weight: 500; letter-spacing: 0; }
+.figures span { display: block; margin-top: 4px; font-size: 13px; line-height: 18px; color: var(--grey); }
+
+/* the verifier line: the only place the internal words appear */
+.verify { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--mono); font-size: 11.5px; line-height: 16px; color: var(--grey); }
+
+@media (prefers-reduced-motion: reduce) { .argue, summary svg { transition: none; } }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <header class="bar">
+    <div class="wordmark">knack</div>
+    <nav class="crumbs" aria-label="Scope"><span id="c-repo"></span><span id="c-branch"></span><span><b id="c-file"></b></span></nav>
+    <div class="right" id="c-tool"></div>
+  </header>
+
+  <main class="canvas">
+    <div class="title">
+      <div class="status">
+        <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1h6l4 4v6l-4 4H5l-4-4V5z" fill="var(--shu)"/><rect x="4" y="7" width="8" height="2" fill="var(--sumi)"/></svg>
+        <strong>Blocked</strong> <span id="t-sub"></span>
+      </div>
+      <h1 id="t-h1"></h1>
+    </div>
+
+    <section class="diff" aria-label="The agent's edit">
+      <div class="file"><span class="path" id="d-path"></span><span class="count" id="d-count"></span></div>
+      <div class="rows" id="d-rows"></div>
+    </section>
+
+    <aside class="rail">
+      <section class="fix" aria-labelledby="h-fix">
+        <h2 id="h-fix">To fix it</h2>
+        <p class="do" id="f-do"></p>
+        <p class="ok" id="f-ok"></p>
+        <div class="actions">
+          <button class="argue" id="argue" type="button">Argue <kbd>A</kbd></button><small id="f-argue"></small>
+          <button class="dismiss" id="dismiss" type="button">Dismiss <kbd>Esc</kbd></button><small id="f-dismiss">the edit is already stopped</small>
+        </div>
+      </section>
+      <section class="decision" aria-labelledby="h-dec"><h2 id="h-dec">The decision</h2><p id="r-decision"></p></section>
+      <section class="trust" aria-labelledby="h-trust"><h2 id="h-trust">Why you can trust this</h2><div class="figures" id="r-figures"></div></section>
+    </aside>
+
+    <footer class="verify" id="verify" aria-label="For verifiers"></footer>
+  </main>
+</div>
+
+<script src="fixtures/block.js"></script>
+<script>
+const B = window.BLOCK, $ = (id) => document.getElementById(id);
+const truth = { checked: 0, missing: [] };
+window.__truth = truth;
+const short = (hash) => hash.slice(0, 12);
+const tail = (path) => path.split("/").slice(-2).join("/");
+const prNumber = () => bound(B.root.source_url.split("/").pop());
+const day = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).replace(",", "");
+const SVG = "http://www.w3.org/2000/svg";
+
+// Every shown value is checked against the fixture text it came from.
+function bound(text) {
+  truth.checked++;
+  if (!JSON.stringify(B).includes(JSON.stringify(text).slice(1, -1))) { truth.missing.push(text); console.error("truth: not in fixture", text); }
+  return text;
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function codeSpans(parent, text) {
+  text.split(/(`[^`]+`)/).forEach((part) => parent.append(part.startsWith("`") ? el("code", null, part.slice(1, -1)) : part));
+  return parent;
+}
+function marked(parent, code, tokens) {
+  const hit = tokens.find((t) => code.includes(t));
+  if (!hit) return parent.append(code), parent;
+  const at = code.indexOf(hit);
+  parent.append(code.slice(0, at), el("span", "tok", hit));
+  return marked(parent, code.slice(at + hit.length), tokens);
+}
+function row(r, cols, tokens, note, indent = 0) {
+  const e = el("div", `row ${r.kind}${note != null ? " hit" : ""}`);
+  cols.forEach((n) => e.append(el("span", "n", n == null ? "" : n)));
+  e.append(el("span", "sign", { add: "+", del: "−", ctx: " " }[r.kind]), marked(el("span", "c"), bound(r.code).slice(indent), tokens));
+  if (note != null) e.append(el("span", "why", note));
+  return e;
+}
+function icon(d, w) {
+  const s = document.createElementNS(SVG, "svg"), p = document.createElementNS(SVG, "path");
+  [["width", w], ["height", 12], ["viewBox", `0 0 ${w} 12`], ["aria-hidden", "true"]].forEach(([k, v]) => s.setAttribute(k, v));
+  [["d", d], ["stroke", "var(--grey)"], ["stroke-width", "1.5"], ["fill", "none"], ["stroke-linecap", "round"], ["stroke-linejoin", "round"]].forEach(([k, v]) => p.setAttribute(k, v));
+  s.append(p);
+  return s;
+}
+
+const removed = () => B.attempted.matched.filter((m) => !m.text.includes(":")).map((m) => bound(m.text).replaceAll('"', ""));
+const kept = () => B.attempted.rows.filter((r) => r.kind === "add" && r.code.includes("last_run_"));
+const keptNames = () => kept().map((r) => bound(r.code).match(/"([^"]+)"/)[1]);
+
+function buildBar() {
+  $("c-repo").textContent = bound(B.where.repo);
+  $("c-branch").textContent = bound(B.where.branch);
+  $("c-file").textContent = tail(bound(B.where.file));
+  $("c-tool").textContent = `${bound(B.where.tool)}, stopped before it ran`;
+}
+function buildTitle() {
+  const lines = B.where.lines, h1 = $("t-h1"), [a, b] = removed();
+  $("t-sub").textContent = `${tail(bound(B.where.file))}, lines ${bound(String(lines[0]))}–${bound(String(lines.at(-1)))}`;
+  h1.append(codeSpans(el("span"), `This edit aliases \`${a}\` and \`${b}\` onto \`DagRun\`.`));
+  h1.append(el("span", null, `#${prNumber()} chose removal over aliasing. Merged by ${bound(B.person.approved_by)}.`));
+}
+function lead() {
+  const [a, b] = keptNames(), keep = kept().map((r) => bound(String(r.new)));
+  return codeSpans(el("p", "lead"), `Removed on purpose in #${prNumber()} — sort by \`${a}\` / \`${b}\` instead, already on lines ${keep[0]}–${keep.at(-1)}.`);
+}
+function evidence() {
+  const box = el("div", "evidence"), gone = removed(), now = keptNames();
+  gone.forEach((t) => box.append(el("s", "chip gone", t)));
+  box.append(icon("M1 6h20M16 1l5 5-5 5", 24), el("span", "sr", "replaced by"));
+  now.forEach((t) => box.append(el("span", "chip", t)));
+  return box;
+}
+function who() {
+  const box = el("div", "who"), p = B.person, img = el("img");
+  img.src = bound(p.avatar); img.alt = ""; img.onerror = () => img.remove();
+  const pr = el("a", null, `#${prNumber()}`); pr.href = bound(B.root.source_url);
+  const meta = el("span", null, `merged by ${bound(p.approved_by)} · `), when = el("time", "date"); when.append(el("span", null, day(bound(B.root.merged_at))));
+  meta.append(when, " · ", pr);
+  box.append(img, el("b", null, bound(p.name)), meta);
+  return box;
+}
+function said() {
+  const [first, second] = B.quote.sentences.map(bound), third = bound(B.quote.not_recorded), phrase = bound(B.quote.rejected_phrase), at = first.indexOf(phrase);
+  const q = el("blockquote", "said"); q.cite = B.root.source_url;
+  codeSpans(q, "“" + first.slice(0, at)); q.append(codeSpans(el("span", "no"), phrase));
+  codeSpans(q, `${first.slice(at + phrase.length)} ${second} ${third}”`);
+  return q;
+}
+function offered() {
+  const p = el("p", "offered");
+  p.append(el("b", null, "Aliasing was offered;"), " the merged change didn't take it.");
+  return p;
+}
+function change() {
+  const d = el("details"), s = el("summary"), box = el("div", "change"), tokens = B.attempted.matched.filter((m) => !m.text.includes(":")).map((m) => m.text);
+  s.append(icon("M4 2l4 4-4 4", 12), `Show the change in #${prNumber()}`);
+  changeRows().forEach(([where, rows]) => { box.append(el("div", "where", where)); rows.forEach((r) => box.append(row({ ...r, code: r.code.trimStart() }, [], r.kind === "del" ? tokens : [], null))); });
+  d.append(s, box);
+  return d;
+}
+// #75025 made the same one-line change in both files; show it once when the code is identical.
+function changeRows() {
+  const [f, g] = B.rejected, same = g && f.rows.every((r, i) => r.code === g.rows[i]?.code);
+  const at = (x) => `${tail(bound(x.file))} line ${bound(String(x.rows[0].line))}`;
+  if (same) return [[`${B.rejected.map(at).join(" and ")}, the same line in both`, f.rows]];
+  return B.rejected.map((x) => [at(x), x.rows]);
+}
+function buildThread() {
+  const t = el("div", "thread");
+  t.append(lead(), evidence(), who(), said(), offered(), change());
+  return t;
+}
+function counts(rows) { return `${rows.filter((r) => r.kind === "del").length} line removed, ${rows.filter((r) => r.kind === "add").length} added`; }
+function buildDiff() {
+  const a = B.attempted, hits = new Set(a.matched.map((m) => m.line)), last = Math.max(...hits);
+  const tokens = a.matched.filter((m) => m.text.includes(":")).map((m) => m.text);
+  $("d-path").append(bound(a.file).replace(/[^/]+$/, ""), el("b", null, a.file.split("/").pop()));
+  $("d-count").textContent = `${bound(B.where.tool)}: ${counts(a.rows)}`;
+  const shown = a.rows.filter((r) => r.kind !== "ctx" && (r.new == null || r.new <= last + 2)), indent = Math.min(...shown.map((r) => r.code.match(/^ */)[0].length));
+  shown.forEach((r) => {
+    const nums = [r.old, r.new].map((n) => (n == null ? null : bound(String(n))));
+    $("d-rows").append(row(r, nums, hits.has(r.new) ? tokens : [], hits.has(r.new) ? "" : null, indent));
+    if (r.new === last) $("d-rows").append(buildThread());
+  });
+}
+function buildFix() {
+  const hits = B.where.lines, keep = kept().map((r) => r.new);
+  $("f-do").textContent = `Delete lines ${bound(String(hits[0]))}–${bound(String(hits.at(-1)))}.`;
+  $("f-ok").textContent = `Lines ${bound(String(keep[0]))}–${bound(String(keep.at(-1)))} already use the right names.`;
+  $("f-argue").append(el("code", null, bound(B.where.dispute)));
+}
+function figure(big, unit, label, why) {
+  const f = el("div"), b = el("b", null, big);
+  f.title = why;
+  if (unit) b.append(" ", el("small", null, unit));
+  f.append(b, el("span", null, label));
+  return f;
+}
+function buildRail() {
+  const [a, b] = keptNames(), [x, y] = removed(), g = B.proof.grid, passed = g.gates.filter((k) => bound(g.cells[k]) === "PASS");
+  $("r-decision").textContent = `Sort by ${a} and ${b}. Bare ${x} and ${y} were removed on purpose.`;
+  const model = bound(B.proof.no_model).startsWith("No model") ? "no AI model in the block" : "";
+  const checks = `replay checks: ${passed.map(bound).join(", ")}`, fp = `on Airflow's current tree and release ${bound(B.proof.old_release)}`, ms = `round trip; ${bound(B.proof.verdict_ms)} ms verdict by ${bound(B.proof.scan)}`;
+  $("r-figures").append(figure(`${passed.length}/${g.gates.length}`, "", "checks passed", checks), figure(bound(String(B.proof.fp)), "", "false alarms on Airflow", fp), figure(bound(B.proof.round_trip_ms), "ms", model, ms));
+}
+function stamp(iso) { return iso.replace("T", " ").replace(/([+-])(\d\d:\d\d)$/, (m, s, z) => ` ${s === "-" ? "−" : "+"}${z}`); }
+function buildVerify() {
+  const w = B.where, r = B.root, p = B.proof, held = p.grid.gates.find((k) => k === "held-out");
+  [`rule ${bound(w.rule)}`, `root ${bound(r.id)}, ${bound(r.status)}, ${r.seeded ? "seeded" : "not seeded"}`, `${bound(w.hook)} ${bound(w.decision)}`,
+   `${bound(held)} gate ${bound(p.grid.cells[held])}`, `receipt ${bound(short(p.receipt))}`, `log committed ${stamp(bound(w.log_committed))}`]
+    .forEach((t) => $("verify").append(el("span", null, t)));
+  $("verify").lastChild.title = "commit time of bench/demo_block.log; the block's own time was not kept";
+}
+
+function onKey(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "a" || e.key === "A") { e.preventDefault(); $("argue").focus(); $("argue").click(); }
+  if (e.key === "Escape") { $("dismiss").focus(); $("dismiss").click(); }
+}
+function argue() { $("argue").classList.add("pressed"); setTimeout(() => $("argue").classList.remove("pressed"), 140); }
+function dismiss() { $("f-dismiss").textContent = "dismissed; the edit is already stopped"; }
+
+buildBar(); buildTitle(); buildDiff(); buildFix(); buildRail(); buildVerify();
+if (new URLSearchParams(location.search).has("open")) document.querySelector("details").open = true;
+
+// Arrival, about 2 s inside a 5 s clip: the edit, then the gold link, then the words, then the fix.
+const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)", FILM = new URLSearchParams(location.search).has("film");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function play(node, frames, delay, duration, easing) {
+  const a = node.animate(frames, { delay, duration, easing, fill: "backwards" });
+  if (FILM) a.pause();
+  return a;
+}
+function arrive(nodes, start, step = 30) {
+  nodes.forEach((n, i) => play(n, [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], start + i * step, 220, EASE_OUT));
+  return start + (nodes.length - 1) * step + 220;
+}
+const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function link(start) {
+  const gold = token("--kuchiba");
+  document.querySelectorAll(".row.hit").forEach((n) => play(n, [{ borderLeftColor: token("--raised") }, { borderLeftColor: gold }], start, 240, "ease"));
+  play(document.querySelector(".thread"), [{ borderLeftColor: token("--sumi") }, { borderLeftColor: gold }], start, 240, "ease");
+  document.querySelectorAll(".tok").forEach((n) => play(n, [{ color: token("--washi") }, { color: gold }], start, 240, "ease"));
+  play(document.querySelector(".said .no"), [{ textDecorationColor: token("--sumi") }, { textDecorationColor: gold }], start + 120, 240, "ease");
+  return start + 360;
+}
+function motion() {
+  const code = arrive([...document.querySelectorAll("#d-rows > .row")], 300);
+  const words = arrive([...document.querySelectorAll(".thread > *")], code + 80, 60);
+  const linked = link(words + 80);
+  arrive([...document.querySelectorAll(".rail > section")], linked + 40, 80);
+}
+if (!REDUCED) motion();
+window.__film = (ms) => document.getAnimations().forEach((a) => { a.currentTime = ms; });
+document.addEventListener("keydown", onKey);
+$("argue").addEventListener("click", argue);
+$("dismiss").addEventListener("click", dismiss);
+// At 1280×720 and its multiples the frame fills the screen; smaller screens keep a 16 px margin.
+function fit() {
+  const s = Math.min(innerWidth / 1280, innerHeight / 720), m = s < 1 ? 16 : 0, k = s < 1 ? Math.min((innerWidth - 2 * m) / 1280, (innerHeight - 2 * m) / 720) : s;
+  $("screen").style.transform = k === 1 ? "" : `translate(${m}px, ${m}px) scale(${k})`;
+}
+addEventListener("resize", fit); fit();
+document.fonts.ready.then(() => { window.__ready = true; });
+</script>
+</body>
+</html>

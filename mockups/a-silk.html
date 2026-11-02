@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knack console, silk</title>
+<meta name="description" content="Knack console mockup on a silk ground of ink, deep teal and sand.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Hallmark · shape: app screen · genre: atmospheric · theme: custom (brief tokens win)
+ * paper: oklch(16% 0.012 230) · accent: oklch(84% 0.09 170) · display: Gambetta · body: Switzer
+ * nav: one top line, wordmark and the seats · signature: the verdict sheet, a quote that stops an edit · states: day, arrival, argue, held, miss
+ * axes: ink/serif/thread · posture: quiet until a block · contrast: pass · ground: gradflow silk, ink teal sand, speed 0.16, noise 0.02, half-res · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4 · weakest: P, the day is nearly empty because the fixture is; left the emptiness and set it in type rather than filling it */
+/* waive F24: the brief fixes the glass recipe, a gradient hairline with one deep shadow */
+/* waive 38i: none used; code tokens inside the quote are mono, not italic */
+/* Gambetta */
+@font-face {
+  font-family: 'Gambetta';
+  src: url('https://cdn.fontshare.com/wf/UZPXFLPCL3LPXEMLR5DTVJKV74OXXAV4/6OFIA3NPHGHWKE52SKZL7EQ4WH22JUMB/ODDSCHC7OZCRRQJDJV5LMJKTGF7URFO4.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Gambetta';
+  src: url('https://cdn.fontshare.com/wf/ITJUM5VVHQ7UW5EENVHV4QTRJFMNJPQT/KI4FEPIIYE3LPFVXSBL2RIVU6YIZOCWI/Z2AWFZWVPYXOZJYIQOV77P3V5Z2O33AT.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Gambetta';
+  src: url('https://cdn.fontshare.com/wf/LTP7L3IV35TGGKXISPM35MXAMA7PX7BF/JOULNGXDDVVIJYXX35DI2FQJG2H4EOGJ/UMQTMTAEPCAFNEJDVEURBIXJENGOHOWO.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+
+/* Switzer */
+@font-face {
+  font-family: 'Switzer';
+  src: url('https://cdn.fontshare.com/wf/BLNB4FAQFNK56DWWNF7PMGTCOTZHOEII/ST3WKSSDMBK2MIQQO3MAVYWLF4FTOLFV/6IN5WOLRCYP4G4MOCOHOMXNON6Q7MDAR.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Switzer';
+  src: url('https://cdn.fontshare.com/wf/OYB4CXKJQXKTNSLJMTDQOIVUL2V5EL7S/WYO2P7DQVV5RNXGMCUO2HL4RJP4VFUAS/6XPIMU23OJVRY676OG5YVJMWEHWICATX.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+
+
+
+:root {
+  --ink: oklch(16% 0.012 230);
+  --ivory: oklch(95% 0.008 80);
+  --teal: oklch(36% 0.07 160);
+  --oxblood: oklch(34% 0.11 15);
+  --sand: oklch(72% 0.08 80);
+  --thread: oklch(84% 0.09 170);
+  --red: oklch(64% 0.22 27);
+  --oxblood-glow: oklch(48% 0.15 22);
+  --color-paper: var(--ink);
+  --color-ink: var(--ivory);
+  --color-accent: var(--thread);
+  --color-focus: var(--thread);
+  --color-muted: color-mix(in oklab, var(--ivory) 64%, transparent);
+  --color-faint: color-mix(in oklab, var(--ivory) 42%, transparent);
+  --color-hair: color-mix(in oklab, var(--ivory) 14%, transparent);
+  --glass-tint: color-mix(in oklab, var(--ink) 34%, transparent);
+  --glass-lift: color-mix(in oklab, var(--ivory) 10%, transparent);
+  --glass-low: color-mix(in oklab, var(--ivory) 2%, transparent);
+  --glass-edge: color-mix(in oklab, var(--ivory) 58%, transparent);
+  --glass-edge-low: color-mix(in oklab, var(--ivory) 5%, transparent);
+  --glass-top: color-mix(in oklab, var(--ivory) 26%, transparent);
+  --glass-shadow: color-mix(in oklab, var(--ink) 82%, transparent);
+  --add-band: color-mix(in oklab, var(--thread) 9%, transparent);
+  --match-band: color-mix(in oklab, var(--thread) 17%, transparent);
+  --del-ink: color-mix(in oklab, var(--ivory) 40%, transparent);
+  --btn-fill: var(--ivory);
+  --btn-ink: var(--ink);
+  --color-accent-ink: var(--ink);
+  --mask-solid: linear-gradient(#000 0 0);
+  --font-display: "Gambetta", Georgia, serif;
+  --font-body: "Switzer", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --text-xs: 0.8125rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.1875rem;
+  --text-xl: 1.4375rem; --text-2xl: 1.75rem; --text-3xl: 2.5rem; --text-4xl: 2.875rem; --text-5xl: 3.75rem;
+  --space-2xs: 4px; --space-xs: 8px; --space-s: 12px; --space-m: 16px; --space-l: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px;
+  --container: 1600px; --gutter: 64px;
+  --radius-sheet: 22px; --radius-control: 10px;
+  --blur: 36px;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-muted) var(--color-paper); }
+body { margin: 0; min-height: 100dvh; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-size: var(--text-md); line-height: 1.55; -webkit-font-smoothing: antialiased; caret-color: var(--color-accent); }
+::selection { background: color-mix(in oklab, var(--color-accent) 30%, transparent); color: var(--color-ink); }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; text-decoration-color: var(--color-faint); }
+a:hover { text-decoration-color: var(--thread); }
+h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: 400; overflow-wrap: break-word; min-width: 0; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+ol, ul { margin: 0; padding: 0; list-style: none; }
+code, pre, .hash { font-family: var(--font-mono); font-size: 0.86em; }
+[hidden] { display: none !important; }
+button, textarea { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.ground { position: fixed; inset: 0; z-index: 0; }
+.ground canvas { width: 100%; height: 100%; display: block; }
+
+/* The lit sheet: gradient hairline bright top-left, inner top light, heavy blur, grain, one shadow. */
+.glass { position: relative; isolation: isolate; border-radius: var(--radius-sheet);
+  background: linear-gradient(162deg, var(--glass-lift), var(--glass-low) 58%), var(--glass-tint);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.6); backdrop-filter: blur(var(--blur)) saturate(1.6);
+  box-shadow: inset 0 1px 0 var(--glass-top), 0 48px 120px -36px var(--glass-shadow); }
+.glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, var(--glass-edge), var(--glass-edge-low) 38%, var(--glass-edge-low) 70%, var(--glass-top));
+  -webkit-mask: var(--mask-solid) content-box, var(--mask-solid); -webkit-mask-composite: xor; mask-composite: exclude; }
+.glass::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background-image: var(--grain); background-size: 160px; opacity: 0.07; mix-blend-mode: overlay; }
+
+.shell { position: relative; z-index: 1; width: 100%; max-width: var(--container); margin-inline: auto; padding-inline: var(--gutter); min-height: 100dvh; }
+.bar { display: flex; align-items: center; gap: var(--space-xl); padding-block: 36px; }
+.mark { font-family: var(--font-display); font-size: var(--text-xl); letter-spacing: -0.01em; }
+.where { color: var(--color-muted); font-size: var(--text-sm); }
+.seats { margin-left: auto; display: flex; align-items: center; gap: var(--space-l); }
+.seat { display: flex; align-items: center; gap: var(--space-s); font-size: var(--text-sm); }
+.seat .who { display: flex; flex-direction: column; line-height: 1.25; }
+.seat .sub { color: var(--color-faint); font-size: var(--text-xs); }
+.ring { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--color-muted); display: grid; place-items: center; flex: none; }
+.ring.dashed { border-style: dashed; border-color: var(--color-faint); }
+.ring .fill { width: 18px; height: 18px; border-radius: 50%; background: var(--ivory); transform: scale(0); }
+.seat.speaking .ring { border-color: var(--ivory); }
+
+/* C1, the day: a narrow column, then nothing. */
+.day { position: absolute; left: var(--gutter); top: 128px; width: 540px; padding: var(--space-xl); transform-origin: 0 0; }
+.day h1 { font-size: var(--text-3xl); line-height: 1.1; letter-spacing: -0.015em; }
+.day .lede { color: var(--color-muted); margin-top: var(--space-s); }
+.ledger { margin-top: var(--space-xl); border-top: 1px solid var(--color-hair); }
+.ledger li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: var(--space-m); padding-block: var(--space-m); border-bottom: 1px solid var(--color-hair); }
+.ledger time { color: var(--color-faint); font-size: var(--text-sm); padding-top: 2px; }
+.ledger .what { line-height: 1.45; }
+.ledger .by { display: block; color: var(--color-muted); font-size: var(--text-sm); margin-top: 2px; }
+.day .unread { color: var(--color-faint); font-size: var(--text-sm); margin-top: var(--space-l); }
+.day .later { margin-top: var(--space-xl); font-size: var(--text-sm); }
+.keys { position: fixed; z-index: 2; left: max(var(--gutter), calc((100% - var(--container)) / 2 + var(--gutter))); bottom: 32px; color: var(--color-faint); font-size: var(--text-sm); }
+.keys p + p { margin-top: 2px; }
+kbd { font-family: var(--font-body); font-size: var(--text-xs); color: var(--color-muted); border: 1px solid var(--color-hair); border-bottom-width: 2px; border-radius: 6px; padding: 0 var(--space-xs); margin-inline: var(--space-2xs); }
+
+/* C2, the arrival. */
+.verdict { position: absolute; left: 50%; top: 150px; width: 1360px; margin-left: -680px; padding: var(--space-2xl) var(--space-2xl) var(--space-xl); }
+.verdict .cols { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: var(--space-2xl); }
+.postmark { display: flex; align-items: center; gap: var(--space-m); }
+.postmark svg { width: 64px; height: 64px; flex: none; color: var(--color-muted); }
+.postmark .when { font-family: var(--font-display); font-size: var(--text-2xl); line-height: 1.1; }
+.postmark .ago { color: var(--color-muted); font-size: var(--text-sm); }
+.quote { margin: var(--space-xl) 0 0; font-family: var(--font-display); font-size: var(--text-4xl); line-height: 1.16; letter-spacing: -0.012em; text-wrap: balance; }
+.quote code { font-size: 0.74em; letter-spacing: 0; color: var(--ivory); }
+.quote .rejected { text-decoration: underline; text-decoration-color: var(--thread); text-decoration-thickness: 1.5px; text-underline-offset: 0.2em; }
+.attrib { margin-top: var(--space-l); color: var(--color-muted); }
+.attrib strong { color: var(--ivory); font-weight: 500; }
+.labels { display: flex; gap: var(--space-s); margin-top: var(--space-m); font-size: var(--text-sm); }
+.tag { border: 1px solid var(--color-hair); border-radius: 999px; padding: var(--space-2xs) var(--space-s); line-height: 1.2; color: var(--color-muted); }
+.tag.confirmed { color: var(--thread); border-color: color-mix(in oklab, var(--thread) 45%, transparent); }
+.edit-head { color: var(--color-muted); font-size: var(--text-sm); }
+.edit-head code { color: var(--ivory); }
+.diff { margin: var(--space-m) 0 0; padding: var(--space-m) 0; font-size: 13px; line-height: 1.75; border-top: 1px solid var(--color-hair); border-bottom: 1px solid var(--color-hair); overflow-x: auto; }
+.diff span { display: block; white-space: pre; padding-inline: var(--space-s); }
+.diff .ln { display: inline-block; width: 4.4ch; font-style: normal; color: var(--color-faint); }
+.diff .del { color: var(--del-ink); text-decoration: line-through; text-decoration-color: var(--color-faint); }
+.diff .add { background: var(--add-band); }
+.diff .match { background: var(--match-band); }
+.diff .tok { text-decoration: underline; text-decoration-color: var(--thread); text-decoration-thickness: 1.5px; text-underline-offset: 0.25em; }
+.decision { margin-top: var(--space-l); color: var(--color-muted); font-size: var(--text-sm); max-width: 58ch; }
+.decision strong { color: var(--ivory); font-weight: 500; }
+.verdict-foot { display: flex; align-items: center; gap: var(--space-xl); margin-top: var(--space-xl); padding-top: var(--space-l); border-top: 1px solid var(--color-hair); }
+.blocked { font-family: var(--font-display); font-size: var(--text-5xl); line-height: 1; color: var(--red); letter-spacing: -0.02em; }
+.timing { color: var(--color-muted); font-size: var(--text-sm); line-height: 1.5; }
+.actions { margin-left: auto; display: flex; gap: var(--space-s); }
+.btn { display: inline-flex; align-items: center; gap: var(--space-s); min-height: 44px; padding: 0 var(--space-l); border-radius: var(--radius-control); border: 1px solid var(--color-hair); background: transparent; cursor: pointer; font-size: var(--text-md);
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out; }
+.btn:hover { border-color: var(--color-muted); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--btn-fill); color: var(--btn-ink); border-color: var(--btn-fill); }
+.btn.primary:hover { background: var(--sand); border-color: var(--sand); }
+.btn kbd { color: inherit; border-color: currentColor; opacity: 0.6; }
+.thread { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.thread path { fill: none; stroke: var(--thread); stroke-width: 1.5; stroke-linecap: round; }
+.thread circle { fill: var(--thread); }
+
+/* Argue and held, static. */
+.argue label { display: block; color: var(--color-muted); font-size: var(--text-sm); margin-top: var(--space-m); }
+.argue textarea { display: block; width: 100%; min-height: 168px; margin-top: var(--space-s); padding: var(--space-s) var(--space-m); border-radius: var(--radius-control); border: 1px solid var(--color-hair); background: var(--glass-tint); resize: vertical; line-height: 1.5; }
+.argue textarea:focus-visible { outline-offset: 0; border-color: var(--thread); }
+.argue .hint { margin-top: var(--space-s); min-height: 1lh; color: var(--color-faint); font-size: var(--text-sm); }
+.held h2 { font-size: var(--text-2xl); margin-top: var(--space-m); }
+.held p { color: var(--color-muted); margin-top: var(--space-s); }
+
+/* The miss, repaired: a sequence read top to bottom. */
+.miss { position: absolute; left: 50%; top: 128px; width: 1240px; margin-left: -620px; padding: var(--space-2xl) var(--space-2xl) var(--space-xl); }
+.miss h2 { font-size: var(--text-3xl); line-height: 1.12; letter-spacing: -0.015em; }
+.miss .lede { color: var(--color-muted); margin-top: var(--space-s); max-width: 72ch; }
+.steps { position: relative; margin-top: var(--space-xl); }
+.steps::before { content: ""; position: absolute; left: 13px; top: 18px; bottom: 26px; width: 1.5px; background: var(--thread); transform-origin: 0 0; transform: scaleY(var(--drawn, 1)); }
+.steps li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--space-l); padding-block: var(--space-m); }
+.steps .node { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--thread); background: var(--ink); display: grid; place-items: center; font-size: var(--text-xs); color: var(--thread); }
+.steps li:first-child .node { border-color: var(--sand); color: var(--sand); }
+.steps h3 { font-size: var(--text-xl); line-height: 1.25; }
+.steps .note { color: var(--color-muted); font-size: var(--text-sm); margin-top: var(--space-2xs); }
+.steps pre { margin: 0; padding-top: var(--space-2xs); font-size: 12.5px; line-height: 1.65; color: var(--color-muted); white-space: pre-wrap; }
+.steps pre b { font-weight: 500; color: var(--ivory); }
+.miss .close { margin-top: var(--space-l); display: flex; gap: var(--space-l); align-items: center; color: var(--color-faint); font-size: var(--text-sm); }
+
+/* States; with scripting off every sheet stacks and reads in order. */
+.js .verdict, .js .miss { display: none; }
+.js[data-state="arrive"] .verdict, .js[data-state="argue"] .verdict, .js[data-state="held"] .verdict { display: block; }
+.js[data-state="miss"] .miss { display: block; }
+.js[data-state="miss"] .day, .js[data-state="miss"] .keys { display: none; }
+.verdict .argue, .verdict .held { display: none; }
+.js[data-state="argue"] .verdict .edit, .js[data-state="held"] .verdict .edit { display: none; }
+.js[data-state="argue"] .verdict .argue { display: block; }
+.js[data-state="held"] .verdict .held { display: block; }
+.js[data-state="argue"] .thread, .js[data-state="held"] .thread { display: none; }
+html:not(.js) .day, html:not(.js) .verdict, html:not(.js) .miss { position: relative; left: auto; top: auto; margin: 0 0 var(--space-xl); width: auto; }
+html:not(.js) .thread { display: none; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+</head>
+<body>
+<div class="ground" aria-hidden="true"><canvas></canvas></div>
+<div class="shell">
+  <header class="bar">
+    <p class="mark">Knack</p>
+    <p class="where">apache/airflow, on main</p>
+    <ul class="seats" aria-label="People in the record">
+      <li class="seat" data-root="airflow-75025-1" title="Pushkal Gupta (author); approved and merged by bbovenzi">
+        <span class="ring"><span class="fill"></span></span>
+        <span class="who">Pushkal Gupta<span class="sub">merged by bbovenzi</span></span>
+      </li>
+      <li class="seat" data-root="airflow-75774-1">
+        <span class="ring"><span class="fill"></span></span>
+        <span class="who">stegololz<span class="sub">#75774</span></span>
+      </li>
+      <li class="seat empty">
+        <span class="ring dashed"></span>
+        <span class="who">Nobody<span class="sub">7 Inferred, unconfirmed</span></span>
+      </li>
+    </ul>
+  </header>
+
+  <main>
+    <section class="day glass" aria-labelledby="day-h">
+      <h1 id="day-h">Sunday, 1 November</h1>
+      <p class="lede">Two things happened in this clone today.</p>
+      <ol class="ledger">
+        <li>
+          <time class="num" datetime="2026-11-01T16:34:51-05:00">4:34 pm</time>
+          <p class="what">Commit <span class="hash">a254856</span>, base<span class="by">knack demo</span></p>
+        </li>
+        <li>
+          <time class="num" datetime="2026-11-01T21:34:52Z">4:34 pm</time>
+          <p class="what">An edit was blocked, citing Pushkal Gupta<span class="by">Receipt <span class="hash">4be4607b</span>, decision airflow-75025-1</span></p>
+        </li>
+      </ol>
+      <p class="unread">Pull requests were not read: GITHUB_TOKEN is not set.</p>
+      <p class="later"><a href="#miss" data-go="miss">How a missed edit was repaired, fastapi, 31 October</a></p>
+    </section>
+
+    <section class="verdict glass" role="alertdialog" aria-labelledby="blocked-word" aria-describedby="the-quote">
+      <svg class="thread" aria-hidden="true"><path d=""/><circle r="2.5" cx="0" cy="0"/><circle r="2.5" cx="0" cy="0"/></svg>
+      <div class="cols">
+        <div class="said">
+          <div class="postmark">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <defs><path id="pm-arc" d="M32 32 m-25 0 a25 25 0 1 1 50 0 a25 25 0 1 1 -50 0"/></defs>
+              <circle cx="32" cy="32" r="31" fill="none" stroke="currentColor" stroke-width="1"/>
+              <circle cx="32" cy="32" r="18" fill="none" stroke="currentColor" stroke-width="1"/>
+              <text font-size="6.4" fill="currentColor" style="font-family: var(--font-body)"><textPath href="#pm-arc">merged into apache/airflow main, PR 75025,</textPath></text>
+              <text x="32" y="35" text-anchor="middle" font-size="8.5" fill="currentColor" style="font-family: var(--font-display)">2026</text>
+            </svg>
+            <div>
+              <p class="when num" data-countdown><time datetime="2026-10-19T21:36:02Z">19 October 2026</time></p>
+              <p class="ago num"><span data-ago>13 days ago</span>, merged at 21:36 UTC</p>
+            </div>
+          </div>
+          <blockquote class="quote" id="the-quote">“I removed them rather than <span class="rejected" data-thread-from>aliasing them onto <code>DagRun.state</code></span> and <code>DagRun.start_date</code>.”</blockquote>
+          <p class="attrib"><strong>Pushkal Gupta</strong>, author. Approved and merged by bbovenzi. <a href="https://github.com/apache/airflow/pull/75025">github.com/apache/airflow/pull/75025</a></p>
+          <p class="labels"><span class="tag confirmed">Confirmed</span><span class="tag">Not seeded</span></p>
+        </div>
+        <div class="right">
+          <div class="edit">
+            <p class="edit-head">The agent’s edit to <code>routes/public/dags.py</code>, lines 131 to 140</p>
+            <pre class="diff" aria-label="Diff hunk"><code><span><i class="ln">131</i>SortParam(</span><span><i class="ln">132</i>    ["dag_id", "dag_display_name", "next_dagrun", "state", "start_date"],</span><span><i class="ln">133</i>    DagModel,</span><span class="del"><i class="ln"></i>-   {"last_run_state": DagRun.state, "last_run_start_date": DagRun.start_date},</span><span class="add"><i class="ln">134</i>+   {</span><span class="add match"><i class="ln">135</i>+       "state": <b class="tok" data-thread-to>DagRun.state</b>,</span><span class="add match"><i class="ln">136</i>+       "start_date": DagRun.start_date,</span><span class="add"><i class="ln">137</i>+       "last_run_state": DagRun.state,</span><span class="add"><i class="ln">138</i>+       "last_run_start_date": DagRun.start_date,</span><span class="add"><i class="ln">139</i>+   },</span><span><i class="ln">140</i>).dynamic_depends()</span></code></pre>
+            <p class="decision"><strong>The decision.</strong> Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.</p>
+          </div>
+          <div class="argue">
+            <p class="edit-head">Argue with the record. Your reason is answered from Pushkal Gupta’s own words, or held for a person.</p>
+            <label for="objection">Why is this decision wrong for this edit?</label>
+            <textarea id="objection" name="objection" rows="6"></textarea>
+            <p class="hint">Runs <code>knack argue "&lt;your reason&gt;"</code></p>
+          </div>
+          <div class="held">
+            <p class="edit-head">Your objection</p>
+            <h2>Held for a person.</h2>
+            <p>The edit stays blocked until someone rules on receipt <span class="hash">80b311c1</span>.</p>
+            <p><code>knack resolve 80b311c1 allow|retire --reason "&lt;why&gt;"</code></p>
+          </div>
+        </div>
+      </div>
+      <div class="verdict-foot">
+        <p class="blocked" id="blocked-word">Blocked</p>
+        <p class="timing num">Verdict in 18.7 ms, round trip 212 ms.<br>Receipt <span class="hash">80b311c1</span></p>
+        <div class="actions">
+          <button class="btn" type="button" data-act="argue">Argue <kbd>A</kbd></button>
+          <button class="btn primary" type="button" data-act="accept">Accept <kbd>Enter</kbd></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="miss glass" aria-labelledby="miss-h">
+      <h2 id="miss-h">One edit slipped past a rule. The rule learned it.</h2>
+      <p class="lede">fastapi/fastapi, 31 October. The decision is tiangolo’s, PR 16062: “I’ll wait to see if anyone requests an even larger bump, for now this should work.” Inferred, not yet confirmed by a person.</p>
+      <ol class="steps">
+        <li><span class="node num">1</span><div><h3>The edit got through.</h3><p class="note">It set 8192 through a name, so the rule saw no literal. 0 rule hits. Rebuilt from the audit; the agent’s own bytes went with its temp folder.</p></div>
+          <pre>+_CALLABLE_CACHE_SIZE = 8192
+-@lru_cache(maxsize=1024)
++@lru_cache(maxsize=<b>_CALLABLE_CACHE_SIZE</b>)</pre></li>
+        <li><span class="node num">2</span><div><h3>It became a case the rule must fail.</h3></div>
+          <pre>recorded must-fail case fastapi/dependencies/models.py [77322b4d226e] for fastapi-16062</pre></li>
+        <li><span class="node num">3</span><div><h3>The rule was recompiled.</h3><p class="note">Two attempts. An earlier candidate was refused and the old rule kept.</p></div>
+          <pre>guard edit adds no new match; recompiling with muse-spark-1.3
+kept the old fastapi-16062: 1 gate(s) failed</pre></li>
+        <li><span class="node num">4</span><div><h3>It was proved again before it was trusted.</h3></div>
+          <pre>PASS proof: base, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 0.140.0
+PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed</pre></li>
+        <li><span class="node num">5</span><div><h3>Next time, the same edit is denied.</h3><p class="note">In replay. Live, an Inferred root warns; it blocks once a person confirms it.</p></div>
+          <pre><b>PASS cases: every must-fail edit denied, every must-pass edit allowed</b>
+installed fastapi-16062 -&gt; data/registry/../rules/fastapi/16062.yml (2 attempt(s))</pre></li>
+      </ol>
+      <p class="close"><a href="#day" data-go="day">Back to today</a><span>From bench/misses/16062-none-2.bar2.log and run2.log</span></p>
+    </section>
+  </main>
+
+  <footer class="keys" aria-label="Keys">
+    <p><kbd>Space</kbd> plays today’s block, <kbd>R</kbd> replays it.</p>
+  </footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/motion@12.43.0/dist/motion.js" integrity="sha384-hgVFh5YKDMdpcWEjpRqk2kPXOKBH7I9NBCKe3uR6dHKgy/BWPe8kyL01kiYuRn1u" crossorigin="anonymous"></script>
+
+<script id="ground-frag" type="x-shader/x-fragment">
+precision highp float;
+uniform float u_time; uniform float u_time2;
+uniform vec3 u_color1; uniform vec3 u_color2; uniform vec3 u_color3;
+uniform float u_scale; uniform float u_noise; uniform float u_exposure;
+uniform vec2 u_resolution;
+varying vec2 vUv;
+float noise(vec2 st) { return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453); }
+vec3 silkGradient(vec2 uv, float time) {
+  vec2 fragCoord = uv * u_resolution;
+  vec2 invResolution = 1.0 / u_resolution.xy;
+  vec2 centeredUv = (fragCoord * 2.0 - u_resolution.xy) * invResolution;
+  centeredUv *= u_scale;
+  float dampening = 1.0 / (1.0 + u_scale * 0.1);
+  float d = -u_time2 * 0.5;
+  float a = 0.0;
+  for (float i = 0.0; i < 8.0; ++i) {
+    a += cos(i - d - a * centeredUv.x) * dampening;
+    d += sin(centeredUv.y * i + a) * dampening;
+  }
+  d += u_time2 * 0.5;
+  vec3 patterns = vec3(
+    cos(centeredUv.x * d + a) * 0.5 + 0.5,
+    cos(centeredUv.y * a + d) * 0.5 + 0.5,
+    cos((centeredUv.x + centeredUv.y) * (d + a) * 0.5) * 0.5 + 0.5
+  );
+  vec3 color1Mix = mix(u_color1, u_color2, patterns.x);
+  vec3 color2Mix = mix(u_color2, u_color3, patterns.y);
+  vec3 color3Mix = mix(u_color3, u_color1, patterns.z);
+  vec3 finalColor = mix(color1Mix, color2Mix, patterns.z);
+  finalColor = mix(finalColor, color3Mix, patterns.x * 0.5);
+  vec3 originalPattern = vec3(cos(centeredUv * vec2(d, a)) * 0.6 + 0.4, cos(a + d) * 0.5 + 0.5);
+  originalPattern = cos(originalPattern * cos(vec3(d, a, 2.5)) * 0.5 + 0.5);
+  return mix(finalColor, originalPattern * finalColor, 0.3);
+}
+void main() {
+  vec3 color = silkGradient(vUv, u_time);
+  // Knack: exposure keeps the sand from out-shouting the glass.
+  color *= u_exposure;
+  if (u_noise > 0.001) {
+    float grain = noise(vUv * 200.0 + u_time * 0.1);
+    color *= (1.0 - u_noise * 0.4 + u_noise * grain * 0.4);
+  }
+  gl_FragColor = vec4(color, 1.0);
+}</script>
+<script>
+// Plain WebGL host for the vendored fragment; time is integrated on the CPU as gradflow does.
+window.Ground = (() => {
+  const OPTS = {"colors":["--ink","--teal","--sand"],"scale":0.55,"noise":0.02,"exposure":0.62,"speed":0.16,"resolution":0.5,"seed":11};
+  const canvas = document.querySelector(".ground canvas");
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: false, powerPreference: "high-performance" });
+  const stats = { deltas: [], renderer: "none" };
+  let running = false, last = 0, t1 = 0, t2 = 0, raf = 0, uni = {};
+  const tokenRGB = (name) => {
+    const c = document.createElement("canvas").getContext("2d");
+    c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    c.fillRect(0, 0, 1, 1);
+    const [r, g, b] = c.getImageData(0, 0, 1, 1).data;
+    return [r / 255, g / 255, b / 255];
+  };
+  const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const build = () => {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, "attribute vec2 position; varying vec2 vUv; void main(){ vUv = position*0.5+0.5; gl_Position = vec4(position,0.0,1.0); }"));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, document.getElementById("ground-frag").textContent));
+    gl.linkProgram(p); gl.useProgram(p);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(p, "position"); gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    for (const n of ["u_time","u_time2","u_color1","u_color2","u_color3","u_scale","u_noise","u_exposure","u_resolution","u_center"]) uni[n] = gl.getUniformLocation(p, n);
+    OPTS.colors.forEach((tok, i) => gl.uniform3fv(uni["u_color" + (i + 1)], tokenRGB(tok)));
+    gl.uniform1f(uni.u_scale, OPTS.scale); gl.uniform1f(uni.u_noise, OPTS.noise); gl.uniform1f(uni.u_exposure, OPTS.exposure);
+    if (uni.u_center) gl.uniform2fv(uni.u_center, OPTS.center || [0.5, 0.5]);
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    stats.renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  };
+  const size = () => {
+    const w = Math.round(innerWidth * OPTS.resolution), h = Math.round(innerHeight * OPTS.resolution);
+    canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); gl.uniform2f(uni.u_resolution, w, h);
+  };
+  const draw = () => {
+    gl.uniform1f(uni.u_time, t1); gl.uniform1f(uni.u_time2, t2);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  };
+  const tick = (now) => {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    if (last) stats.deltas.push(now - last);
+    last = now; t1 += dt * OPTS.speed; t2 += dt * OPTS.speed * OPTS.speed;
+    draw(); raf = requestAnimationFrame(tick);
+  };
+  const resume = () => { if (running || OPTS.still) return; running = true; last = 0; raf = requestAnimationFrame(tick); };
+  const pause = () => { running = false; cancelAnimationFrame(raf); };
+  if (!gl) return { pause() {}, resume() {}, stats };
+  build(); size(); t1 = OPTS.seed; t2 = OPTS.seed * OPTS.speed; draw();
+  addEventListener("resize", () => { size(); draw(); });
+  return { pause, resume, stats };
+})();
+</script>
+<script>
+// The console: one arrival timeline, springs for the sheet and the seat, exits faster than entrances.
+(() => {
+  const root = document.documentElement;
+  root.classList.add("js");
+  const M = window.Motion;
+  const $ = (s, el = document) => el.querySelector(s);
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SPRING = { type: "spring", stiffness: 180, damping: 24 };
+  const MERGED = Date.parse("2026-10-19T21:36:02Z"), TODAY = Date.parse("2026-11-01T21:34:52Z");
+  const DAYS = Math.round((Date.UTC(2026, 10, 1) - Date.UTC(2026, 9, 19)) / 864e5);
+  const verdict = $(".verdict"), day = $(".day"), seat = $('.seat[data-root="airflow-75025-1"]');
+  const fill = $(".fill", seat), whenEl = $("[data-countdown] time"), agoEl = $("[data-ago]");
+  const path = $(".thread path"), dots = verdict.querySelectorAll(".thread circle");
+  let timers = [], running = [];
+
+  const fmt = (ms) => new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const setState = (s) => { root.dataset.state = s; if (location.hash !== "#" + s) history.replaceState(null, "", "#" + s); };
+  const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+  const stopAll = () => { timers.forEach(clearTimeout); timers = []; running.forEach((a) => a.stop && a.stop()); running = []; };
+
+  // The thread runs from the rejected phrase in the quote to the matched token in the diff.
+  const layThread = () => {
+    const box = verdict.getBoundingClientRect(), a = $("[data-thread-from]").getClientRects(), b = $("[data-thread-to]").getBoundingClientRect();
+    const end = a[a.length - 1];
+    const x1 = end.right - box.left + 4, y1 = end.bottom - box.top - 3, x2 = b.left - box.left - 4, y2 = b.top - box.top + b.height * 0.85;
+    path.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + (x2 - x1) * 0.55) + " " + y1 + ", " + (x1 + (x2 - x1) * 0.45) + " " + y2 + ", " + x2 + " " + y2);
+    dots[0].setAttribute("cx", x1); dots[0].setAttribute("cy", y1); dots[1].setAttribute("cx", x2); dots[1].setAttribute("cy", y2);
+    const len = path.getTotalLength(); path.setAttribute("stroke-dasharray", len); return len;
+  };
+
+  const endState = () => {
+    for (const el of verdict.querySelectorAll(".postmark, .quote, .attrib, .labels, .right, .blocked, .timing, .actions")) { el.style.opacity = 1; el.style.transform = "none"; }
+    verdict.style.opacity = 1; verdict.style.transform = "none"; path.setAttribute("stroke-dashoffset", 0);
+    dots.forEach((d) => (d.style.opacity = 1)); whenEl.textContent = fmt(MERGED); agoEl.textContent = DAYS + " days ago";
+    fill.style.transform = "scale(1)"; seat.classList.add("speaking"); day.style.opacity = 0; Ground.pause();
+  };
+
+  const countBack = () => running.push(M.animate(0, DAYS, { duration: 1.1, ease: [0.3, 0, 0.2, 1], onUpdate: (v) => {
+    const d = Math.round(v); whenEl.textContent = fmt(TODAY - d * 864e5 > MERGED ? TODAY - d * 864e5 : MERGED); agoEl.textContent = d + (d === 1 ? " day ago" : " days ago");
+  } }));
+
+  const arrive = () => {
+    stopAll(); setState("arrive"); Ground.resume();
+    const len = layThread();
+    if (reduced || !M) return endState();
+    path.setAttribute("stroke-dashoffset", len); dots.forEach((d) => (d.style.opacity = 0));
+    whenEl.textContent = fmt(TODAY); agoEl.textContent = "today";
+    seat.classList.add("speaking"); fill.style.transform = "scale(0)";
+    running.push(M.animate([
+      [day, { opacity: 0, scale: 0.985 }, { duration: 0.4, at: 0 }],
+      [verdict, { opacity: [0, 1], y: [56, 0] }, { ...SPRING, at: 0 }],
+      [".verdict .postmark", { opacity: [0, 1] }, { duration: 0.3, at: 0.3 }],
+      [".verdict .quote", { opacity: [0, 1], y: [10, 0] }, { duration: 0.7, ease: [0.2, 0.7, 0.2, 1], at: 1.55 }],
+      [".verdict .attrib, .verdict .labels", { opacity: [0, 1] }, { duration: 0.4, at: 1.95 }],
+      [".verdict .right", { opacity: [0, 1] }, { duration: 0.45, at: 1.8 }],
+      [path, { strokeDashoffset: [len, 0] }, { duration: 0.9, ease: [0.45, 0, 0.2, 1], at: 2.45 }],
+      [dots[0], { opacity: [0, 1] }, { duration: 0.15, at: 2.45 }],
+      [dots[1], { opacity: [0, 1] }, { duration: 0.15, at: 3.3 }],
+      [".verdict .blocked", { opacity: [0, 1], scale: [1.03, 1] }, { duration: 0.3, ease: [0.2, 0.8, 0.2, 1], at: 3.55 }],
+      [".verdict .timing, .verdict .actions", { opacity: [0, 1] }, { duration: 0.3, at: 3.8 }],
+    ]));
+    later(400, countBack);
+    later(1550, () => running.push(M.animate(fill, { scale: [0, 1] }, SPRING)));
+    // The ground freezes the instant the block lands.
+    later(3550, () => Ground.pause());
+    later(3600, () => $('[data-act="accept"]').focus({ preventScroll: true }));
+  };
+
+  const accept = () => {
+    stopAll(); Ground.resume(); seat.classList.remove("speaking");
+    if (reduced || !M) { setState("day"); day.style.opacity = 1; fill.style.transform = "scale(0)"; return; }
+    M.animate(fill, { scale: 0 }, { duration: 0.18, ease: "easeIn" });
+    M.animate(verdict, { opacity: 0, y: 20 }, { duration: 0.22, ease: [0.4, 0, 1, 1] }).then(() => setState("day"));
+    M.animate(day, { opacity: 1, scale: 1 }, { duration: 0.3 });
+  };
+
+  const showMiss = () => {
+    stopAll(); setState("miss"); Ground.resume();
+    const steps = document.querySelectorAll(".steps li"), rail = $(".steps");
+    if (reduced || !M) { rail.style.setProperty("--drawn", 1); return; }
+    rail.style.setProperty("--drawn", 0);
+    M.animate($(".miss"), { opacity: [0, 1], y: [40, 0] }, SPRING);
+    running.push(M.animate(0, 1, { duration: 2.2, delay: 0.3, ease: [0.4, 0, 0.2, 1], onUpdate: (v) => rail.style.setProperty("--drawn", v) }));
+    steps.forEach((li, i) => running.push(M.animate(li, { opacity: [0, 1], y: [8, 0] }, { duration: 0.45, delay: 0.3 + i * 0.42 })));
+  };
+
+  const go = (s) => {
+    if (s === "arrive" || s === "block") return arrive();
+    if (s === "miss") return showMiss();
+    if (s === "argue" || s === "held") { arrive(); stopAll(); endState(); setState(s); if (s === "argue") $("#objection").focus(); return; }
+    stopAll(); setState("day"); day.style.opacity = 1; Ground.resume();
+  };
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-go], [data-act]"); if (!t) return;
+    e.preventDefault();
+    if (t.dataset.go) go(t.dataset.go);
+    if (t.dataset.act === "accept") accept();
+    if (t.dataset.act === "argue") go("argue");
+  });
+  document.addEventListener("keydown", (e) => {
+    const el = e.target instanceof Element ? e.target : null;
+    if (el && el.matches("textarea")) { if (e.key === "Escape") go("arrive"); return; }
+    const s = root.dataset.state;
+    if (e.key === " " && s === "day") { e.preventDefault(); arrive(); }
+    else if (e.key === "r" || e.key === "R") arrive();
+    else if ((e.key === "a" || e.key === "A") && s === "arrive") { e.preventDefault(); go("argue"); }
+    else if (e.key === "Enter" && s === "arrive" && !(el && el.matches("button"))) accept();
+    else if (e.key === "Escape" && s === "miss") go("day");
+  });
+  addEventListener("resize", () => { if (root.dataset.state !== "day") { layThread(); path.setAttribute("stroke-dashoffset", 0); } });
+
+  addEventListener("hashchange", () => { const s = location.hash.slice(1); if (s && s !== root.dataset.state) go(s); });
+  document.fonts.ready.then(() => go((location.hash || "#day").slice(1)));
+})();
+</script>
+</body>
+</html>

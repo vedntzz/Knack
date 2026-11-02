@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knack console</title>
+<meta name="description" content="Knack console: an agent's edit stopped by a decision a person recorded in a merged pull request.">
+<link rel="preload" href="vendor/fonts/Gambetta-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/fonts/Switzer-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/fonts/GeistMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Hallmark · shape: app screen, film-first 1920x1080 · genre: editorial · theme: custom (brief tokens win) · signature: the forked thread from a sentence to two pairs of code lines · v3.0.0 */
+/* waive F24: the brief fixes the sheet recipe, a 1px top hairline plus a deep soft shadow */
+@font-face { font-family: "Gambetta"; src: url("vendor/fonts/Gambetta-Regular.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Gambetta"; src: url("vendor/fonts/Gambetta-Medium.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Switzer"; src: url("vendor/fonts/Switzer-Regular.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Switzer"; src: url("vendor/fonts/Switzer-Medium.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Geist Mono"; src: url("vendor/fonts/GeistMono-Regular.woff2") format("woff2"); font-weight: 400; font-display: block; }
+
+:root {
+  --ground: oklch(13% 0.008 80);
+  --sheet: oklch(16% 0.008 80);
+  --ink: oklch(93% 0.01 80);
+  --muted: oklch(70% 0.01 80);
+  --amber: oklch(78% 0.13 80);
+  --red: oklch(62% 0.21 25);
+  --hair: oklch(28% 0.008 80);
+  --well: oklch(19% 0.008 80);
+  --font-display: "Gambetta", Georgia, serif;
+  --font-body: "Switzer", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --text-s: 18px; --text-m: 20px; --text-l: 28px; --text-xl: 40px; --text-quote: 56px;
+  --space-2xs: 4px; --space-xs: 8px; --space-s: 12px; --space-ms: 16px; --space-m: 24px; --space-ml: 28px; --space-l: 40px; --space-xl: 64px;
+  --shadow-deep: 0 48px 120px -24px oklch(5% 0 0 / 0.75), 0 2px 8px oklch(5% 0 0 / 0.5);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: clip; background: var(--ground); }
+body { color: var(--ink); font-family: var(--font-body); font-size: var(--text-m); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+code, .mono { font-family: var(--font-mono); font-size: var(--text-s); font-variant-ligatures: none; }
+
+/* The stage is the film frame: 1920x1080, scaled to fit the window. */
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; background: var(--ground); }
+.sheet { position: absolute; left: 64px; top: 48px; width: 1792px; height: 936px; padding: var(--space-xl); background: var(--sheet); border-top: 1px solid var(--hair); border-radius: 20px; box-shadow: var(--shadow-deep); }
+.scene { display: none; }
+[data-scene="day"] .scene.day, [data-scene="block"] .scene.block, [data-scene="argue"] .scene.argue,
+[data-scene="held"] .scene.held, [data-scene="recovery"] .scene.recovery { display: block; }
+.eyebrow { font-size: var(--text-s); color: var(--muted); margin: 0 0 var(--space-s); }
+.muted { color: var(--muted); }
+h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; }
+
+/* Block, level 1 */
+.b-top { display: flex; align-items: center; gap: 20px; height: 56px; }
+.stop { width: 30px; height: 30px; flex: none; }
+.blocked { font-size: 34px; font-weight: 500; color: var(--red); letter-spacing: 0.005em; }
+.pill { font-family: var(--font-mono); font-size: var(--text-s); color: var(--muted); border: 1px solid var(--hair); border-radius: 999px; padding: var(--space-xs) var(--space-ms); white-space: nowrap; }
+.postmark { margin-left: auto; display: flex; font-size: 40px; line-height: 48px; height: 48px; overflow: hidden; font-variant-numeric: tabular-nums; }
+.postmark .cell { display: inline-block; overflow: hidden; height: 48px; text-align: center; }
+.postmark .strip { display: flex; flex-direction: column; will-change: transform; }
+.postmark .strip span { height: 48px; white-space: pre; }
+
+.quote { font-family: var(--font-display); font-size: var(--text-quote); line-height: 1.18; margin: 72px 0 0; letter-spacing: -0.005em; }
+.quote .line { display: block; white-space: nowrap; }
+.quote code { font-size: 0.84em; letter-spacing: -0.01em; }
+.rejected { text-decoration: underline 1.5px var(--amber); text-underline-offset: 10px; text-decoration-skip-ink: none; }
+.baseline { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
+
+/* Block, level 2 */
+.cols { display: grid; grid-template-columns: 940px 1fr; column-gap: var(--space-xl); margin-top: 104px; }
+.col h2 { font-family: var(--font-body); font-size: var(--text-s); color: var(--muted); margin: 0 0 var(--space-ml); display: inline-block; }
+.rows { font-family: var(--font-mono); font-size: var(--text-s); line-height: 34px; }
+.row { display: flex; gap: var(--space-ms); white-space: pre; }
+.gutter { width: 11ch; flex: none; text-align: right; color: var(--muted); }
+.tok { text-decoration: underline 1.5px var(--amber); text-underline-offset: 6px; text-decoration-skip-ink: none; }
+
+/* Block, level 3 */
+.byline { margin-top: 72px; font-size: var(--text-m); line-height: 32px; }
+.trust { margin-top: var(--space-ml); font-size: var(--text-m); line-height: 32px; }
+.gates { display: flex; flex-wrap: wrap; column-gap: var(--space-m); }
+.gate::after { content: " \2713"; color: var(--ink); }
+.gap { border: 1px dashed var(--muted); border-radius: 8px; padding: var(--space-2xs) var(--space-s); color: var(--muted); }
+.gap b { font-weight: 500; color: var(--ink); margin-right: var(--space-xs); }
+
+/* The thread */
+.thread { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; overflow: visible; }
+.thread path { fill: none; stroke: var(--amber); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.thread circle { fill: var(--amber); }
+
+/* Controls: one primary button per state, always in the same place */
+.controls { position: absolute; right: var(--space-xl); bottom: 48px; display: flex; align-items: flex-end; gap: var(--space-ml); }
+.dismiss { display: grid; justify-items: end; gap: 2px; }
+.dismiss small { font-size: var(--text-s); color: var(--muted); }
+button { font: inherit; color: inherit; cursor: pointer; }
+.btn { font-size: var(--text-m); font-weight: 500; border-radius: 10px; padding: var(--space-s) var(--space-ml); border: 1px solid var(--hair); background: transparent; }
+.btn:hover { border-color: var(--muted); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.primary { background: var(--ink); color: var(--sheet); border-color: var(--ink); min-width: 220px; }
+.btn kbd { font-family: var(--font-mono); font-size: var(--text-s); margin-left: var(--space-s); color: var(--muted); }
+.btn.primary kbd { color: var(--sheet); }
+.btn.pressed { transform: translateY(1px); background: var(--muted); border-color: var(--muted); }
+.btn[hidden], .dismiss[hidden] { display: none; }
+
+.keys { position: absolute; left: 64px; right: 64px; bottom: 22px; display: flex; gap: 32px; font-size: var(--text-s); color: var(--muted); }
+.keys kbd { font-family: var(--font-mono); font-size: var(--text-s); color: var(--ink); border: 1px solid var(--hair); border-radius: 6px; padding: 0 var(--space-xs); margin-right: var(--space-xs); }
+
+/* Day */
+.day h1 { font-size: 56px; line-height: 1.1; }
+.seats { display: flex; gap: 72px; margin-top: 88px; }
+.seat { display: grid; grid-template-columns: 72px auto; column-gap: var(--space-m); align-items: center; }
+.seat svg { grid-row: span 2; }
+.seat .who { font-size: var(--text-l); }
+.legend { display: flex; gap: 36px; margin-top: 56px; font-size: var(--text-s); color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: var(--space-s); }
+.ruled { margin-top: 88px; border-top: 1px solid var(--hair); padding-top: var(--space-l); display: grid; gap: var(--space-m); }
+.ruled p { margin: 0; }
+
+/* Argue */
+.argue .step { margin-bottom: var(--space-l); }
+.objection { font-size: 32px; line-height: 1.3; max-width: 1500px; margin: 0; }
+.cited { font-family: var(--font-display); font-size: 44px; line-height: 1.2; margin: 0; padding-left: var(--space-ml); border-left: 1.5px solid var(--amber); }
+.cited code { font-size: 0.84em; }
+.cite-by { margin: var(--space-s) 0 0 var(--space-ml); color: var(--muted); }
+.only { margin: calc(-1 * var(--space-ml)) 0 0 var(--space-ml); }
+.reply { font-size: 28px; line-height: 1.35; max-width: 1500px; margin: 0; }
+.reply code { font-size: 0.84em; }
+.badge { display: inline-flex; gap: var(--space-s); align-items: center; border: 1px solid var(--hair); border-radius: 999px; padding: var(--space-2xs) var(--space-ms); font-size: var(--text-s); }
+.kind { font-family: var(--font-mono); font-size: var(--text-s); }
+.verdict-hold { font-family: var(--font-display); font-size: var(--text-xl); }
+.js .reveal { opacity: 0; }
+
+/* Held */
+.held-head { display: flex; align-items: center; gap: var(--space-l); margin-top: var(--space-l); }
+.held h1 { font-size: 72px; line-height: 1.1; }
+.cmd { margin-top: 96px; }
+.cmd pre { margin: 0; font-family: var(--font-mono); font-size: var(--text-m); background: var(--well); border: 1px solid var(--hair); border-radius: 10px; padding: var(--space-m) var(--space-ml); white-space: pre-wrap; word-break: break-all; max-width: 1500px; }
+
+/* Recovery */
+.recovery h1 { font-size: 56px; line-height: 1.1; }
+.steps { list-style: none; padding: 0; margin: var(--space-l) 0 0; display: grid; gap: var(--space-m); counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 300px 1fr; column-gap: 32px; counter-increment: s; }
+.steps .label { font-size: var(--text-m); font-weight: 500; }
+.steps .label::before { content: counter(s) "  "; color: var(--muted); font-weight: 400; }
+.steps code { display: block; color: var(--ink); line-height: 30px; white-space: pre-wrap; }
+.steps .note { color: var(--muted); font-size: var(--text-s); }
+
+@media (prefers-reduced-motion: reduce) { .btn.pressed { transform: none; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage" data-scene="block">
+<script>document.documentElement.classList.add("js");</script>
+  <main class="sheet" id="sheet" aria-live="polite">
+
+    <section class="scene day" aria-label="Today">
+      <p class="eyebrow" id="d-branch"></p>
+      <h1 id="d-repo"></h1>
+      <div class="seats" id="d-seats"></div>
+      <div class="legend" id="d-legend"></div>
+      <div class="ruled">
+        <div><p class="eyebrow">Last receipt</p><p id="d-receipt"></p></div>
+        <div><p class="eyebrow">Verify</p><p><code id="d-verify"></code></p></div>
+      </div>
+    </section>
+
+    <section class="scene block" aria-label="Blocked edit">
+      <div class="b-top">
+        <svg class="stop" viewBox="0 0 30 30" aria-hidden="true"><path fill="var(--red)" d="M9 1h12l8 8v12l-8 8H9l-8-8V9z"/></svg>
+        <span class="blocked">Blocked</span>
+        <span class="pill" id="b-pill"></span>
+        <div class="postmark" id="b-postmark" role="img"></div>
+      </div>
+      <blockquote class="quote" id="b-quote"></blockquote>
+      <div class="cols" id="b-cols">
+        <div class="col reveal" id="b-left"><h2 id="b-left-h"></h2><div class="rows" id="b-left-rows"></div></div>
+        <div class="col reveal" id="b-right"><h2 id="b-right-h"></h2><div class="rows" id="b-right-rows"></div></div>
+      </div>
+      <p class="byline"><span id="b-by1"></span><br><span id="b-by2"></span></p>
+      <div class="trust"><div class="gates" id="b-gates"></div><div id="b-claim"></div></div>
+    </section>
+
+    <section class="scene argue" aria-label="Argue">
+      <div class="step"><p class="eyebrow">Objection, from the agent</p><p class="objection" id="a-objection"></p></div>
+      <div class="step reveal" id="a-record"><p class="eyebrow">The record</p><p class="cited" id="a-cited"></p><p class="cite-by" id="a-citeby"></p></div>
+      <p class="only reveal muted" id="a-only"></p>
+      <div class="step reveal" id="a-ruling" style="margin-top:var(--space-l)"><p class="eyebrow">Ruling <span class="kind" id="a-kind"></span></p><p class="reply" id="a-reply"></p></div>
+      <div class="reveal" id="a-meta"><span class="badge" id="a-badge"></span> <span class="muted" id="a-receipt" style="margin-left:16px"></span></div>
+      <p class="verdict-hold reveal" id="a-hold"></p>
+    </section>
+
+    <section class="scene held" aria-label="Held for a person">
+      <div class="held-head">
+        <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="34" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 6"/></svg>
+        <h1>Held for a person.</h1>
+      </div>
+      <p class="muted" id="h-why" style="margin:28px 0 0"></p>
+      <div class="cmd"><p class="eyebrow">a human runs this</p><pre id="h-cmd"></pre></div>
+      <p style="margin-top:40px"><span class="muted">Deny receipt </span><code id="h-receipt"></code></p>
+      <p class="muted" id="h-chain"></p>
+    </section>
+
+    <section class="scene recovery" aria-label="Recovery">
+      <p class="eyebrow" id="r-lede"></p>
+      <h1>Recovery</h1>
+      <ol class="steps" id="r-steps"></ol>
+    </section>
+
+    <div class="controls">
+      <div class="dismiss" id="dismiss"><button class="btn" id="dismiss-btn" type="button">Dismiss<kbd>Esc</kbd></button><small>the edit is already stopped</small></div>
+      <button class="btn primary" id="primary" type="button"></button>
+    </div>
+  </main>
+  <svg class="thread" id="thread" aria-hidden="true"></svg>
+  <footer class="keys" id="keys"></footer>
+</div>
+
+<script src="fixtures/scenes.js"></script>
+<script>
+"use strict";
+const K = window.KNACK;
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const truth = { checked: 0, missing: [] };
+window.__truth = truth;
+
+// Look up a dotted path in the fixture.
+const at = (path) => path.split(".").reduce((o, k) => (o == null ? o : o[k]), K);
+const leaves = (v) => (v && typeof v === "object" ? Object.values(v).flatMap(leaves) : [String(v)]);
+const flat = (s) => String(s).replace(/[`“”"]/g, "").replace(/\s+/g, " ").trim();
+
+// Every shown value names its source; verbatim ones must appear in it.
+function put(el, text, src, verbatim = true) {
+  el.textContent = text;
+  el.dataset.src = src;
+  truth.checked++;
+  const source = at(src);
+  const ok = source != null && (!verbatim || leaves(source).some((v) => flat(v).includes(flat(text))));
+  if (!ok) { truth.missing.push(src + ": " + text); console.error("truth: not in fixture", src, text); }
+  return el;
+}
+const span = (cls, text, src, verbatim) => { const s = document.createElement("span"); if (cls) s.className = cls; return src ? put(s, text, src, verbatim) : (s.textContent = text, s); };
+const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).replace(",", "");
+const fmtStamp = (iso) => fmtDate(iso) + " " + iso.slice(11, 16) + " UTC";
+const short = (hash) => hash.slice(0, 12);
+const author = (by) => by.split(" (author)")[0];
+const approver = (by) => by.split("merged by ")[1];
+const prOf = (url) => url.split("/pull/")[1];
+const repoOf = (url) => url.split("github.com/")[1].split("/pull/")[0];
+const fileTag = (path) => path.split("/").slice(-2, -1)[0];
+
+// Code with backticks: plain runs as text, `runs` as <code>.
+function withCode(parent, text) {
+  text.split(/(`[^`]+`)/).filter(Boolean).forEach((part) => {
+    const node = part.startsWith("`") ? document.createElement("code") : document.createTextNode(part);
+    if (part.startsWith("`")) node.textContent = part.slice(1, -1);
+    parent.append(node);
+  });
+  return parent;
+}
+
+/* ---------- block ---------- */
+function buildQuote() {
+  const q = K.root.quote, el = $("b-quote");
+  const cut = q.indexOf("aliasing"), end = q.lastIndexOf("`") + 1;
+  el.dataset.src = "root.quote"; truth.checked++;
+  const l1 = span("line", "“" + q.slice(0, cut).trimEnd());
+  const l2 = document.createElement("span"); l2.className = "line";
+  const rej = withCode(span("rejected", ""), q.slice(cut, end));
+  rej.id = "b-rejected"; rej.append(Object.assign(document.createElement("span"), { className: "baseline", id: "b-base" }));
+  l2.append(rej, q.slice(end) + "”");
+  el.append(l1, l2);
+}
+
+function codeRow(rowsEl, gutter, code, token, src) {
+  const row = document.createElement("div"); row.className = "row";
+  row.append(span("gutter", gutter));
+  const c = put(document.createElement("span"), code, src);
+  if (token) { const i = code.indexOf(token); c.textContent = code.slice(0, i); const t = span("tok", token); c.append(t, code.slice(i + token.length)); t.dataset.tok = "1"; }
+  row.append(c); rowsEl.append(row);
+}
+
+function buildCols() {
+  const merged = fmtDate(K.root.merged_at);
+  put($("b-left-h"), `PR #${prOf(K.root.source_url)} · rejected base · ${merged}`, "root.merged_at", false);
+  K.rejected_base.forEach((r, i) => codeRow($("b-left-rows"), `${fileTag(r.file)} ${r.line}`, r.code, i === 0 ? '"state"' : null, `rejected_base.${i}.code`));
+  put($("b-right-h"), "Muse Code · run 3, replayed today · blocked", "block.log_commit", false);
+  K.block.attempted.rows.forEach((r, i) => codeRow($("b-right-rows"), `${fileTag(K.block.attempted.file)} ${r.line}`, r.code, i === 0 ? r.text : null, `block.attempted.rows.${i}.code`));
+}
+
+function buildLevel3() {
+  const by = K.root.decided_by;
+  put($("b-pill"), `${K.block.verdict_ms} ms verdict · ${K.block.round_trip_ms} ms PreToolUse round trip · ${K.block.scan} · 0 model calls in this hook`, "block", false);
+  put($("b-by1"), `${author(by)} · ${repoOf(K.root.source_url)} #${prOf(K.root.source_url)} · merged ${fmtDate(K.root.merged_at)} · approved by ${approver(by)}`, "root.decided_by", false);
+  const line2 = $("b-by2"); line2.className = "muted";
+  line2.append(span("", `Root ${K.root.id} · ${K.root.status} · ${K.root.seeded ? "seeded" : "not seeded"} · `, "root.status", false));
+  line2.append(span("gap", "confirmed_by is not recorded in this root", "root", false));
+  K.grid.gates.forEach((g) => K.grid.cells[g] === "PASS" && $("b-gates").append(span("gate", g, "grid.gates")));
+  const claim = $("b-claim");
+  claim.append(span("", "0 FP on Airflow current tree and previous release, for the rules shown · ", "grid.cells", false), span("muted", "receipt "), span("mono", short(K.block.receipt), "block.receipt"));
+}
+
+// Odometer: each character is a vertical strip from today's date to the decision's.
+function buildPostmark() {
+  const from = fmtDate(K.day.date + "T12:00:00Z").replace(/ (\d) /, " 0$1 "), to = fmtDate(K.root.merged_at);
+  const el = $("b-postmark"); el.setAttribute("aria-label", to); el.dataset.src = "root.merged_at"; truth.checked++;
+  [...to].forEach((ch, i) => {
+    const cell = span("cell", ""), strip = span("strip", "");
+    strip.append(span("", from[i] || ch)); if ((from[i] || ch) !== ch) strip.append(span("", ch));
+    cell.append(strip); el.append(cell);
+  });
+}
+
+/* The thread: one path per branch, routed orthogonally around text. */
+const TH = { paths: [], nodes: [], lens: [] };
+function rectIn(el) {
+  const s = $("stage").getBoundingClientRect(), r = el.getBoundingClientRect(), k = s.width / 1920;
+  return { l: (r.left - s.left) / k, t: (r.top - s.top) / k, r: (r.right - s.left) / k, b: (r.bottom - s.top) / k };
+}
+const crosses = (x, y1, y2, box) => x > box.l - 6 && x < box.r + 6 && Math.max(y1, y2) > box.t && Math.min(y1, y2) < box.b;
+
+function branch(start, forkY, tok, header) {
+  const tx = (tok.l + tok.r) / 2, ty = tok.t - 6, h = header;
+  if (!crosses(tx, forkY, ty, h)) return [[start.x, start.y], [start.x, forkY], [tx, forkY], [tx, ty]];
+  const gapY = (h.b + tok.t) / 2 - 2, clear = h.r + 24;
+  return [[start.x, start.y], [start.x, forkY], [clear, forkY], [clear, gapY], [tx, gapY], [tx, ty]];
+}
+
+// Polyline to a path with small rounded corners.
+function rounded(pts, r = 10) {
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [p, c, n] = [pts[i - 1], pts[i], pts[i + 1]];
+    const a = Math.min(r, Math.hypot(c[0] - p[0], c[1] - p[1]) / 2, Math.hypot(n[0] - c[0], n[1] - c[1]) / 2);
+    const u = (q) => [Math.sign(q[0] - c[0]) * a, Math.sign(q[1] - c[1]) * a];
+    d += ` L${c[0] + u(p)[0]},${c[1] + u(p)[1]} Q${c[0]},${c[1]} ${c[0] + u(n)[0]},${c[1] + u(n)[1]}`;
+  }
+  const last = pts[pts.length - 1];
+  return d + ` L${last[0]},${last[1]}`;
+}
+
+function layoutThread() {
+  const svg = $("thread"); svg.innerHTML = "";
+  if (state.scene !== "block") return;
+  const rej = rectIn($("b-rejected")), base = rectIn($("b-base"));
+  const start = { x: Math.round((rej.l + rej.r) / 2), y: base.t + 10.75 };
+  const heads = [rectIn($("b-left-h")), rectIn($("b-right-h"))];
+  const forkY = Math.round((rej.b + Math.min(heads[0].t, heads[1].t)) / 2);
+  const toks = [...document.querySelectorAll("[data-tok]")].map(rectIn);
+  const ns = "http://www.w3.org/2000/svg";
+  TH.paths = toks.map((t, i) => { const p = document.createElementNS(ns, "path"); p.setAttribute("d", rounded(branch(start, forkY, t, heads[i]))); svg.append(p); return p; });
+  TH.lens = TH.paths.map((p) => p.getTotalLength());
+  const node = (x, y) => { const c = document.createElementNS(ns, "circle"); Object.entries({ cx: x, cy: y, r: 3 }).forEach(([k, v]) => c.setAttribute(k, v)); svg.append(c); return c; };
+  TH.nodes = [node(start.x, start.y), ...toks.map((t) => node((t.l + t.r) / 2, t.t - 6))];
+  TH.points = { start, forkY, toks };
+}
+
+/* ---------- day ---------- */
+function seatGlyph(kind, size = 72) {
+  const r = size / 2 - 2, dash = kind === "dashed" ? 'stroke-dasharray="6 6"' : "";
+  const fill = kind === "filled" ? "var(--ink)" : "none";
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="${fill}" stroke="${kind === "dashed" ? "var(--muted)" : "var(--ink)"}" stroke-width="1.5" ${dash}/></svg>`;
+}
+
+function buildDay() {
+  const d = K.day;
+  put($("d-repo"), d.repo, "day.repo");
+  put($("d-branch"), `${d.branch} · ${fmtDate(d.date + "T12:00:00Z")}`, "day.date", false);
+  const shown = new Set(d.events.filter((e) => e.type === "receipt").map((e) => e.root_id));
+  d.seats.forEach((s, i) => {
+    const seat = document.createElement("div"); seat.className = "seat";
+    const kind = !s.decided_by ? "dashed" : shown.has(s.root_id) ? "filled" : "empty";
+    seat.innerHTML = seatGlyph(kind);
+    seat.append(span("who", author(s.decided_by), `day.seats.${i}.decided_by`), span("muted", `#${s.pr} · ${s.root_id}`, `day.seats.${i}.root_id`, false));
+    $("d-seats").append(seat);
+  });
+  $("d-legend").innerHTML = [["empty", "in the record"], ["filled", "words shown"], ["dashed", "no attributed author"]].map(([k, t]) => `<span>${seatGlyph(k, 22)}${k}: ${t}</span>`).join("");
+  const rc = [...d.events].reverse().find((e) => e.type === "receipt"), i = d.events.indexOf(rc);
+  const line = $("d-receipt");
+  line.append(span("", `${rc.kind} · ${fmtStamp(rc.time)} · ${rc.root_id} · ${rc.decider} · `, `day.events.${i}`, false), span("mono", short(rc.receipt_hash), `day.events.${i}.receipt_hash`));
+  put($("d-verify"), K.readme.verify, "readme.verify");
+}
+
+/* ---------- argue and held ---------- */
+function buildArgue(r, key) {
+  put($("a-objection"), "“" + r.objection + "”", `${key}.objection`);
+  const cited = $("a-cited"); withCode(cited, "“" + r.cited_quotes[0] + "”"); cited.dataset.src = `${key}.cited_quotes`; truth.checked++;
+  put($("a-citeby"), `${author(K.root.decided_by)} · ${repoOf(K.root.source_url)} #${prOf(K.root.source_url)} · ${K.root.status}`, "root", false);
+  const same = r.cited_quotes.every((c) => c === K.root.quote);
+  put($("a-only"), same ? "the record holds no other words on this" : "", `${key}.cited_quotes`, false);
+  put($("a-kind"), r.decision.toUpperCase(), `${key}.decision`, false);
+  put($("a-reply"), "“" + r.reply + "”", `${key}.reply`).textContent = "";
+  withCode($("a-reply"), "“" + r.reply + "”");
+  const ran = r.model === K.spark.model ? K.spark : K.spark_open;
+  put($("a-badge"), `${ran === K.spark ? "Muse Spark" : "Muse Spark Open"} (${ran.host})`, `${key}.model`, false);
+  put($("a-receipt"), `ruling on receipt ${short(r.receipt_hash)} · ${fmtStamp(r.time)}`, `${key}.receipt_hash`, false);
+  put($("a-hold"), r.decision === "hold" ? "Hold" : "", `${key}.decision`, false);
+}
+
+function buildHeld(r) {
+  put($("h-why"), `${r.decision.toUpperCase()} · ${fmtStamp(r.time)} · Muse Spark (${K.spark.host})`, "escalate.time", false);
+  put($("h-cmd"), K.readme.resolve.replace("<receipt>", r.receipt_hash), "readme.resolve", false);
+  put($("h-receipt"), r.receipt_hash, "escalate.receipt_hash");
+  put($("h-chain"), `knack receipts verify: ${K.receipts_verify}`, "receipts_verify", false);
+}
+
+/* ---------- recovery ---------- */
+const logLine = (log, start) => log.split("\n").find((l) => l.startsWith(start));
+function step(label, lines, src, note) {
+  const li = document.createElement("li");
+  li.append(span("label", label));
+  const body = document.createElement("div");
+  lines.forEach((l) => body.append(put(document.createElement("code"), l, src)));
+  if (note) body.append(note);
+  li.append(body); $("r-steps").append(li);
+}
+
+function buildRecovery() {
+  const m = K.miss, root = m.root;
+  put($("r-lede"), `${repoOf(root.source_url)} #${prOf(root.source_url)} · ${root.decided_by} · ${root.status} root, tier ${m.tier}: the live hook warns, it does not block`, "miss.tier", false);
+  const after = m.edit_after.split("\n").filter((l) => l.includes("_CALLABLE_CACHE_SIZE")).slice(0, 2);
+  step("Slipped", [logLine(m.bar2_log, "fastapi-16062 fails"), ...after], "miss", span("note", "Edit rebuilt from the audit, not the agent's bytes (edit.json note).", "miss.edit_note", false));
+  step("Refused twice", [logLine(m.run1_log, "FAIL"), logLine(m.run1_log, "kept"), logLine(m.run2_log, "FAIL"), logLine(m.run2_log, "kept")], "miss");
+  step("Recompiled and proven", [logLine(m.bar2_log, "PASS proof"), logLine(m.bar2_log, "PASS held-out same"), logLine(m.bar2_log, "PASS held-out cross"), logLine(m.bar2_log, "installed")], "miss");
+  step("Same edit, now denied", [logLine(m.bar2_log, "PASS cases")], "miss", span("note", `in the proof's replay; cases on record: ${m.cases.join(", ")}`, "miss.cases", false));
+  const gaps = document.createElement("li");
+  gaps.append(span("label", "Not on record"));
+  const g = document.createElement("div"); g.style.display = "grid"; g.style.gap = "10px"; g.style.justifyItems = "start";
+  [["Gap", "rule version ids: the logs name none"], ["Gap", "a corrected edit passing the check: no must-pass case for fastapi-16062 exists"]].forEach(([b, t]) => { const s = span("gap", ""); s.innerHTML = `<b>${b}</b>`; s.append(t); g.append(s); });
+  gaps.append(g); $("r-steps").append(gaps);
+}
+
+/* ---------- state, time and rendering ---------- */
+const SCENES = ["day", "block", "argue", "held", "recovery"];
+const ruling = params.get("ruling") === "hold" ? "hold" : "escalate";
+const state = { scene: SCENES.includes(params.get("scene")) ? params.get("scene") : "block", t0: performance.now(), pressed: false };
+const ease = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+const span01 = (t, a, d) => (REDUCED ? 1 : ease((t - a) / d));
+
+// Block: quote at once; thread 400–900; diff lines 900–1100; odometer 1100–1350.
+function renderBlock(t) {
+  TH.paths.forEach((p, i) => { p.style.strokeDasharray = TH.lens[i]; p.style.strokeDashoffset = TH.lens[i] * (1 - span01(t, 400, 500)); });
+  TH.nodes.forEach((c, i) => (c.style.opacity = i === 0 ? (REDUCED || t >= 400 ? 1 : 0) : span01(t, 880, 20)));
+  ["b-left", "b-right"].forEach((id) => ($(id).style.opacity = span01(t, 900, 200)));
+  const k = span01(t, 1100, 250);
+  document.querySelectorAll("#b-postmark .strip").forEach((s) => (s.style.transform = s.children.length > 1 ? `translateY(${-48 * k}px)` : ""));
+}
+
+const ARGUE = { record: 500, only: 1100, ruling: 1700, meta: 2500, end: 3100, auto: 4800 };
+function renderArgue(t) {
+  [["a-record", ARGUE.record], ["a-only", ARGUE.only], ["a-ruling", ARGUE.ruling], ["a-meta", ARGUE.meta], ["a-hold", ARGUE.end]].forEach(([id, a]) => ($(id).style.opacity = span01(t, a, 200)));
+}
+
+const KEYS = {
+  day: [],
+  block: [["A", "Argue"], ["Esc", "Dismiss"]],
+  argue: [["Esc", "Dismiss"]],
+  held: [["C", "Copy command"], ["Esc", "Dismiss"]],
+  recovery: [],
+};
+const PRIMARY = { block: "Argue", held: "Copy command" };
+
+function setScene(scene) {
+  state.scene = scene; state.t0 = performance.now(); state.pressed = false;
+  $("stage").dataset.scene = scene;
+  const label = PRIMARY[scene], btn = $("primary");
+  btn.hidden = !label; btn.innerHTML = label ? `<span>${label}</span><kbd>${KEYS[scene][0][0]}</kbd>` : "";
+  btn.classList.remove("pressed");
+  $("dismiss").hidden = !["block", "argue", "held"].includes(scene);
+  $("keys").innerHTML = KEYS[scene].map(([k, t]) => `<span><kbd>${k}</kbd>${t}</span>`).join("");
+  layoutThread(); render(0); loop();
+}
+
+function render(t) {
+  state.lastT = t;
+  if (state.scene === "block") renderBlock(t);
+  if (state.scene === "argue") renderArgue(t);
+  $("primary").classList.toggle("pressed", state.pressed);
+}
+
+function loop() {
+  if (window.__frozen) return;
+  const t = performance.now() - state.t0;
+  render(t);
+  if (state.scene === "argue" && ruling === "escalate" && t >= ARGUE.auto) return setScene("held");
+  if (t < 5000) requestAnimationFrame(loop);
+}
+
+function act() {
+  if (state.scene === "block") return setScene("argue");
+  if (state.scene === "held") return copyCommand();
+}
+function copyCommand() {
+  navigator.clipboard?.writeText($("h-cmd").textContent).catch(() => {});
+  $("primary").firstChild.textContent = "Copied";
+}
+
+/* Film: one deterministic timeline for capture. block 0–5400, argue 5400–10800, held 10800–16000. */
+const FILM = [["block", 0], ["argue", 5400], ["held", 10800]];
+window.__film = (ms) => {
+  window.__frozen = true;
+  const [scene, start] = [...FILM].reverse().find(([, s]) => ms >= s);
+  if (state.scene !== scene) setScene(scene);
+  state.pressed = scene === "block" && ms >= 4900;
+  render(ms - start);
+};
+window.__seek = (ms) => { window.__frozen = true; render(ms); };
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("dismiss").hidden) return setScene("day");
+  const k = e.key.toLowerCase();
+  if ((k === "a" && state.scene === "block") || (k === "c" && state.scene === "held")) { e.preventDefault(); act(); }
+});
+$("primary").addEventListener("click", act);
+$("dismiss-btn").addEventListener("click", () => setScene("day"));
+
+function fit() {
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080), s = $("stage");
+  s.style.transform = `translate(${(innerWidth - 1920 * k) / 2}px, ${(innerHeight - 1080 * k) / 2}px) scale(${k})`;
+  layoutThread(); render(window.__frozen ? state.lastT : performance.now() - state.t0);
+}
+
+buildQuote(); buildCols(); buildLevel3(); buildPostmark(); buildDay();
+buildArgue(K[ruling], ruling); buildHeld(K.escalate); buildRecovery();
+document.fonts.ready.then(() => {
+  setScene(state.scene); fit();
+  addEventListener("resize", fit);
+  if (params.has("t")) { window.__seek(+params.get("t")); }
+  window.__ready = true;
+});
+</script>
+</body>
+</html>

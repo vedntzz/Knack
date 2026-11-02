@@ -1,0 +1,139 @@
+{
+  "1080p": {
+    "nodes": 61,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "·",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "merged Oct 19 2026",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "8 of 8 gates",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 23.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "720p": {
+    "nodes": 61,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "·",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "merged Oct 19 2026",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "8 of 8 gates",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 15.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "phone": {
+    "nodes": 61,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "·",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "merged Oct 19 2026",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "8 of 8 gates",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "·",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 16,
+    "overflowY": 466,
+    "overflowX": 0
+  }
+}

@@ -1,0 +1,213 @@
+// Written by freeze_block.py; do not edit.
+window.BLOCK = {
+ "root": {
+  "id": "airflow-75025-1",
+  "status": "Confirmed",
+  "seeded": false,
+  "decided_by": "Pushkal Gupta (author); approved and merged by bbovenzi",
+  "decision": "Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.",
+  "source_url": "https://github.com/apache/airflow/pull/75025",
+  "merged_at": "2026-10-19T21:36:02Z",
+  "rejected_alternative": "Alias state and start_date onto DagRun.state and DagRun.start_date."
+ },
+ "confirmed_by": null,
+ "quote": {
+  "sentences": [
+   "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.",
+   "The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one."
+  ],
+  "rejected_phrase": "aliasing them onto `DagRun.state` and `DagRun.start_date`",
+  "not_recorded": "Happy to alias instead if you would rather keep the advertised names working."
+ },
+ "person": {
+  "name": "Pushkal Gupta",
+  "handle": "Pushkal-Gupta",
+  "avatar": "refs/pushkal-gupta-avatar.png",
+  "wrote_at": "2026-10-18T23:19:34Z",
+  "approved_by": "bbovenzi",
+  "approved_at": "2026-10-19T21:35:32Z"
+ },
+ "attempted": {
+  "file": "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py",
+  "rows": [
+   {
+    "kind": "ctx",
+    "old": 131,
+    "new": 131,
+    "code": "            SortParam("
+   },
+   {
+    "kind": "ctx",
+    "old": 132,
+    "new": 132,
+    "code": "                [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"],"
+   },
+   {
+    "kind": "ctx",
+    "old": 133,
+    "new": 133,
+    "code": "                DagModel,"
+   },
+   {
+    "kind": "del",
+    "old": 134,
+    "new": null,
+    "code": "                {\"last_run_state\": DagRun.state, \"last_run_start_date\": DagRun.start_date},"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 134,
+    "code": "                {"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 135,
+    "code": "                    \"state\": DagRun.state,"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 136,
+    "code": "                    \"start_date\": DagRun.start_date,"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 137,
+    "code": "                    \"last_run_state\": DagRun.state,"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 138,
+    "code": "                    \"last_run_start_date\": DagRun.start_date,"
+   },
+   {
+    "kind": "add",
+    "old": null,
+    "new": 139,
+    "code": "                },"
+   },
+   {
+    "kind": "ctx",
+    "old": 135,
+    "new": 140,
+    "code": "            ).dynamic_depends()"
+   },
+   {
+    "kind": "ctx",
+    "old": 136,
+    "new": 141,
+    "code": "        ),"
+   },
+   {
+    "kind": "ctx",
+    "old": 137,
+    "new": 142,
+    "code": "    ],"
+   }
+  ],
+  "matched": [
+   {
+    "text": "\"state\": DagRun.state",
+    "line": 135
+   },
+   {
+    "text": "\"state\"",
+    "line": 135
+   },
+   {
+    "text": "\"start_date\": DagRun.start_date",
+    "line": 136
+   },
+   {
+    "text": "\"start_date\"",
+    "line": 136
+   }
+  ]
+ },
+ "rejected": [
+  {
+   "file": "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py",
+   "rows": [
+    {
+     "kind": "del",
+     "line": 132,
+     "code": "                [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"],"
+    },
+    {
+     "kind": "add",
+     "line": 132,
+     "code": "                [\"dag_id\", \"dag_display_name\", \"next_dagrun\"],"
+    }
+   ]
+  },
+  {
+   "file": "airflow-core/src/airflow/api_fastapi/core_api/routes/ui/dags.py",
+   "rows": [
+    {
+     "kind": "del",
+     "line": 139,
+     "code": "                [\"dag_id\", \"dag_display_name\", \"next_dagrun\", \"state\", \"start_date\"],"
+    },
+    {
+     "kind": "add",
+     "line": 139,
+     "code": "                [\"dag_id\", \"dag_display_name\", \"next_dagrun\"],"
+    }
+   ]
+  }
+ ],
+ "where": {
+  "repo": "apache/airflow",
+  "branch": "main",
+  "file": "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py",
+  "edit": "-7 +12 lines",
+  "tool": "edit_file",
+  "lines": [
+   135,
+   136
+  ],
+  "rule": "airflow-75025",
+  "hook": "PreToolUse",
+  "decision": "deny",
+  "dispute": "knack argue \"<your reason>\"",
+  "log_committed": "2026-11-01T13:09:04-05:00",
+  "first_new_line": 131
+ },
+ "proof": {
+  "grid": {
+   "gates": [
+    "base",
+    "head",
+    "0 FP tree",
+    "0 FP release",
+    "rename",
+    "variants",
+    "compliant",
+    "held-out"
+   ],
+   "cells": {
+    "base": "PASS",
+    "head": "PASS",
+    "0 FP tree": "PASS",
+    "0 FP release": "PASS",
+    "rename": "PASS",
+    "variants": "PASS",
+    "compliant": "PASS",
+    "held-out": "PASS"
+   },
+   "tier": "block",
+   "evidence": "knack reprove 2026-10-31"
+  },
+  "old_release": "3.3.2",
+  "fp": 0,
+  "receipt": "80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16",
+  "verdict_ms": "18.7",
+  "round_trip_ms": "212",
+  "scan": "ast-grep",
+  "no_model": "No model, no network."
+ }
+};
