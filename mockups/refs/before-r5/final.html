@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Knack blocked an agent edit that repeats an alternative rejected in apache/airflow #75025, with the reviewer's words.">
+<title>Blocked: edit_file on routes/public/dags.py, Knack</title>
+<style>
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-500.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-600.woff2") format("woff2"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Plex"; src: url("fixtures/fonts/plex-sans-700.woff2") format("woff2"); font-weight: 700; font-display: block; }
+@font-face { font-family: "JBMono"; src: url("fixtures/fonts/jetbrains-mono-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "JBMono"; src: url("fixtures/fonts/jetbrains-mono-600.woff2") format("woff2"); font-weight: 600; font-display: block; }
+
+:root {
+  /* one ground, one sheet, one ink, one grey, one accent (the link), one red (the stop) */
+  --ground: #f3f5f8;
+  --sheet: #ffffff;
+  --ink: #0d1117;
+  --grey: #57606a;
+  --accent: #1d5fbf;
+  --stop: #c4242a;
+  --on-ink: #ffffff;
+  /* every line and well is the one grey at a fixed strength */
+  --line: color-mix(in srgb, var(--grey) 22%, transparent);
+  --well: color-mix(in srgb, var(--grey) 6%, var(--sheet));
+  --well-strong: color-mix(in srgb, var(--grey) 13%, var(--sheet));
+  --link-tint: color-mix(in srgb, var(--accent) 10%, var(--sheet));
+  --link-mark: color-mix(in srgb, var(--accent) 18%, transparent);
+  --font: "Plex", system-ui, sans-serif;
+  --mono: "JBMono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --radius: 6px;
+  --gap: 24px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; background: var(--ground); color: var(--ink); font-family: var(--font); }
+body { font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--link-mark); color: var(--ink); }
+.num { font-variant-numeric: tabular-nums; }
+code { font-family: var(--mono); font-size: 0.9em; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; text-decoration: underline 1px var(--line); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* The screen is a 1280×720 app frame; 1080p is the same frame at device scale 1.5. */
+.screen { width: 1280px; height: 720px; display: grid; grid-template-rows: 44px 1fr; transform-origin: 0 0; }
+
+.bar { display: flex; align-items: center; gap: 16px; padding: 0 var(--gap); border-bottom: 1px solid var(--line); background: var(--sheet); font-size: 13px; }
+.mark { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.mark svg { display: block; }
+.crumbs { display: flex; gap: 8px; color: var(--grey); }
+.crumbs b { color: var(--ink); font-weight: 500; }
+.crumbs span + span::before { content: "/"; margin-right: 8px; }
+.bar .right { margin-left: auto; color: var(--grey); }
+
+.canvas { display: grid; grid-template-columns: minmax(0, 1fr) 336px; grid-template-rows: auto minmax(0, 1fr); gap: 16px var(--gap); padding: 16px var(--gap); min-height: 0; }
+
+/* title row: the stop, the sentence, the one action */
+.title { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 32px; }
+.title .what { flex: 1; min-width: 0; }
+.status { display: flex; align-items: center; gap: 8px; color: var(--stop); font-weight: 700; font-size: 18px; }
+.status small { color: var(--grey); font-weight: 400; font-size: 13px; }
+h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; overflow-wrap: break-word; min-width: 0; }
+h1 span { display: block; }
+h1 code { font-size: 0.86em; font-weight: 600; }
+.actions { display: flex; align-items: center; gap: 20px; padding-top: 4px; }
+.dismiss { display: grid; justify-items: end; color: var(--grey); }
+.dismiss button { display: flex; gap: 8px; align-items: center; color: var(--ink); font-weight: 500; font-size: 14px; height: 36px; }
+.dismiss small, .argue small { font-size: 12px; line-height: 16px; }
+.argue { display: grid; justify-items: end; color: var(--grey); }
+.actions { align-items: flex-start; }
+
+.primary { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px 0 16px; border-radius: var(--radius); background: var(--ink); color: var(--on-ink); font-weight: 600; font-size: 14px; transition: transform 140ms var(--ease-out); }
+.primary:active, .primary.pressed { transform: scale(0.97); }
+button:disabled { cursor: default; opacity: 0.5; }
+kbd { font-family: var(--mono); font-weight: 400; font-size: 12px; line-height: 18px; padding: 0 4px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--grey) 45%, transparent); color: var(--grey); }
+.primary kbd { border-color: color-mix(in srgb, var(--on-ink) 40%, transparent); color: var(--on-ink); }
+
+/* the agent's diff, with the human's comment inside it */
+.diff { background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; align-self: start; }
+.file { display: flex; align-items: baseline; gap: 12px; padding: 8px 12px; background: var(--well); font-size: 13px; }
+.file .path { font-family: var(--mono); font-size: 12.5px; color: var(--grey); }
+.file .path b { color: var(--ink); font-weight: 600; }
+.file .count { margin-left: auto; color: var(--grey); }
+.rows { font-family: var(--mono); font-size: 13px; line-height: 20px; }
+.row { display: grid; grid-template-columns: 40px 40px 20px minmax(0, 1fr) auto; white-space: pre; }
+.row .n { text-align: right; padding-right: 8px; color: var(--grey); font-variant-numeric: tabular-nums; }
+.row .sign { color: var(--grey); text-align: center; }
+.row .why { font-family: var(--font); font-size: 12px; color: var(--grey); padding-right: 12px; white-space: nowrap; }
+.row.del { background: var(--well-strong); }
+.row.add { background: var(--well); }
+.row.hit { background: var(--link-tint); }
+.tok { border-radius: 2px; background: var(--link-mark); }
+
+/* the comment: a ruled band in the diff, the way a review thread sits between lines */
+.thread { padding: 12px 16px 12px 100px; border-block: 1px solid var(--line); background: var(--sheet); font-family: var(--font); white-space: normal; }
+.who { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; }
+.who img { width: 40px; height: 40px; border-radius: 50%; display: block; grid-row: span 2; }
+.who .name { font-size: 15px; }
+.who .name b { font-weight: 600; }
+.who .name span, .who .pr { color: var(--grey); font-size: 13px; }
+.who .by { grid-column: 2 / -1; font-size: 13px; }
+.said { margin: 8px 0 0 52px; font-size: 17px; line-height: 26px; }
+.said code { font-size: 0.84em; padding: 0 4px; border-radius: 3px; background: var(--well-strong); }
+.said .no { text-decoration: underline 2px var(--accent); text-underline-offset: 5px; text-decoration-skip-ink: none; }
+.said .no code { background: var(--link-tint); }
+.context { margin: 12px 0 0 52px; }
+.context .cap { padding-bottom: 4px; font-size: 13px; color: var(--grey); }
+.context .row { grid-template-columns: 136px 20px minmax(0, 1fr); font-family: var(--mono); font-size: 13px; line-height: 20px; }
+.context .row.del { background: var(--well-strong); }
+.context .row .n { font-family: var(--font); font-size: 12px; }
+.context .row.add { background: var(--well); }
+
+/* the rail: why, where, proof */
+.rail { display: grid; align-content: start; gap: 16px; font-size: 13.5px; }
+.rail h2 { font-size: 13px; font-weight: 600; margin-bottom: 4px; text-wrap: balance; }
+.rail p { line-height: 20px; }
+dl { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 4px 12px; }
+dt { color: var(--grey); }
+dd { min-width: 0; overflow-wrap: anywhere; }
+.gap { display: inline-block; padding: 0 4px; border: 1px dashed color-mix(in srgb, var(--grey) 55%, transparent); border-radius: 3px; color: var(--grey); font-size: 12.5px; line-height: 18px; }
+.passes, .strong { font-weight: 600; }
+.fix { margin-top: 4px; color: var(--grey); }
+.gates { color: var(--grey); }
+.proof p + p { margin-top: 4px; }
+.receipt { font-family: var(--mono); font-size: 12.5px; }
+
+/* the date rolls inside its own clip */
+.date { display: inline-block; overflow: hidden; line-height: 14px; vertical-align: -3px; }
+.date span { display: inline-block; }
+@media (prefers-reduced-motion: reduce) { .primary { transition: none; } }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <header class="bar">
+    <div class="mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="1" y="1" width="16" height="16" rx="3" fill="var(--ink)"/><path d="M6 4.5v9M6 9.5l5-5M8.2 7.6 12 13.5" stroke="var(--sheet)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      knack
+    </div>
+    <nav class="crumbs" aria-label="Scope"><span id="c-repo"></span><span id="c-branch"></span><span><b id="c-file"></b></span></nav>
+    <div class="right" id="c-hook"></div>
+  </header>
+
+  <main class="canvas">
+    <div class="title">
+      <div class="what">
+        <div class="status">
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1h6l4 4v6l-4 4H5l-4-4V5z" fill="var(--stop)"/><rect x="4" y="7" width="8" height="2" fill="var(--sheet)"/></svg>
+          Blocked <small id="t-sub"></small>
+        </div>
+        <h1 id="t-h1"></h1>
+      </div>
+      <div class="actions">
+        <div class="dismiss"><button id="dismiss" type="button">Dismiss <kbd>Esc</kbd></button><small>the edit is already stopped</small></div>
+        <div class="argue"><button class="primary" id="argue" type="button">Argue <kbd>A</kbd></button><small id="t-argue"></small></div>
+      </div>
+    </div>
+
+    <section class="diff" aria-label="The agent's edit">
+      <div class="file"><span class="path" id="d-path"></span><span class="count" id="d-count"></span></div>
+      <div class="rows" id="d-rows"></div>
+    </section>
+
+    <aside class="rail">
+      <section><h2>Decision on record</h2><p id="r-decision"></p><p class="fix" id="r-fix"></p></section>
+      <section><h2>Where</h2><dl id="r-where"></dl></section>
+      <section class="proof"><h2>Proof</h2><p><span class="passes" id="r-passes"></span> <span class="gates" id="r-gates"></span></p><p id="r-fp"></p><p id="r-speed"></p><p>Receipt <span class="receipt" id="r-receipt"></span></p></section>
+    </aside>
+  </main>
+</div>
+
+<script src="fixtures/block.js"></script>
+<script>
+const B = window.BLOCK, $ = (id) => document.getElementById(id);
+const truth = { checked: 0, missing: [] };
+window.__truth = truth;
+const short = (hash) => hash.slice(0, 12);
+const tail = (path) => path.split("/").slice(-2).join("/");
+const prNumber = () => bound(B.root.source_url.split("/").pop());
+const day = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+// Every shown value is checked against the fixture text it came from.
+function bound(text) {
+  truth.checked++;
+  if (!JSON.stringify(B).includes(JSON.stringify(text).slice(1, -1))) { truth.missing.push(text); console.error("truth: not in fixture", text); }
+  return text;
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function codeSpans(parent, text) {
+  text.split(/(`[^`]+`)/).forEach((part) => parent.append(part.startsWith("`") ? el("code", null, part.slice(1, -1)) : part));
+  return parent;
+}
+function marked(parent, code, tokens) {
+  const hit = tokens.find((t) => code.includes(t));
+  if (!hit) return parent.append(code), parent;
+  const at = code.indexOf(hit);
+  parent.append(code.slice(0, at), el("span", "tok", hit));
+  return marked(parent, code.slice(at + hit.length), tokens);
+}
+function row(r, cols, tokens, note) {
+  const e = el("div", `row ${r.kind}${note ? " hit" : ""}`);
+  cols.forEach((n) => e.append(el("span", "n", n == null ? "" : n)));
+  e.append(el("span", "sign", { add: "+", del: "−", ctx: " " }[r.kind]), marked(el("span", "c"), bound(r.code), tokens));
+  if (note) e.append(el("span", "why", note));
+  return e;
+}
+
+function buildBar() {
+  $("c-repo").textContent = bound(B.where.repo);
+  $("c-branch").textContent = bound(B.where.branch);
+  $("c-file").textContent = tail(bound(B.where.file));
+  $("c-hook").textContent = `${bound(B.where.hook)} hook on ${bound(B.where.tool)}`;
+}
+function buildTitle() {
+  const lines = B.where.lines, h1 = $("t-h1");
+  $("t-sub").textContent = `${tail(bound(B.where.file))}, lines ${bound(String(lines[0]))}–${bound(String(lines.at(-1)))}`;
+  h1.append(codeSpans(el("span"), "This edit aliases `state` and `start_date` onto `DagRun`."));
+  h1.append(el("span", null, `${bound(B.person.name)} rejected that in #${prNumber()}.`));
+}
+function buildThread() {
+  const t = el("div", "thread"), who = el("div", "who"), p = B.person;
+  const img = el("img"); img.src = bound(p.avatar); img.alt = bound(p.name);
+  const name = el("div", "name"); name.append(el("b", null, bound(p.name)), " ", el("span", null, `@${bound(p.handle)}, ${day(bound(p.wrote_at))}`));
+  const pr = el("a", "pr", `${bound(B.where.repo)} #${prNumber()}`); pr.href = bound(B.root.source_url);
+  const by = el("div", "by", `${bound(B.root.decided_by)}, merged `), when = el("time", "date"); when.append(el("span", null, day(bound(B.root.merged_at)))); by.append(when);
+  who.append(img, name, pr, by);
+  t.append(who, said(), context());
+  return t;
+}
+function said() {
+  const [first, second] = B.quote.sentences.map(bound), phrase = bound(B.quote.rejected_phrase), at = first.indexOf(phrase);
+  const q = el("blockquote", "said"); q.cite = B.root.source_url;
+  codeSpans(q, "“" + first.slice(0, at)); q.append(codeSpans(el("span", "no"), phrase)); codeSpans(q, first.slice(at + phrase.length) + " " + second + "”");
+  return q;
+}
+function context() {
+  const box = el("div", "context"), tokens = B.attempted.matched.filter((m) => !m.text.includes(":")).map((m) => m.text);
+  box.append(el("div", "cap", `#${prNumber()} took ${tokens.map(bound).join(" and ")} out of both sort lists`));
+  B.rejected.forEach((f) => f.rows.forEach((r) => box.append(row({ ...r, code: r.code.trimStart() }, [r.kind === "del" ? `${tail(bound(f.file))}:${bound(String(r.line))}` : ""], r.kind === "del" ? tokens : [], null))));
+  return box;
+}
+function counts(rows) { return `${rows.filter((r) => r.kind === "del").length} line removed, ${rows.filter((r) => r.kind === "add").length} added`; }
+function buildDiff() {
+  const a = B.attempted, hits = new Set(a.matched.map((m) => m.line)), last = Math.max(...hits);
+  const tokens = a.matched.filter((m) => m.text.includes(":")).map((m) => m.text);
+  $("d-path").append(bound(a.file).replace(/[^/]+$/, ""), el("b", null, a.file.split("/").pop()));
+  $("d-count").textContent = `${bound(B.where.tool)}: ${counts(a.rows)}`;
+  a.rows.filter((r) => r.new == null || r.new <= last + 3).forEach((r) => {
+    const nums = [r.old, r.new].map((n) => (n == null ? null : bound(String(n))));
+    $("d-rows").append(row(r, nums, hits.has(r.new) ? tokens : [], r.new === Math.min(...hits) ? `matched ${bound(B.where.rule)}` : hits.has(r.new) ? " " : null));
+    if (r.new === last) $("d-rows").append(buildThread());
+  });
+}
+function buildRail() {
+  $("r-decision").textContent = bound(B.root.decision);
+  const keep = B.attempted.rows.filter((r) => r.kind === "add" && r.code.includes("last_run_")).map((r) => r.new), hits = B.where.lines;
+  $("r-fix").textContent = `To comply, drop lines ${hits[0]}–${hits.at(-1)}; lines ${keep[0]}–${keep.at(-1)} already sort by last_run_*.`;
+  const w = B.where, dl = $("r-where"), root = el("dd");
+  root.append(`${bound(B.root.id)}, `, el("span", "strong", bound(B.root.status)), B.root.seeded ? ", seeded" : ", not seeded");
+  const confirmer = el("dd"); confirmer.append(el("span", "gap", "not recorded in this root"));
+  const at = el("dd"); at.append(el("span", "gap", "exact time not kept"));
+  [["Rule", el("dd", null, bound(w.rule))], ["Root", root], ["Confirmer", confirmer], ["Blocked at", at], ["Log written", el("dd", "num", stamp(bound(w.log_committed)))]]
+    .forEach(([k, v]) => dl.append(el("dt", null, k), v));
+}
+function stamp(iso) { return iso.replace("T", " ").replace(/([+-])(\d\d:\d\d)$/, (m, s, z) => ` ${s === "-" ? "−" : "+"}${z}`); }
+function buildProof() {
+  const p = B.proof, passed = p.grid.gates.filter((g) => p.grid.cells[g] === "PASS");
+  $("r-passes").textContent = `${passed.length} of ${p.grid.gates.length} gates pass:`;
+  $("r-gates").textContent = passed.map(bound).join(", ");
+  $("r-fp").textContent = `${bound(String(p.fp))} FP on Airflow current tree and previous release, for the rules shown`;
+  $("r-fp").title = `previous release: ${p.old_release}`;
+  $("r-speed").textContent = `${bound(p.round_trip_ms)} ms round trip (${bound(p.verdict_ms)} ms verdict) · ${bound(p.scan)} · 0 model calls in this hook`;
+  $("r-receipt").textContent = bound(short(p.receipt));
+  $("r-receipt").title = p.receipt;
+}
+
+function onKey(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "a" || e.key === "A") { e.preventDefault(); $("argue").focus(); $("argue").click(); }
+  if (e.key === "Escape") { $("dismiss").focus(); $("dismiss").click(); }
+}
+function argue() { $("argue").classList.add("pressed"); setTimeout(() => $("argue").classList.remove("pressed"), 140); }
+function dismiss() { document.querySelector(".dismiss small").textContent = "dismissed; the edit is already stopped"; }
+
+buildBar(); buildTitle(); $("t-argue").append(el("code", null, bound(B.where.dispute)));
+buildDiff(); buildRail(); buildProof();
+
+// Motion, three things only: the code appearing, the words linking to the code, the date. Nothing else moves.
+const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)", FILM = new URLSearchParams(location.search).has("film");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function play(node, frames, delay, duration, easing) {
+  const a = node.animate(frames, { delay, duration, easing, fill: "backwards" });
+  if (FILM) a.pause();
+  return a;
+}
+function arrive(nodes, start) {
+  nodes.forEach((n, i) => play(n, [{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], start + i * 30, 200, EASE_OUT));
+  return start + (nodes.length - 1) * 30 + 200;
+}
+function link(start) {
+  const underline = document.querySelector(".said .no"), accent = getComputedStyle(underline).textDecorationColor;
+  play(underline, [{ textDecorationColor: "transparent" }, { textDecorationColor: accent }], start, 240, "ease");
+  document.querySelectorAll(".tok, .row.hit, .said .no code").forEach((n) => play(n, [{ backgroundColor: "transparent" }, { backgroundColor: getComputedStyle(n).backgroundColor }], start + 80, 200, EASE_OUT));
+  return start + 280;
+}
+function motion() {
+  const code = arrive([...document.querySelectorAll("#d-rows > .row")], 300);
+  const context = arrive([...document.querySelectorAll(".context .row")], code);
+  const linked = link(context + 120);
+  play(document.querySelector(".date span"), [{ transform: "translateY(100%)", opacity: 0 }, { transform: "none", opacity: 1 }], linked + 160, 240, EASE_OUT);
+}
+if (!REDUCED) motion();
+window.__film = (ms) => document.getAnimations().forEach((a) => { a.currentTime = ms; });
+document.addEventListener("keydown", onKey);
+$("argue").addEventListener("click", argue);
+$("dismiss").addEventListener("click", dismiss);
+function fit() { const s = Math.min(innerWidth / 1280, innerHeight / 720); $("screen").style.transform = s === 1 ? "" : `scale(${s})`; }
+addEventListener("resize", fit); fit();
+document.fonts.ready.then(() => { window.__ready = true; });
+</script>
+</body>
+</html>

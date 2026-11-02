@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argued: routes/public/dags.py · knack</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="argue.css">
+<script src="../fixtures/scenes.js"></script>
+<script src="../fixtures/block.js"></script>
+<script src="argue.js" defer></script>
+</head>
+<body>
+<header class="bar"><span class="wordmark">knack</span><p class="where" id="where"></p><p class="when" id="when"></p></header>
+<main class="argued">
+  <div class="head">
+    <p class="seal" id="seal">Argued</p>
+    <div class="claim"><h1>The agent objected. The record answered.</h1></div>
+  </div>
+
+  <section class="thread" aria-label="The argument, in order">
+    <div class="blocked" aria-label="The blocked lines">
+      <p class="path"><code id="path"></code><span id="from"></span></p>
+      <div class="code" id="code"></div>
+    </div>
+    <figure class="note paper" id="note"></figure>
+    <figure class="reply" id="reply" data-beat="reply"></figure>
+    <figure class="ruling paper" id="ruling" data-beat="ruling"></figure>
+  </section>
+
+  <aside class="rail">
+    <div class="answer" data-beat="word">
+      <section class="outcome" aria-labelledby="outcome-word">
+        <h2 class="word" id="outcome-word"></h2>
+        <p id="why"></p>
+      </section>
+      <section class="by" aria-labelledby="by">
+        <h2 id="by">Answered by</h2>
+        <ul id="models"></ul>
+      </section>
+    </div>
+    <section class="fix paper" aria-labelledby="fix" data-beat="fix" id="fixcard">
+      <h2 id="fix"></h2>
+      <p id="kept"></p>
+    </section>
+  </aside>
+
+  <section class="verify" aria-labelledby="verify"><h2 id="verify">Verify it</h2><div id="checks"></div></section>
+</main>
+</body>
+</html>

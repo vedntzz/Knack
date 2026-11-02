@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day: apache/airflow · knack</title>
+<meta name="description" content="The decisions Knack remembers for apache/airflow, and what happened today.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../argue/argue.css">
+<link rel="stylesheet" href="day.css">
+<script src="../fixtures/scenes.js"></script>
+<script src="day.js" defer></script>
+</head>
+<body>
+<header class="bar"><span class="wordmark">knack</span><p class="where" id="where"></p><p class="when" id="when"></p></header>
+<main class="day">
+  <div class="head">
+    <h1 id="title"></h1>
+    <p class="sub" id="sub"></p>
+  </div>
+
+  <section class="record" aria-labelledby="counts">
+    <div class="above">
+      <h2 class="counts" id="counts"></h2>
+      <ul class="legend" id="legend" aria-label="Key"></ul>
+    </div>
+    <div class="graph" id="graph">
+      <div class="months" id="months" aria-hidden="true"></div>
+      <div class="cells" id="cells" role="group" aria-label="Decisions by day, one column a week; arrow keys move between days"></div>
+      <p class="tip" id="tip" aria-hidden="true" hidden></p>
+    </div>
+  </section>
+
+  <section class="decisions" aria-labelledby="decisions">
+    <h2 id="decisions">Confirmed decisions</h2>
+    <ul id="seats"></ul>
+  </section>
+
+  <section class="today" aria-labelledby="today">
+    <h2 id="today"></h2>
+    <ul id="events"></ul>
+  </section>
+
+  <section class="verify" aria-labelledby="verify"><h2 id="verify">Verify it</h2><div id="checks"></div></section>
+</main>
+</body>
+</html>

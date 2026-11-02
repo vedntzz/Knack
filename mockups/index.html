@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knack console, three materials</title>
+<meta name="description" content="Three mockups of the Knack console with identical content on three different materials.">
+<style>
+/* Hallmark · shape: app screen · genre: atmospheric · theme: custom (brief tokens win)
+ * paper: oklch(16% 0.012 230) · accent: oklch(84% 0.09 170) · display: Gambetta · body: Switzer
+ * nav: none, an index of three files · signature: none, this page only points · states: one
+ * axes: ink/serif/thread · posture: plain list · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E5 S3 R5 V4 · weakest: S, an index has no signature; kept it a plain list so the mockups carry the look */
+@font-face { font-family: "Gambetta"; src: url("https://cdn.fontshare.com/wf/UZPXFLPCL3LPXEMLR5DTVJKV74OXXAV4/6OFIA3NPHGHWKE52SKZL7EQ4WH22JUMB/ODDSCHC7OZCRRQJDJV5LMJKTGF7URFO4.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("https://cdn.fontshare.com/wf/BLNB4FAQFNK56DWWNF7PMGTCOTZHOEII/ST3WKSSDMBK2MIQQO3MAVYWLF4FTOLFV/6IN5WOLRCYP4G4MOCOHOMXNON6Q7MDAR.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+:root {
+  --ink: oklch(16% 0.012 230);
+  --ivory: oklch(95% 0.008 80);
+  --thread: oklch(84% 0.09 170);
+  --color-muted: color-mix(in oklab, var(--ivory) 64%, transparent);
+  --color-hair: color-mix(in oklab, var(--ivory) 14%, transparent);
+  --font-display: "Gambetta", Georgia, serif;
+  --font-body: "Switzer", system-ui, sans-serif;
+  --space-s: 12px; --space-m: 16px; --space-l: 24px; --space-xl: 40px; --space-3xl: 96px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-muted) var(--ink); }
+body { margin: 0; background: var(--ink); color: var(--ivory); font-family: var(--font-body); line-height: 1.55; -webkit-font-smoothing: antialiased; caret-color: var(--thread); }
+::selection { background: color-mix(in oklab, var(--thread) 30%, transparent); }
+:focus-visible { outline: 2px solid var(--thread); outline-offset: 3px; }
+main { max-width: 760px; margin-inline: auto; padding: var(--space-3xl) var(--space-l); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 2.5rem; line-height: 1.1; text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+p { margin: 0; text-wrap: pretty; }
+.lede { color: var(--color-muted); margin-top: var(--space-s); }
+ol { list-style: none; margin: var(--space-xl) 0 0; padding: 0; border-top: 1px solid var(--color-hair); }
+li { padding-block: var(--space-l); border-bottom: 1px solid var(--color-hair); }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; text-decoration-color: var(--color-muted); }
+a:hover { text-decoration-color: var(--thread); }
+a:active { opacity: 0.7; }
+li a { font-family: var(--font-display); font-size: 1.4375rem; }
+li p { color: var(--color-muted); margin-top: var(--space-s); }
+.after { margin-top: var(--space-xl); color: var(--color-muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Knack console, on three materials</h1>
+  <p class="lede">Same content, same type, same motion. Only what sits under the glass changes.</p>
+  <ol>
+    <li><a href="a-silk.html">A, silk</a><p>A slow gradflow silk field in ink, deep teal and sand, half resolution, almost no noise; the glass blurs a surface that moves like cloth.</p></li>
+    <li><a href="b-magma.html">B, magma</a><p>The gradflow eclipse behind the magma preset, recoloured ink, oxblood and sand and set off to the right; a warm rim the eye goes to first.</p></li>
+    <li><a href="c-still.html">C, still</a><p>No shader: three hard-edged planes of teal, oxblood and sand, composed once, and the glass alone turns their edges into light.</p></li>
+  </ol>
+  <p class="after">Keys in every file: Space plays the block, A argues, Enter accepts, R replays. Screenshots are in <a href="shots/contact.png">shots/contact.png</a>, the verdicts in <a href="NOTES.md">NOTES.md</a>.</p>
+</main>
+</body>
+</html>

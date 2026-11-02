@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Held: routes/public/dags.py · knack</title>
+<meta name="description" content="Knack held an objection for a person: the record does not cover it.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../argue/argue.css">
+<link rel="stylesheet" href="held.css">
+<script src="../fixtures/scenes.js"></script>
+<script src="../fixtures/block.js"></script>
+<script src="held.js" defer></script>
+</head>
+<body>
+<header class="bar"><span class="wordmark">knack</span><p class="where" id="where"></p><p class="when" id="when"></p></header>
+<main class="argued held">
+  <div class="head">
+    <h1>Held for a person.</h1>
+    <p class="sub">The record doesn’t cover this. Knack won’t guess.</p>
+  </div>
+
+  <section class="thread" aria-label="The block, the decision, the objection and the ruling">
+    <div class="blocked" aria-label="The blocked lines">
+      <p class="path from"><span id="from"></span></p>
+      <div class="code" id="code"></div>
+    </div>
+    <figure class="note paper" id="note"></figure>
+    <figure class="reply" id="reply"></figure>
+    <figure class="ruling" id="ruling"></figure>
+    <div class="unanswered" id="unanswered"><p>No recorded answer</p></div>
+  </section>
+
+  <aside class="rail">
+    <section class="fix paper decide" aria-labelledby="decide">
+      <h2 id="decide">A person decides.</h2>
+      <p class="runs">A human runs this, with a reason:</p>
+      <div class="well" id="well"></div>
+      <ul class="choices" id="choices"></ul>
+    </section>
+    <section class="by" aria-labelledby="by">
+      <h2 id="by">Answered by</h2>
+      <ul id="models"></ul>
+    </section>
+  </aside>
+
+  <section class="verify" aria-labelledby="verify"><h2 id="verify">Verify it</h2><div id="checks"></div></section>
+</main>
+</body>
+</html>

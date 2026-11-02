@@ -1,0 +1,139 @@
+{
+  "1080p": {
+    "nodes": 121,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "Blocked",
+        "px": 29.9997,
+        "ratio": 6.41,
+        "pass": true
+      },
+      {
+        "text": "The block page as served, from its own d",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "5e8a44648bd0",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ", as the capture shows). The figures bel",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c17a39",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ".",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 23.9998,
+    "overflowY": 3648,
+    "overflowX": 0,
+    "errors": []
+  },
+  "720p": {
+    "nodes": 121,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "Blocked",
+        "px": 19.9998,
+        "ratio": 6.41,
+        "pass": true
+      },
+      {
+        "text": "The block page as served, from its own d",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "5e8a44648bd0",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ", as the capture shows). The figures bel",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c17a39",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ".",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 15.9998,
+    "overflowY": 2434,
+    "overflowX": 0,
+    "errors": []
+  },
+  "phone": {
+    "nodes": 113,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "Blocked",
+        "px": 20,
+        "ratio": 6.41,
+        "pass": true
+      },
+      {
+        "text": "The block page as served, from its own d",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "5e8a44648bd0",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ", as the capture shows). The figures bel",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c17a39",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": ".",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 16,
+    "overflowY": 3103,
+    "overflowX": 0
+  }
+}

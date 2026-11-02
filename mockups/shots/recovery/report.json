@@ -1,0 +1,139 @@
+{
+  "1080p": {
+    "nodes": 75,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "18",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule before",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule after",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "fastapi/fastapi",
+        "px": 23.9998,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "/",
+        "px": 23.9998,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "Branch not recorded",
+        "px": 23.9998,
+        "ratio": 7.28,
+        "pass": true
+      }
+    ],
+    "minPx": 23.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "720p": {
+    "nodes": 75,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "18",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule before",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule after",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "fastapi/fastapi",
+        "px": 15.9998,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "/",
+        "px": 15.9998,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "Branch not recorded",
+        "px": 15.9998,
+        "ratio": 7.28,
+        "pass": true
+      }
+    ],
+    "minPx": 15.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "phone": {
+    "nodes": 75,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "18",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule before",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "The rule after",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "fastapi/fastapi",
+        "px": 16,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "/",
+        "px": 16,
+        "ratio": 7.28,
+        "pass": true
+      },
+      {
+        "text": "Branch not recorded",
+        "px": 16,
+        "ratio": 7.28,
+        "pass": true
+      }
+    ],
+    "minPx": 16,
+    "overflowY": 1040,
+    "overflowX": 0
+  }
+}

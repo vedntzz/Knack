@@ -1,0 +1,1540 @@
+{
+ "url": "mockups/final.html",
+ "at": "2026-11-02T01:13:57.876Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.42
+   ],
+   "motion": {
+    "elements": 2,
+    "css": 2,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 900,
+     "screens": 1,
+     "words": 237,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 3,
+     "sections": 4,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 2,
+     "size": 22,
+     "vw": 1.5,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 90,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "lines": 2,
+     "size": 22,
+     "font": "Plex"
+    },
+    "headings": [
+     {
+      "text": "8/8",
+      "words": 1,
+      "chars": 3,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.09,
+      "top": 586,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "0",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.09,
+      "top": 586,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "212 ms",
+      "words": 2,
+      "chars": 6,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.09,
+      "top": 586,
+      "tag": "b",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 3,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plex",
+       "share": 0.61,
+       "mono": false
+      },
+      {
+       "family": "JBMono",
+       "share": 0.39,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plex",
+      "size": 14,
+      "leading": 1.57,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 13.4
+     },
+     "measureChars": 112,
+     "max": {
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plex",
+      "text": "8/8"
+     },
+     "monoShare": 0.39,
+     "monoProseShare": 0.34,
+     "monoFamilies": [
+      "JBMono"
+     ],
+     "monoSamples": [
+      "airflow-core/src/airflow/api_fastapi/cor",
+      "dags.py",
+      "134",
+      "−",
+      "{\"last_run_state\": DagRun.state, \"last_r",
+      "134"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.01,
+     "smallText": 11
+    },
+    "eyebrows": [
+     {
+      "text": "Why you can trust this",
+      "above": "8/8",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 554
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "0",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 554
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "212 ms",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 554
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#1f1e1c",
+     "bodyBgHsl": {
+      "h": 40,
+      "s": 0.05,
+      "l": 0.12
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#272623",
+       "top": 171,
+       "hsl": {
+        "h": 45,
+        "s": 0.05,
+        "l": 0.15
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#eae6dc",
+       "share": 0.54
+      },
+      {
+       "color": "#9a958a",
+       "share": 0.42
+      },
+      {
+       "color": "#c9a04a",
+       "share": 0.04
+      },
+      {
+       "color": "#e35941",
+       "share": 0
+      }
+     ],
+     "button": null,
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 0,
+     "inHero": 0,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": []
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 2,
+     "boxRadius": 6,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": false,
+     "height": 50,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plex",
+     "jbmono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 900,
+    "margins": {
+     "left": 32,
+     "right": 53
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over al",
+      "size": 22,
+      "top": 90,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 990,
+      "n": 3
+     },
+     {
+      "x": 32,
+      "n": 2
+     },
+     {
+      "x": 147,
+      "n": 1
+     },
+     {
+      "x": 218,
+      "n": 1
+     },
+     {
+      "x": 275,
+      "n": 1
+     },
+     {
+      "x": 328,
+      "n": 1
+     },
+     {
+      "x": 445,
+      "n": 1
+     },
+     {
+      "x": 506,
+      "n": 1
+     },
+     {
+      "x": 1013,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 12,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.07,
+    "voidBox": {
+     "x": 0,
+     "y": 840,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "dark": true,
+    "ground": "#1f1e1c",
+    "sidebar": null,
+    "topbar": {
+     "h": 50
+    },
+    "canvas": {
+     "left": 32,
+     "right": 39
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 2,
+     "size": 22,
+     "vw": 1.5,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 90,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 2,
+     "ragged": [
+      {
+       "diff": 240,
+       "top": 171
+      }
+     ],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 3,
+     "radii": [
+      [
+       6,
+       2
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 6,
+     "tabularShare": 1,
+     "kpiMax": 13
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.18,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ]
+    },
+    "title": {
+     "text": "This edit aliases state and start_date onto DagRun.\n#75025 c",
+     "size": 22,
+     "top": 90
+    },
+    "colourShare": 0.001
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.1
+   ],
+   "motion": {
+    "elements": 2,
+    "css": 2,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 1024,
+     "screens": 1,
+     "words": 237,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 3,
+     "sections": 4,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 2,
+     "size": 22,
+     "vw": 2.9,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 62,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "lines": 2,
+     "size": 22,
+     "font": "Plex"
+    },
+    "headings": [
+     {
+      "text": "8/8",
+      "words": 1,
+      "chars": 3,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 316,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "0",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 316,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "212 ms",
+      "words": 2,
+      "chars": 6,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 316,
+      "tag": "b",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 3,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plex",
+       "share": 0.61,
+       "mono": false
+      },
+      {
+       "family": "JBMono",
+       "share": 0.39,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plex",
+      "size": 14,
+      "leading": 1.57,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 13.4
+     },
+     "measureChars": 57,
+     "max": {
+      "size": 28,
+      "vw": 3.6,
+      "font": "Plex",
+      "text": "8/8"
+     },
+     "monoShare": 0.39,
+     "monoProseShare": 0.34,
+     "monoFamilies": [
+      "JBMono"
+     ],
+     "monoSamples": [
+      "airflow-core/src/airflow/api_fastapi/cor",
+      "dags.py",
+      "134",
+      "−",
+      "{\"last_run_state\": DagRun.state, \"last_r",
+      "134"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.01,
+     "smallText": 11
+    },
+    "eyebrows": [
+     {
+      "text": "Why you can trust this",
+      "above": "8/8",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 299
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "0",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 299
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "212 ms",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 299
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#1f1e1c",
+     "bodyBgHsl": {
+      "h": 40,
+      "s": 0.05,
+      "l": 0.12
+     },
+     "dark": true,
+     "sectionBgs": [],
+     "textColors": [
+      {
+       "color": "#eae6dc",
+       "share": 0.54
+      },
+      {
+       "color": "#9a958a",
+       "share": 0.42
+      },
+      {
+       "color": "#c9a04a",
+       "share": 0.04
+      },
+      {
+       "color": "#e35941",
+       "share": 0
+      }
+     ],
+     "button": null,
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 0,
+     "inHero": 0,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": []
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 2,
+     "boxRadius": 6,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": false,
+     "height": 25,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plex",
+     "jbmono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 1024,
+    "margins": {
+     "left": 32,
+     "right": 43
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over al",
+      "size": 22,
+      "top": 62,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 522,
+      "n": 3
+     },
+     {
+      "x": 32,
+      "n": 2
+     },
+     {
+      "x": 91,
+      "n": 1
+     },
+     {
+      "x": 127,
+      "n": 1
+     },
+     {
+      "x": 156,
+      "n": 1
+     },
+     {
+      "x": 184,
+      "n": 1
+     },
+     {
+      "x": 243,
+      "n": 1
+     },
+     {
+      "x": 275,
+      "n": 1
+     },
+     {
+      "x": 534,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 12,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "dark": true,
+    "ground": "#1f1e1c",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 32,
+     "right": 36
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 2,
+     "size": 22,
+     "vw": 2.9,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 62,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 2,
+     "ragged": [
+      {
+       "diff": 123,
+       "top": 103
+      }
+     ],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 3,
+     "radii": [
+      [
+       6,
+       2
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 6,
+     "tabularShare": 1,
+     "kpiMax": 13
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.18,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ]
+    },
+    "title": {
+     "text": "This edit aliases state and start_date onto DagRun.\n#75025 c",
+     "size": 22,
+     "top": 62
+    },
+    "colourShare": 0.001
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.14
+   ],
+   "motion": {
+    "elements": 2,
+    "css": 2,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 844,
+     "screens": 1,
+     "words": 237,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 3,
+     "sections": 4,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 1,
+     "size": 22,
+     "vw": 5.6,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 38,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "lines": 1,
+     "size": 22,
+     "font": "Plex"
+    },
+    "headings": [
+     {
+      "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+      "words": 16,
+      "chars": 107,
+      "lines": 1,
+      "size": 22,
+      "vw": 5.6,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.01,
+      "leading": 1.27,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.88,
+      "top": 38,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Delete lines 135–136.",
+      "words": 3,
+      "chars": 21,
+      "lines": 1,
+      "size": 22,
+      "vw": 5.6,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.01,
+      "leading": 1.27,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.24,
+      "top": 71,
+      "tag": "p",
+      "kind": "statement"
+     },
+     {
+      "text": "8/8",
+      "words": 1,
+      "chars": 3,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 162,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "0",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 162,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "212 ms",
+      "words": 2,
+      "chars": 6,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Plex",
+      "weight": 600,
+      "tracking": -0.02,
+      "leading": 1.14,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.08,
+      "top": 162,
+      "tag": "b",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 5,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 1,
+     "centered": 0,
+     "medianWords": 16,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plex",
+       "share": 0.61,
+       "mono": false
+      },
+      {
+       "family": "JBMono",
+       "share": 0.39,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plex",
+      "size": 14,
+      "leading": 1.57,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 13.4
+     },
+     "measureChars": 28,
+     "max": {
+      "size": 28,
+      "vw": 7.2,
+      "font": "Plex",
+      "text": "8/8"
+     },
+     "monoShare": 0.39,
+     "monoProseShare": 0.34,
+     "monoFamilies": [
+      "JBMono"
+     ],
+     "monoSamples": [
+      "airflow-core/src/airflow/api_fastapi/cor",
+      "dags.py",
+      "134",
+      "−",
+      "{\"last_run_state\": DagRun.state, \"last_r",
+      "134"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.01,
+     "smallText": 11
+    },
+    "eyebrows": [
+     {
+      "text": "Why you can trust this",
+      "above": "8/8",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 154
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "0",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 154
+     },
+     {
+      "text": "Why you can trust this",
+      "above": "212 ms",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14,
+      "top": 154
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#1f1e1c",
+     "bodyBgHsl": {
+      "h": 40,
+      "s": 0.05,
+      "l": 0.12
+     },
+     "dark": true,
+     "sectionBgs": [],
+     "textColors": [
+      {
+       "color": "#eae6dc",
+       "share": 0.54
+      },
+      {
+       "color": "#9a958a",
+       "share": 0.42
+      },
+      {
+       "color": "#c9a04a",
+       "share": 0.04
+      },
+      {
+       "color": "#e35941",
+       "share": 0
+      }
+     ],
+     "button": null,
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 0,
+     "inHero": 0,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": []
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 1,
+     "boxRadius": 6,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": false,
+     "height": 12,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plex",
+     "jbmono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 844,
+    "margins": {
+     "left": 24,
+     "right": 29
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over al",
+      "size": 22,
+      "top": 38,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 262,
+      "n": 4
+     },
+     {
+      "x": 24,
+      "n": 2
+     },
+     {
+      "x": 53,
+      "n": 1
+     },
+     {
+      "x": 70,
+      "n": 1
+     },
+     {
+      "x": 84,
+      "n": 1
+     },
+     {
+      "x": 98,
+      "n": 1
+     },
+     {
+      "x": 127,
+      "n": 1
+     },
+     {
+      "x": 142,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 12,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "dark": true,
+    "ground": "#1f1e1c",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 24,
+     "right": 26
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. #75025 chose removal over aliasing. Merged by bbovenzi.",
+     "words": 16,
+     "chars": 107,
+     "lines": 1,
+     "size": 22,
+     "vw": 5.6,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 38,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 2,
+     "radii": [
+      [
+       6,
+       1
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 6,
+     "tabularShare": 1,
+     "kpiMax": 13
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.18,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      20,
+      22,
+      28
+     ]
+    },
+    "title": {
+     "text": "This edit aliases state and start_date onto DagRun.\n#75025 c",
+     "size": 22,
+     "top": 38
+    },
+    "colourShare": 0
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "palette-cream",
+   "width": 1440,
+   "message": "Yellow-cream background (text #eae6dc).",
+   "fix": "Use the drawn palette. If you want warmth, take a low-chroma stone or bone, not a yellow cream.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "ragged-row",
+   "width": 1440,
+   "message": "1 pair(s) of cards in one row end at different heights (by 240px).",
+   "fix": "Cards that share a row share a bottom edge: balance them by their content (the same number of rows, a block of similar height beside it), or stack them. In testing, ragged rows were marked down every time.",
+   "alsoAt": [
+    768
+   ]
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/desktop-fold.jpg",
+   "pages": [
+    "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/desktop-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/tablet-fold.jpg",
+   "pages": [
+    "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/tablet-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/mobile-fold.jpg",
+   "pages": [
+    "/Users/vedant/Documents/knack/mockups/fixtures/taste/r5/mobile-page-01.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

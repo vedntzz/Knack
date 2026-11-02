@@ -16,6 +16,8 @@ RUN3="tests/guard/fixtures/replay/run_neutral_3.diff"
 CLONE="$WORK/airflow"
 SETTINGS="$WORK/home/.config/muse/settings.json"
 REGISTRY_DIR="$WORK/home/.knack/registries/apache-airflow"
+# This run's receipts outlive the sandbox here, so the Console and knack receipts verify can read them.
+RECEIPTS_OUT="${KNACK_DEMO_RECEIPTS:-$ROOT/bench/demo_block.receipts.jsonl}"
 
 # fail WHAT: names the step that broke, on stderr, and stops the demo.
 fail() {
@@ -111,6 +113,15 @@ sys.exit("no hunk of run 3 reached the hook")
 EOF
 }
 
+keep_receipts() {
+  # Edit snapshots first, then the chain, moved in whole: a Console tailing it never reads half.
+  local out_dir
+  out_dir="$(dirname "$RECEIPTS_OUT")"
+  mkdir -p "$out_dir/edits" || return 1
+  cp "$KNACK_HOME"/edits/*.json "$out_dir/edits/" || return 1
+  cp "$KNACK_HOME/verdicts.jsonl" "$RECEIPTS_OUT.part" && mv "$RECEIPTS_OUT.part" "$RECEIPTS_OUT"
+}
+
 # A sandbox HOME: the real ~/.knack and Muse settings are never read or written.
 export HOME="$WORK/home"
 export KNACK_HOME="$HOME/.knack"
@@ -132,3 +143,7 @@ install_hook || fail "hook install"
 echo
 echo "== replay $RUN3 =="
 replay_run3 || fail "run 3 replay"
+keep_receipts || fail "receipt copy"
+echo
+echo "== receipts =="
+echo "kept: ${RECEIPTS_OUT#"$ROOT"/} (knack receipts verify --path ${RECEIPTS_OUT#"$ROOT"/})"

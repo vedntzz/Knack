@@ -20,3 +20,5 @@ spikes/heldout_cross*
 .codex/
 bench/runs-*.jsonl
 spikes/heldout_cross*
+.DS_Store
+mockups/shots/**/frames/

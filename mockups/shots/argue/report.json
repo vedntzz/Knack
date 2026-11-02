@@ -1,0 +1,139 @@
+{
+  "1080p": {
+    "nodes": 65,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 20.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 20.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "ruled",
+        "px": 20.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 20.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "airflow/api_fastapi/core_api/routes/publ",
+        "px": 18.3748,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 20.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 18.3748,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "720p": {
+    "nodes": 65,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 13.9999,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 13.9999,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "ruled",
+        "px": 13.9999,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 13.9999,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "airflow/api_fastapi/core_api/routes/publ",
+        "px": 12.2499,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 13.9999,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 12.2499,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "phone": {
+    "nodes": 65,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 14,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 14,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "ruled",
+        "px": 14,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 14,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "airflow/api_fastapi/core_api/routes/publ",
+        "px": 12.25,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 14,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 12.25,
+    "overflowY": 868,
+    "overflowX": 0
+  }
+}

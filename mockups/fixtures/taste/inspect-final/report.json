@@ -1,0 +1,425 @@
+{
+ "url": "mockups/final.html",
+ "at": "2026-11-02T00:43:50.271Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1280,
+   "height": 800,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.7
+   ],
+   "motion": {
+    "elements": 0,
+    "css": 0,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1280,
+     "h": 800
+    },
+    "page": {
+     "height": 800,
+     "screens": 1,
+     "words": 284,
+     "img": 1,
+     "video": 0,
+     "canvas": 0,
+     "svg": 2,
+     "sections": 4,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. Pushkal Gupta rejected that in #75025.",
+     "words": 14,
+     "chars": 90,
+     "lines": 2,
+     "size": 22,
+     "vw": 1.7,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 84,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "This edit aliases state and start_date onto DagRun. Pushkal Gupta rejected that in #75025.",
+     "words": 14,
+     "lines": 2,
+     "size": 22,
+     "font": "Plex"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plex",
+       "share": 0.64,
+       "mono": false
+      },
+      {
+       "family": "JBMono",
+       "share": 0.36,
+       "mono": true
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      17,
+      18,
+      19,
+      22
+     ],
+     "sizeCount": 9,
+     "notLoaded": [],
+     "body": {
+      "font": "Plex",
+      "size": 13.5,
+      "leading": 1.48,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 17.3
+     },
+     "measureChars": 50,
+     "max": {
+      "size": 22,
+      "vw": 1.7,
+      "font": "Plex",
+      "text": "This edit aliases and onto ."
+     },
+     "monoShare": 0.36,
+     "monoProseShare": 0.32,
+     "monoFamilies": [
+      "JBMono"
+     ],
+     "monoSamples": [
+      "airflow-core/src/airflow/api_fastapi/cor",
+      "dags.py",
+      "131",
+      "131",
+      "SortParam(",
+      "132"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.01,
+     "smallText": 8
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f3f5f8",
+     "bodyBgHsl": {
+      "h": 216,
+      "s": 0.26,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 158,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#0d1117",
+       "share": 0.67
+      },
+      {
+       "color": "#57606a",
+       "share": 0.33
+      },
+      {
+       "color": "#c4242a",
+       "share": 0
+      },
+      {
+       "color": "#ffffff",
+       "share": 0
+      }
+     ],
+     "button": {
+      "bg": "#0d1117",
+      "hsl": {
+       "h": 216,
+       "s": 0.28,
+       "l": 0.07
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 1,
+     "inHero": 1,
+     "radius": 6,
+     "height": 36,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Argue A"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 2,
+     "hairlineSamples": [
+      "header.bar 1280px",
+      "div.thread 870px"
+     ],
+     "outlinedBoxes": 1,
+     "dashed": 2,
+     "blurred": 0,
+     "roundedBoxes": 1,
+     "boxRadius": 6,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 0,
+     "fixed": false,
+     "height": 44,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plex",
+     "jbmono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1280,
+     "h": 800
+    },
+    "pageH": 800,
+    "margins": {
+     "left": 34,
+     "right": 24
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "This edit aliases state and start_date onto DagRun. Pushkal Gupta rejected that ",
+      "size": 22,
+      "top": 84,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 24,
+      "n": 2
+     },
+     {
+      "x": 177,
+      "n": 1
+     },
+     {
+      "x": 189,
+      "n": 1
+     },
+     {
+      "x": 245,
+      "n": 1
+     },
+     {
+      "x": 293,
+      "n": 1
+     },
+     {
+      "x": 404,
+      "n": 1
+     },
+     {
+      "x": 459,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 8,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.13,
+    "voidBox": {
+     "x": 0,
+     "y": 693,
+     "w": 1280,
+     "h": 107
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1280,
+     "h": 800
+    },
+    "dark": false,
+    "ground": "#f3f5f8",
+    "sidebar": null,
+    "topbar": {
+     "h": 44
+    },
+    "canvas": {
+     "left": 24,
+     "right": 24
+    },
+    "hero": {
+     "text": "This edit aliases state and start_date onto DagRun. Pushkal Gupta rejected that in #75025.",
+     "words": 14,
+     "chars": 90,
+     "lines": 2,
+     "size": 22,
+     "vw": 1.7,
+     "font": "Plex",
+     "weight": 600,
+     "tracking": -0.01,
+     "leading": 1.27,
+     "top": 84,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 2,
+     "radii": [
+      [
+       6,
+       1
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 2,
+     "borderSamples": [
+      "#576069 on #ffffff (6.4:1)",
+      "#576069 on #ffffff (6.4:1)"
+     ],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 0,
+     "hues": 0,
+     "samples": []
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 13,
+     "tabularShare": 1,
+     "kpiMax": 13
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.05,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      17,
+      18,
+      19,
+      22
+     ]
+    },
+    "title": {
+     "text": "This edit aliases state and start_date onto DagRun.\nPushkal ",
+     "size": 22,
+     "top": 84
+    },
+    "colourShare": 0.001
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1280,
+   "fold": "/Users/vedant/Documents/knack/.taste-skill/inspect-final/desktop-fold.jpg",
+   "pages": [
+    "/Users/vedant/Documents/knack/.taste-skill/inspect-final/desktop-page-01.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

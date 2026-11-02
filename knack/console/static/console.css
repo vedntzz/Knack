@@ -1,0 +1,130 @@
+/* The tool is dark; the human is paper. Every colour and face is a token here. */
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-500-normal.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-600-normal.woff2") format("woff2"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Plex Serif"; src: url("fonts/ibm-plex-serif-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/ibm-plex-mono-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+
+:root {
+  --ground: #0B0C0E;
+  --panel: #131418;
+  --raised: #1C1E23;
+  --text: #E6E7EA;
+  --muted: #9A9EA6;
+  --paper: #F6F6F4;
+  --paper-raised: #E9E9E6;
+  --ink: #0A0A0B;
+  --ink-muted: #4D4F55;
+  --red: #FF5A47;
+  --gold: #D8C08A;
+  --gold-paper: #7A5E00;
+  --sans: "Plex Sans", system-ui, sans-serif;
+  --serif: "Plex Serif", Georgia, serif;
+  --mono: "Plex Mono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* A 16:9 composition: 16 px at 1280×720, 24 px at 1920×1080. */
+  font-size: min(1.25vw, 2.2222vh);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; min-height: 100%; }
+body { background: var(--ground); color: var(--text); font: 400 1rem/1.5 var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+code { font-family: var(--mono); font-size: 0.875em; }
+a { color: inherit; text-decoration: underline 0.0625rem; text-underline-offset: 0.1875rem; }
+mark { background: none; color: inherit; }
+::selection { background: var(--gold); color: var(--ink); }
+:focus-visible { outline: 0.125rem solid currentColor; outline-offset: 0.125rem; }
+.gap { color: var(--muted); }
+.paper .gap { color: var(--ink-muted); }
+
+/* Bar: the wordmark and where this happened, as plain text. */
+.bar { display: flex; align-items: baseline; gap: 2rem; height: 3.5rem; padding: 1.125rem 2rem 0; font-size: 0.875rem; color: var(--muted); }
+.wordmark { color: var(--text); font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.where b { color: var(--text); font-weight: 500; }
+.where i { font-style: normal; margin: 0 0.375rem; }
+.when { margin-left: auto; display: flex; gap: 1rem; font-variant-numeric: tabular-nums; }
+.when code { font-size: 0.875rem; }
+
+/* The verdict: head across, the code board left, the rail right, the verifier line last. */
+.verdict { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 24rem; grid-template-areas: "head head" "board rail" "verify verify"; grid-template-rows: auto auto 1fr; gap: 1.5rem 2rem; padding: 1rem 2rem 1.5rem; min-height: calc(100vh - 3.5rem); }
+.head { grid-area: head; display: flex; align-items: center; gap: 1.5rem; }
+.seal { flex: none; background: var(--red); color: var(--ink); font-size: 1.75rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.01em; padding: 0.375rem 1rem; border-radius: 0.125rem; }
+.allow .seal, .guard-error .seal { background: var(--raised); color: var(--text); }
+h1 { font-size: 2.5rem; line-height: 3rem; font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+.stopped { color: var(--muted); }
+
+/* Board: the agent's proposed lines, with the human's note hung between them. */
+.board { grid-area: board; align-self: start; background: var(--panel); border-radius: 0.25rem; padding-bottom: 0.75rem; min-width: 0; }
+.path { padding: 0.75rem 1rem 0.5rem 4.1875rem; color: var(--muted); }
+.path code { font-size: 0.875rem; overflow-wrap: anywhere; }
+.lost { padding: 1rem 1rem 0.5rem 4.1875rem; }
+.code { font-family: var(--mono); font-size: 0.875rem; line-height: 1.5rem; }
+.line { display: grid; grid-template-columns: 2.5rem 1.5rem minmax(0, 1fr); border-left: 0.1875rem solid transparent; white-space: pre; color: var(--muted); }
+.line code { font-size: 1em; overflow: hidden; text-overflow: ellipsis; }
+.line .n { text-align: right; font-variant-numeric: tabular-nums; }
+.line .sign { text-align: center; }
+.line.hit, .line.right { color: var(--text); }
+.line.hit { border-left-color: var(--gold); }
+.line mark { color: var(--gold); }
+.note { margin: 0.75rem 1.5rem 0.75rem 4.1875rem; padding: 1.25rem 1.5rem 1.25rem; background: var(--paper); color: var(--ink); border-radius: 0.125rem; font-family: var(--sans); white-space: normal; }
+.note blockquote p { font-family: var(--serif); font-size: 1.75rem; line-height: 2.25rem; letter-spacing: -0.01em; text-wrap: pretty; }
+.note blockquote code { font-size: 0.8em; letter-spacing: 0; }
+/* A border, not an underline, so the thread can meet it at a measured height. */
+.note mark { border-bottom: 0.125rem solid var(--gold-paper); }
+.note figcaption { margin-top: 1rem; font-size: 1rem; line-height: 1.5rem; color: var(--ink-muted); }
+.note figcaption b { color: var(--ink); font-weight: 600; }
+.note figcaption a { color: var(--ink); }
+.offered { margin-top: 0.25rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--ink-muted); }
+.offered b { color: var(--ink); font-weight: 500; }
+
+/* Rail: the fix is the second piece of paper; the figures sit on the ground. */
+.rail { grid-area: rail; display: flex; flex-direction: column; gap: 2rem; min-width: 0; }
+.fix { background: var(--paper); color: var(--ink); padding: 1.5rem; border-radius: 0.125rem; }
+.fix h2 { font-size: 1.75rem; line-height: 2.25rem; font-weight: 600; letter-spacing: -0.015em; }
+.fix h2 + p { margin-top: 0.25rem; text-wrap: pretty; }
+.argue { margin-top: 1.5rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--ink-muted); }
+.well { margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; background: var(--paper-raised); padding: 0.25rem 0.25rem 0.25rem 0.75rem; border-radius: 0.125rem; }
+.well code { color: var(--ink); font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.well button { margin-left: auto; flex: none; font: 500 0.875rem/1 var(--sans); color: var(--ink); background: var(--paper); border: 0; border-radius: 0.125rem; padding: 0 0.75rem; height: 2rem; cursor: pointer; transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease; }
+.well button:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .well button:hover { background: var(--ink); color: var(--paper); } }
+/* One shared column for the numbers, so every label starts on the same edge. */
+.figures { list-style: none; display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: 1rem 1.25rem; }
+.figures li { display: contents; color: var(--muted); font-size: 0.875rem; line-height: 1.25rem; }
+.figures li > span { color: var(--muted); font-size: 0.875rem; line-height: 1.25rem; }
+.figures li > .gap { grid-column: 1 / -1; }
+.figures b { color: var(--text); font-size: 1.75rem; line-height: 2.25rem; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.figures small { font-size: 1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+
+/* Verify it: the receipt, the command that checks it, the rule, at body size like the figures. */
+.verify { grid-area: verify; align-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 2rem; font-size: 1rem; line-height: 1.5rem; color: var(--muted); }
+.verify h2 { font-size: 1rem; line-height: 1.5rem; font-weight: 500; color: var(--text); }
+.verify p { display: flex; align-items: center; gap: 0.75rem; }
+.verify code { font-size: 0.875rem; color: var(--text); }
+.copy { flex: none; font: 500 0.875rem/1 var(--sans); color: var(--text); background: var(--raised); border: 0; border-radius: 0.125rem; padding: 0 0.75rem; height: 2rem; cursor: pointer; transition: transform 160ms var(--ease-out), background-color 150ms ease, color 150ms ease; }
+.copy:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .copy:hover { background: var(--text); color: var(--ground); } }
+
+/* The thread: one gold line from the matched code into the human's words. */
+.thread { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.thread path { fill: none; stroke-width: 0.125rem; stroke-linecap: square; }
+.thread .on-dark { stroke: var(--gold); }
+.thread .on-paper { stroke: var(--gold-paper); }
+
+/* Waiting: nothing moves until a deny lands. */
+.quiet { padding: 8rem 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.quiet h1 { font-weight: 500; }
+.quiet p { color: var(--muted); }
+
+/* Below a laptop width the board and rail stack, at a fixed 16 px. */
+@media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
+  :root { font-size: 16px; }
+  .verdict { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "board" "rail" "verify"; padding: 1rem; }
+  .bar { padding: 1rem 1rem 0; flex-wrap: wrap; gap: 0.25rem 1rem; height: auto; }
+  .head { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .code { overflow-x: auto; }
+  .line code { overflow: visible; }
+  .note { margin: 0.75rem 0.75rem 0.75rem 1rem; }
+  .note blockquote p { font-size: 1.25rem; line-height: 1.75rem; }
+  .path, .lost { padding-left: 1rem; }
+}

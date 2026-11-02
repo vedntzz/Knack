@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knack: your agent never read the PR where you said no</title>
+<meta name="description" content="Knack reads your pull requests, proves each recorded no as a rule, and stops an AI coding agent that repeats it, showing the person's words.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../argue/argue.css">
+<link rel="stylesheet" href="landing.css">
+<script src="../fixtures/scenes.js"></script>
+<script src="../fixtures/block.js"></script>
+<script src="landing.js" defer></script>
+</head>
+<body>
+<header class="bar"><span class="wordmark">knack</span><nav aria-label="Sections"><a href="#how">How it works</a><a href="#models">Models</a><a href="#check">Check it</a><a href="#demo">Demo</a></nav><p class="when" id="repo"></p></header>
+<main class="landing">
+  <section class="hero" aria-labelledby="title">
+    <h1 id="title">Your AI agent never read the PR where you said no. Knack did.</h1>
+    <p class="act" id="act"></p>
+    <figure class="shot" id="shot">
+      <img src="../shots/kn80/verdict-1080p.png" width="1920" height="1080" alt="The Knack block page: a red Blocked seal over the headline ‘This edit brings back what #75025 removed.’, the agent’s lines 135–136 with DagRun.state and DagRun.start_date marked in gold, and under them Pushkal Gupta’s words from the pull request on paper: ‘I removed them rather than aliasing them onto DagRun.state and DagRun.start_date.’ On the right, ‘Delete lines 135–136.’">
+      <figcaption id="shot-caption"></figcaption>
+    </figure>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-title">
+    <h2 id="how-title">From a pull request to a stopped edit</h2>
+    <ol class="steps">
+      <li><h3>It reads your pull requests.</h3><div id="read"></div></li>
+      <li><h3>It proves each “no” as a rule.</h3><div id="prove"></div></li>
+      <li><h3>It stops the agent that repeats it, with the person’s words.</h3><div id="stop"></div></li>
+    </ol>
+  </section>
+
+  <section class="models" id="models" aria-labelledby="models-title">
+    <h2 id="models-title">Meta’s models, and what each one does</h2>
+    <table>
+      <thead><tr><th scope="col">Model</th><th scope="col">Where it runs</th><th scope="col">Its job</th><th scope="col">In the recorded traces</th></tr></thead>
+      <tbody id="model-rows"></tbody>
+    </table>
+  </section>
+
+  <section class="check" id="check" aria-labelledby="check-title">
+    <h2 id="check-title">Every number here has a command</h2>
+    <div class="figures" id="figures"></div>
+    <div class="run" id="run"></div>
+  </section>
+
+  <section class="demo" id="demo" aria-labelledby="demo-title">
+    <h2 id="demo-title">The demo</h2>
+    <div class="slot"><p>Demo video slot, 16:9. Not recorded yet.</p></div>
+  </section>
+</main>
+<footer class="foot"><span class="wordmark big">knack</span><p id="foot"></p></footer>
+</body>
+</html>
