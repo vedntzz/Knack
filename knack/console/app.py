@@ -10,10 +10,12 @@ from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
 from knack.console.pages.argue import argue_router
 from knack.console.pages.day import day_router
 from knack.console.pages.held import held_router
+from knack.console.pages.recovery import NoSuchRepair, recovery_router
 from knack.console.pages.verdict import verdict_router
 from knack.console.render import (
     missing_html,
     NO_RECEIPT_SAID,
+    NO_REPAIR_SAID,
     NO_RULING_SAID,
     waiting_html,
     wants_html,
@@ -36,6 +38,8 @@ NO_CACHE = {"cache-control": "no-cache"}
 EVENT_STREAM = "text/event-stream"
 RECEIPTS_ENV = "KNACK_CONSOLE_RECEIPTS"
 RULINGS = "rulings.jsonl"
+# mockups/fixtures/one_story/receipts.jsonl keeps its run in mockups/fixtures/self_repair.
+REPAIRS = "self_repair"
 
 
 def create_app(
@@ -45,27 +49,31 @@ def create_app(
     registry_for: RegistryFor,
     day: Day | None = None,
     poll_seconds: float = 0.25,
+    repairs: Path | None = None,
 ) -> FastAPI:
-    # Routes only: each page is its own router.
+    # Routes only: each page is its own router; repairs is a kept self-repair run.
     app, places = _bare_app(), (receipts, warns, rulings, registry_for)
     for router in (verdict_router, argue_router, held_router):
         app.include_router(router(*places))
+    app.include_router(recovery_router(repairs))
     _add_pages(app, (receipts, rulings), poll_seconds)
-    _add_home(app, receipts, day)
+    _add_home(app, receipts, day, repairs)
     return app
 
 
-def _add_home(app: FastAPI, receipts: Path, day: Day | None) -> None:
+def _add_home(
+    app: FastAPI, receipts: Path, day: Day | None, repairs: Path | None
+) -> None:
     # The repo's memory when the console knows its clone; else it waits for a block.
     if day is None:
         app.get("/", response_class=HTMLResponse)(waiting_html)
     else:
-        _add_day(app, receipts, day)
+        _add_day(app, receipts, day, repairs)
 
 
-def _add_day(app: FastAPI, receipts: Path, day: Day) -> None:
+def _add_day(app: FastAPI, receipts: Path, day: Day, repairs: Path | None) -> None:
     # The repo's memory is the home page; GET /day stays the feed's own bytes.
-    app.include_router(day_router(receipts, day))
+    app.include_router(day_router(receipts, day, repairs))
     _add_day_route(app, day)
 
 
@@ -103,9 +111,14 @@ def _add_events(app: FastAPI, tailed: tuple[Path, Path], poll_seconds: float) ->
 
 def _not_found(request: Request, error: Exception) -> Response:
     if wants_html(request):
-        said = NO_RULING_SAID if isinstance(error, NoSuchRuling) else NO_RECEIPT_SAID
-        return HTMLResponse(missing_html(said), status_code=404)
+        return HTMLResponse(missing_html(missing_said(error)), status_code=404)
     return JSONResponse(status_code=404, content={"detail": str(error)})
+
+
+def missing_said(error: Exception) -> str:
+    if isinstance(error, NoSuchRepair):
+        return NO_REPAIR_SAID
+    return NO_RULING_SAID if isinstance(error, NoSuchRuling) else NO_RECEIPT_SAID
 
 
 def serve() -> None:
@@ -114,7 +127,7 @@ def serve() -> None:
 
     # GET /day reads the clone the console was started in.
     places = (console_receipts(), warns_path(), console_rulings(), home_registry_for)
-    app = create_app(*places, local_day(Path.cwd()))
+    app = create_app(*places, local_day(Path.cwd()), repairs=console_repairs())
     uvicorn.run(app, host=CONSOLE_HOST, port=CONSOLE_PORT)
 
 
@@ -128,3 +141,9 @@ def console_rulings() -> Path:
     # Kept receipts bring the rulings kept beside them, as they bring their edits.
     kept = os.environ.get(RECEIPTS_ENV)
     return expand_user_path(kept).with_name(RULINGS) if kept else rulings_path()
+
+
+def console_repairs() -> Path | None:
+    # Kept receipts bring the kept self-repair run from the fixtures folder beside them.
+    kept = os.environ.get(RECEIPTS_ENV)
+    return expand_user_path(kept).parent.with_name(REPAIRS) if kept else None

@@ -344,6 +344,8 @@ class Memory(BaseModel):
     chain: list[Receipt]
     now: datetime
     registry_error: str | None
+    # Root id to the rule a kept self-repair run is for.
+    repaired: dict[str, str] = {}
 
 
 class DecisionLine(BaseModel):
@@ -355,6 +357,8 @@ class DecisionLine(BaseModel):
     url: str
     merged_on: str | None
     confirmed_by: str | None
+    # The recovery page of the rule that keeps this decision, when a repair was kept.
+    recovery: str | None = None
 
 
 class ReceiptLine(BaseModel):
@@ -404,7 +408,7 @@ def day_page(memory: Memory, feed: DayFeed) -> DayPage:
     confirmed = sum(root.status == "Confirmed" for root in roots)
     found: dict[str, Any] = {"repo": memory.repo, "branch": feed.branch}
     found |= {"known": memory.known, "total": len(roots), "confirmed": confirmed}
-    found |= {"graph": graph(memory), "decisions": decision_lines(roots)}
+    found |= {"graph": graph(memory), "decisions": decision_lines(memory)}
     found |= {"today": today_lines(memory, feed), "last": last_receipt(memory)}
     return DayPage.model_validate(found | feed_facts(memory, feed))
 
@@ -483,17 +487,18 @@ def pr_of(url: str) -> str | None:
     return f"#{found.group(1)}" if found else None
 
 
-def decision_lines(roots: list[Root]) -> list[DecisionLine]:
+def decision_lines(memory: Memory) -> list[DecisionLine]:
     # Confirmed roots only, the latest merge first; undated ones last.
-    confirmed = [root for root in roots if root.status == "Confirmed"]
+    confirmed = [root for root in memory.roots if root.status == "Confirmed"]
     latest = sorted(confirmed, key=lambda root: root.merged_at or "", reverse=True)
-    return [decision_line(root) for root in latest]
+    return [decision_line(root, memory.repaired.get(root.id)) for root in latest]
 
 
-def decision_line(root: Root) -> DecisionLine:
+def decision_line(root: Root, repaired: str | None = None) -> DecisionLine:
     url = str(root.source_url)
     found = {"decision": root.decision, "author": person(root.decided_by).author}
     found |= {"pr": pr_of(url), "url": url, "merged_on": day_of(root.merged_at)}
+    found |= {"recovery": f"/recovery/{repaired}" if repaired else None}
     return DecisionLine.model_validate(found | {"confirmed_by": root.confirmed_by})
 
 

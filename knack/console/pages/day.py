@@ -17,6 +17,7 @@ from knack.console.facts import (
     resolution_label,
     TodayLine,
 )
+from knack.console.pages.recovery import repaired_roots
 from knack.console.pages.verdict import (
     COMMAND,
     copy_button,
@@ -47,18 +48,18 @@ MARKS = {"block": "mark block", "resolution": "mark person"}
 Remembered = tuple[str | None, list[Root] | None, str | None]
 
 
-def day_router(receipts: Path, day: Day) -> APIRouter:
+def day_router(receipts: Path, day: Day, repairs: Path | None = None) -> APIRouter:
     # GET / is the repo's memory; GET /graph the per-day counts its squares show.
     router = APIRouter()
-    router.get("/", response_class=HTMLResponse)(lambda: home(receipts, day))
+    router.get("/", response_class=HTMLResponse)(lambda: home(receipts, day, repairs))
     router.get("/graph", response_model=Graph)(lambda: graph_of(receipts, day))
     return router
 
 
-def home(receipts: Path, day: Day) -> HTMLResponse:
+def home(receipts: Path, day: Day, repairs: Path | None = None) -> HTMLResponse:
     # A store the feed cannot read is never a 500: the page waits instead.
     try:
-        found = day_page(memory(receipts, day), day_feed(day))
+        found = day_page(memory(receipts, day, repairs), day_feed(day))
     except OSError:
         return HTMLResponse(waiting_html(), status_code=503)
     return HTMLResponse(day_html(found, receipts))
@@ -68,13 +69,13 @@ def graph_of(receipts: Path, day: Day) -> Graph:
     return graph(memory(receipts, day))
 
 
-def memory(receipts: Path, day: Day) -> Memory:
-    # The registry the console reads, its roots, and the repo's whole chain.
+def memory(receipts: Path, day: Day, repairs: Path | None = None) -> Memory:
+    # The registry the console reads, its roots, the repo's whole chain, its kept repair.
     repo, roots, error = remembered(day, origin_repo(day.clone))
     chain = [r for r in load_receipts(receipts) if repo and same_repo(r.repo, repo)]
     found = {"repo": repo, "known": roots is not None, "roots": roots or []}
     found |= {"chain": chain, "now": day.clock(), "registry_error": error}
-    return Memory.model_validate(found)
+    return Memory.model_validate(found | {"repaired": repaired_roots(repairs)})
 
 
 def remembered(day: Day, clone_repo: str | None) -> Remembered:
@@ -248,7 +249,13 @@ def decision(line: DecisionLine) -> str:
     by = line.confirmed_by
     confirmed = f"confirmed by {escape(by)}" if by else gap("Confirmer")
     who = f"<b>{escape(line.author)}</b> · {pr} · {merged} · {confirmed}"
-    return partial("decision.html", decision=escape(line.decision), who=who)
+    said = {"decision": escape(line.decision), "who": who + repaired(line)}
+    return partial("decision.html", **said)
+
+
+def repaired(line: DecisionLine) -> str:
+    # Its rule was repaired and kept: the note leads to how.
+    return f' · <a href="{line.recovery}">rule repaired</a>' if line.recovery else ""
 
 
 def today(found: DayPage) -> str:

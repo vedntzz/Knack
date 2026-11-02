@@ -48,9 +48,10 @@ Then open:
 - The block page for receipt `0e7ab6083866`, the deny's Console link: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9
 - The argue page, where Spark held the decision against the agent's first objection: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/argue
 - The held page, where both models escalated the second objection and a person upheld the decision: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/held
+- The recovery page, where Knack repaired rule airflow-75025 in one live run (frozen in [`mockups/fixtures/self_repair/`](mockups/fixtures/self_repair/)) and a person re-confirmed it: http://127.0.0.1:7655/recovery/airflow-75025
 - The repo's memory: http://127.0.0.1:7655/
 
-`tests/test_readme_console.py` starts the console exactly this way, from a fresh clone of the committed HEAD and in a HOME with no `~/.knack`. It checks that every link returns 200, that the block page shows the full #75025 quote, and that the argue and held pages show the objection each one answers.
+`tests/test_readme_console.py` starts the console exactly this way, from a fresh clone of the committed HEAD and in a HOME with no `~/.knack`. It checks that every link returns 200, that the block page shows the full #75025 quote, that the argue and held pages show the objection each one answers, and that the recovery page shows the repair and both confirm attempts.
 
 `bash scripts/e2e_console.sh` runs the whole story live against a running console in a sandbox HOME, with fake models unless you pass `--live`, checks every page over HTTP and ends `E2E: PASS` (it needs port 7655 free).
 

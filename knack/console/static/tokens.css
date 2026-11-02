@@ -91,9 +91,14 @@
   --time-width: 4.5rem;
   /* The graph scrolls inside its box on a phone, at this width. */
   --graph-width: 53rem;
+  /* The recovery page: its rail, and the timeline's track and the space it takes. */
+  --repair-rail: 18rem;
+  --track: 0.25rem;
 
   /* Motion. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* On-screen movement: the recovery timeline filling. */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --press: 160ms;
   --fade: 150ms;
 
