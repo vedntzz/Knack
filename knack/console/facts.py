@@ -1,15 +1,25 @@
 import difflib
 import re
-from datetime import datetime
-from typing import Any
+from collections.abc import Callable
+from datetime import date, datetime, timedelta
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
 from knack.bench.heldout_pr import HeldOutPr, Score
 from knack.bench.proof_grid import GATES, SIDE_GATES
 from knack.console.verdict import RootView, VerdictView
-from knack.contracts.models import HeldOutScore, RuleProof, SideProof
+from knack.contracts.models import HeldOutScore, Root, RuleProof, SideProof
+from knack.day.models import CommitEvent, DayFeed, PullEvent, ReceiptEvent
+from knack.day.when import moment
 from knack.pipeline.prove import MIN_FLAGGED, MUST_FLAG
+from knack.receipts.chain import (
+    Decision,
+    Receipt,
+    Resolution,
+    ResolutionAction,
+    RESOLVED_VERBS,
+)
 from knack.receipts.edits import EditSnapshot
 
 # Lines shown above the first matched line and below the last right one.
@@ -206,3 +216,269 @@ def false_alarms(proof: RuleProof) -> tuple[int | None, str | None]:
     if old is None or old.error or proof.tree_error:
         return None, old.ref if old else None
     return proof.false_positives + old.false_positives, old.ref
+
+
+# The day page: weeks of decisions as squares, the confirmed ones, and today.
+WEEKS = 53
+T = TypeVar("T")
+TodayKind = Literal["commit", "pr", "block", "resolution"]
+
+
+class GraphDay(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    date: str
+    # Roots whose PR merged this day: Confirmed ones block, the rest advise only.
+    confirmed: int
+    advisory: int
+    # Denies the guard made this day; a person's uphold is a resolution, not a block.
+    blocks: int
+    resolutions: list[ResolutionAction]
+    prs: list[str]
+    authors: list[str]
+    # 0 empty, 1 advise only, 2 one confirmed, 3 confirmed among more.
+    step: int
+
+
+class Graph(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    repo: str | None
+    today: str
+    weeks: int
+    # Every day from the Sunday WEEKS - 1 weeks back to today, oldest first.
+    days: list[GraphDay]
+    registry_error: str | None
+
+
+class Memory(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # The registry's repo, else the clone's; None when neither is known.
+    repo: str | None
+    # False when no registry guards the repo, so no decision count is known.
+    known: bool
+    roots: list[Root]
+    # The repo's whole receipt chain, oldest first.
+    chain: list[Receipt]
+    now: datetime
+    registry_error: str | None
+
+
+class DecisionLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    decision: str
+    author: str
+    pr: str | None
+    url: str
+    merged_on: str | None
+    confirmed_by: str | None
+
+
+class ReceiptLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    hash: str
+    time: str
+    rule_id: str
+    decision: Decision
+    resolution: Resolution | None
+    # The cited root's honest label; None when the root is not in the registry.
+    root_status: str | None
+    seeded: bool
+
+
+class TodayLine(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    time: str
+    kind: TodayKind
+    what: str
+    detail: str | None
+
+
+class DayPage(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    repo: str | None
+    branch: str | None
+    known: bool
+    total: int
+    confirmed: int
+    graph: Graph
+    decisions: list[DecisionLine]
+    date: str
+    # The clock's zone, which every time under today is shown in.
+    zone: str | None
+    today: list[TodayLine]
+    last: ReceiptLine | None
+    pulls_error: str | None
+    registry_error: str | None
+
+
+def day_page(memory: Memory, feed: DayFeed) -> DayPage:
+    # Pure: the home page's facts from the registry, the chain and the day feed.
+    roots = memory.roots
+    confirmed = sum(root.status == "Confirmed" for root in roots)
+    found: dict[str, Any] = {"repo": memory.repo, "branch": feed.branch}
+    found |= {"known": memory.known, "total": len(roots), "confirmed": confirmed}
+    found |= {"graph": graph(memory), "decisions": decision_lines(roots)}
+    found |= {"today": today_lines(memory, feed), "last": last_receipt(memory)}
+    return DayPage.model_validate(found | feed_facts(memory, feed))
+
+
+def feed_facts(memory: Memory, feed: DayFeed) -> dict[str, Any]:
+    # The day, the zone every time under today is shown in, and what could not be read.
+    found = {"date": feed.date, "zone": memory.now.tzname()}
+    return found | {
+        "pulls_error": feed.pulls_error,
+        "registry_error": memory.registry_error,
+    }
+
+
+def graph(memory: Memory) -> Graph:
+    today = memory.now.date()
+    merged = by_day(memory.roots, lambda root: root.merged_at, memory.now)
+    receipted = by_day(memory.chain, lambda receipt: receipt.time, memory.now)
+    days = [graph_day(d, merged.get(d, []), receipted.get(d, [])) for d in span(today)]
+    found: dict[str, Any] = {"repo": memory.repo, "today": today.isoformat()}
+    found |= {"weeks": WEEKS, "days": days, "registry_error": memory.registry_error}
+    return Graph.model_validate(found)
+
+
+def span(today: date) -> list[date]:
+    # Columns start on Sunday, as GitHub's do; the last column ends today.
+    start = today - timedelta(days=(today.weekday() + 1) % 7 + 7 * (WEEKS - 1))
+    return [start + timedelta(days=n) for n in range((today - start).days + 1)]
+
+
+def by_day(
+    items: list[T], when: Callable[[T], str | None], now: datetime
+) -> dict[date, list[T]]:
+    # Each item under its calendar day in now's timezone; undated items are left out.
+    found: dict[date, list[T]] = {}
+    for item in items:
+        at = moment(when(item) or "")
+        if at is not None:
+            found.setdefault(at.astimezone(now.tzinfo).date(), []).append(item)
+    return found
+
+
+def graph_day(day: date, roots: list[Root], receipts: list[Receipt]) -> GraphDay:
+    confirmed = sum(root.status == "Confirmed" for root in roots)
+    prs = unique(pr_of(str(root.source_url)) for root in roots)
+    authors = unique(person(root.decided_by).author for root in roots)
+    found: dict[str, Any] = {"confirmed": confirmed, "advisory": len(roots) - confirmed}
+    found |= {"prs": prs, "authors": authors, "step": step(confirmed, len(roots))}
+    found |= {"date": day.isoformat(), **receipt_counts(receipts)}
+    return GraphDay.model_validate(found)
+
+
+def receipt_counts(receipts: list[Receipt]) -> dict[str, Any]:
+    blocks = sum(is_block(receipt) for receipt in receipts)
+    settled = [r.resolution.action for r in receipts if r.resolution is not None]
+    return {"blocks": blocks, "resolutions": settled}
+
+
+def is_block(receipt: Receipt) -> bool:
+    # The guard's own deny; an uphold records a deny but blocks nothing new.
+    return receipt.decision == "deny" and receipt.resolution is None
+
+
+def step(confirmed: int, total: int) -> int:
+    # One meaning per step, so a confirmed day always reads a step above any other.
+    if confirmed == 0:
+        return min(total, 1)
+    return 2 if total == 1 else 3
+
+
+def unique(found: Any) -> list[str]:
+    return list(dict.fromkeys(item for item in found if item))
+
+
+def pr_of(url: str) -> str | None:
+    found = re.search(r"/pull/(\d+)", url)
+    return f"#{found.group(1)}" if found else None
+
+
+def decision_lines(roots: list[Root]) -> list[DecisionLine]:
+    # Confirmed roots only, the latest merge first; undated ones last.
+    confirmed = [root for root in roots if root.status == "Confirmed"]
+    latest = sorted(confirmed, key=lambda root: root.merged_at or "", reverse=True)
+    return [decision_line(root) for root in latest]
+
+
+def decision_line(root: Root) -> DecisionLine:
+    url = str(root.source_url)
+    found = {"decision": root.decision, "author": person(root.decided_by).author}
+    found |= {"pr": pr_of(url), "url": url, "merged_on": day_of(root.merged_at)}
+    return DecisionLine.model_validate(found | {"confirmed_by": root.confirmed_by})
+
+
+def last_receipt(memory: Memory) -> ReceiptLine | None:
+    if not memory.chain:
+        return None
+    last = memory.chain[-1]
+    found: dict[str, Any] = {"hash": last.hash, "time": last.time}
+    found |= {"rule_id": last.rule_id, "decision": last.decision}
+    found |= {"resolution": last.resolution, **cited(memory.roots, last)}
+    return ReceiptLine.model_validate(found)
+
+
+def cited(roots: list[Root], receipt: Receipt) -> dict[str, Any]:
+    # The cited root's honest label and seeded flag, as it reads in the registry now.
+    root = next((r for r in roots if r.id in receipt.root_ids[:1]), None)
+    return {"root_status": root and root.status, "seeded": bool(root and root.seeded)}
+
+
+def today_lines(memory: Memory, feed: DayFeed) -> list[TodayLine]:
+    # The feed's commits and PRs, and today's blocks and resolutions from the chain.
+    work = [work_line(e) for e in feed.events if not isinstance(e, ReceiptEvent)]
+    today = by_day(memory.chain, lambda r: r.time, memory.now).get(
+        memory.now.date(), []
+    )
+    found = work + [line for line in map(receipt_today, today) if line]
+    timed = sorted(found, key=lambda line: moment(line.time) or memory.now)
+    return [in_zone(line, memory.now) for line in timed]
+
+
+def in_zone(line: TodayLine, now: datetime) -> TodayLine:
+    # One clock for the whole list: a commit's offset and a receipt's UTC both become now's.
+    at = moment(line.time)
+    return (
+        line.model_copy(update={"time": at.astimezone(now.tzinfo).isoformat()})
+        if at
+        else line
+    )
+
+
+def work_line(event: CommitEvent | PullEvent) -> TodayLine:
+    if isinstance(event, CommitEvent):
+        detail = f"{event.author}, commit {event.sha[:8]}"
+        return TodayLine(
+            time=event.time, kind="commit", what=event.message, detail=detail
+        )
+    what = f"#{event.number} {event.title}"
+    return TodayLine(time=event.time, kind="pr", what=what, detail=event.state)
+
+
+def receipt_today(receipt: Receipt) -> TodayLine | None:
+    # A block and a person's resolution are events; a plain allow is not.
+    if receipt.resolution is not None:
+        return resolution_line(receipt.time, receipt.resolution)
+    if not is_block(receipt):
+        return None
+    against = receipt.root_ids[0] if receipt.root_ids else receipt.rule_id
+    what = f"Blocked an edit against {against}"
+    return TodayLine(time=receipt.time, kind="block", what=what, detail=None)
+
+
+def resolution_line(time: str, resolution: Resolution) -> TodayLine:
+    what = resolution_label(resolution)
+    return TodayLine(time=time, kind="resolution", what=what, detail=resolution.reason)
+
+
+def resolution_label(resolution: Resolution) -> str:
+    # Each kind by its own verb: allowed, retired or upheld; never "learned".
+    return f"{RESOLVED_VERBS[resolution.action].capitalize()} by {resolution.by}"

@@ -22,7 +22,12 @@ OFF_SCALE = {
 }
 # Not raw spacing: the code column widths added up, so the note lines up with the code.
 DERIVED = {"--code-indent"}
-PARTIALS = {"note.html", "code.html", "fix.html", "figures.html", "verify.html"}
+PARTIALS = {"note.html", "code.html", "fix.html", "figures.html", "verify.html"} | {
+    "graph.html",
+    "decision.html",
+}
+# Every stylesheet a page links; tokens.css is where the values live.
+SHEETS = ("console.css", "day.css")
 
 
 def text(path: Path) -> str:
@@ -43,7 +48,7 @@ def tokens() -> dict[str, str]:
 
 
 def spacing_values() -> list[str]:
-    found = DECLARATION.findall(css(STATIC / "console.css"))
+    found = [d for sheet in SHEETS for d in DECLARATION.findall(css(STATIC / sheet))]
     return [
         part for prop, value in found if SPACING.match(prop) for part in value.split()
     ]
@@ -61,9 +66,10 @@ def test_no_raw_hex() -> None:
     assert HEX.findall(text(STATIC / "console.css")) == []
 
 
-def test_every_variable_console_css_reads_is_a_token() -> None:
-    used = set(re.findall(r"var\((--[a-z0-9-]+)\)", text(STATIC / "console.css")))
-    assert used and used <= set(tokens())
+def test_every_variable_a_stylesheet_reads_is_a_token() -> None:
+    for sheet in SHEETS:
+        used = set(re.findall(r"var\((--[a-z0-9-]+)\)", text(STATIC / sheet)))
+        assert used and used <= set(tokens()), sheet
 
 
 def test_tokens_hold_every_colour_in_design_md() -> None:
@@ -87,7 +93,7 @@ def test_console_css_spaces_only_from_the_scale() -> None:
 
 def test_every_page_is_built_from_base_and_the_partials() -> None:
     assert {p.name for p in (TEMPLATES / "partials").iterdir()} == PARTIALS
-    for page in ("verdict.html", "waiting.html", "missing.html"):
+    for page in ("verdict.html", "waiting.html", "missing.html", "day.html"):
         assert "<html" not in text(TEMPLATES / page)
     assert '<header class="bar">' in text(TEMPLATES / "base.html")
 

@@ -82,6 +82,13 @@
   /* The note and the path start where the code does: number, sign and gutter. */
   --code-indent: calc(var(--col-number) + var(--col-sign) + var(--gutter));
   --pressed: 0.97;
+  /* The day page: the today column, a key swatch, a dot on a day, the time column. */
+  --today-width: 26rem;
+  --swatch: 0.75rem;
+  --mark: 0.375rem;
+  --time-width: 4.5rem;
+  /* The graph scrolls inside its box on a phone, at this width. */
+  --graph-width: 53rem;
 
   /* Motion. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
