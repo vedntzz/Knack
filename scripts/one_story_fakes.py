@@ -8,7 +8,6 @@ import json
 import sys
 
 from knack import cli
-from knack.dispute import latest, second
 
 HOST = "no network (scripts/one_story_fakes.py)"
 QUOTE = "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
@@ -33,7 +32,8 @@ def ruling_for(prompt: str) -> str:
 
 
 class FakeSpark:
-    # argue's Ask: no response id to keep, so its trace is not recorded.
+    # argue's Ask, named like SparkRuling; no response id, so its trace is not recorded.
+    model = "fake-spark"
     host = HOST
     last_trace_id: str | None = None
 
@@ -54,8 +54,6 @@ class FakeSparkOpen:
 def install_fakes() -> None:
     cli.ask_spark = FakeSpark()
     cli.partner_client = lambda extractor: FakeSparkOpen()
-    # The ruling and the self-check name Spark by this id; the fake must not borrow the real one.
-    latest.SPARK_MODEL = second.SPARK_MODEL = "fake-spark"
 
 
 if __name__ == "__main__":
