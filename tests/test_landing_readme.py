@@ -54,6 +54,8 @@ def test_sources_md_cites_both_readme_lines():
 
 
 def test_landing_loads_and_reads_both_values():
-    page, script = (LANDING / "index.html").read_text(), (LANDING / "landing.js").read_text()
+    page, script = (LANDING / "index.html").read_text(), (
+        LANDING / "landing.js"
+    ).read_text()
     assert '<script src="../fixtures/readme.js"></script>' in page
     assert "R.repo" in script and "R.install" in script
