@@ -333,3 +333,37 @@ def test_live_spark_holds_a_restated_alternative(
     assert cli.main(["argue", RESTATES_REJECTED]) == 0
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "HOLD", out
+
+
+class TracedSparkInTurn(TracedSpark):
+    # Traced fake Spark giving each answer in turn; each call is a new response id.
+    def __init__(self, *answers: str) -> None:
+        super().__init__("")
+        self.answers, self.prompts = list(answers), list[str]()
+
+    def __call__(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        self.last_trace_id = f"resp_spark_{len(self.prompts)}"
+        return self.answers.pop(0)
+
+
+def test_a_reasked_hold_records_spark_with_the_deciding_trace_and_the_agent(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hold = {
+        "decision": "hold",
+        "reply": "No.",
+        "cited_quotes": ["Aliasing is forbidden."],
+    }
+    good = hold | {"cited_quotes": ["rather than aliasing them"]}
+    spark = TracedSparkInTurn(json.dumps(hold), json.dumps(good))
+    monkeypatch.setattr(cli, "ask_spark", spark)
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025", agent="muse-code")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert (ruling.decision, ruling.cited_quotes) == (
+        "hold",
+        ["rather than aliasing them"],
+    )
+    assert ruling.models == [SPARK_CALL.model_copy(update={"trace_id": "resp_spark_2"})]
+    assert (ruling.agent, len(spark.prompts)) == ("muse-code", 2)
