@@ -11,14 +11,13 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from knack.bench.tickets import BenchTicket
 from knack.git import git_root
 from knack.miss.cases import CaseKind, EditCase
-from knack.receipts.chain import load_receipts, Receipt
+from knack.receipts.chain import load_receipts, Receipt, RESOLVED_VERBS
 from knack.receipts.edits import EditSnapshot, load_edit
 
 RECEIPT_HASH = re.compile(r"[0-9a-f]{64}")
 # The guard decision each kind of case disputes.
 DISPUTED = {"must-fail": "allow", "must-pass": "deny"}
 AS_JSON = "record the edit as JSON instead"
-DONE = {"allow": "allowed", "retire": "retired"}
 
 
 class MissSourceError(Exception):
@@ -89,11 +88,11 @@ def _disputed_receipt(path: Path, digest: str, kind: CaseKind) -> Receipt:
 
 
 def _refuse_human_allow(receipt: Receipt) -> None:
-    # A person allowed this edit after ESCALATE; recompiling to deny it would undo them.
+    # A person settled this deny after ESCALATE; recompiling around it would undo them.
     done = receipt.resolution
     if done is not None:
         raise MissSourceError(
-            f"{receipt.hash[:12]} was {DONE[done.action]} by {done.by}, not missed"
+            f"{receipt.hash[:12]} was {RESOLVED_VERBS[done.action]} by {done.by}, not missed"
         )
 
 

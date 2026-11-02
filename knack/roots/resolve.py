@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from pathlib import Path
 
 from knack.contracts.models import Root
-from knack.miss.provisional import promote_provisional
+from knack.miss.provisional import close_provisional, promote_provisional
 from knack.receipts.chain import (
     append_receipt,
     load_receipts,
@@ -30,6 +30,8 @@ class Resolved:
     receipt: Receipt
     # The provisional argue case an allow made must-pass; None when there was none.
     promoted: Path | None = None
+    # The provisional argue case an uphold dropped; None when there was none.
+    closed: Path | None = None
 
 
 def resolve_deny(
@@ -41,7 +43,7 @@ def resolve_deny(
     log: Path,
     registry_path: Path | None = None,
 ) -> Resolved:
-    # A person settles a deny: allow lets that exact edit through, retire drops the rule.
+    # A person settles a deny: allow lets that edit through, retire drops the rule, uphold keeps it.
     deny = _unresolved_deny(receipts, receipt_hash, reason)
     registry = registry_path or home_registry_dir(deny.repo) / "registry.json"
     resolution = Resolution(of=deny.hash, action=action, by=by, reason=reason)
@@ -50,7 +52,16 @@ def resolve_deny(
     receipt = append_receipt(
         receipts, resolution_receipt(deny, resolution, correction.at)
     )
-    return Resolved(correction, receipt, _promoted(registry, resolution))
+    return Resolved(correction, receipt, *_held_case(registry, resolution))
+
+
+def _held_case(
+    registry_path: Path, resolution: Resolution
+) -> tuple[Path | None, Path | None]:
+    # The held argue case: an allow promotes it, an uphold closes it, a retire leaves it.
+    if resolution.action == "uphold":
+        return None, close_provisional(registry_path, resolution.of)
+    return _promoted(registry_path, resolution), None
 
 
 def _promoted(registry_path: Path, resolution: Resolution) -> Path | None:
@@ -93,7 +104,7 @@ def _cited_root(registry_path: Path, deny: Receipt) -> Root:
 
 
 def _correction(root: Root, resolution: Resolution) -> Correction:
-    # The root itself is unchanged: an allow excuses one edit, a retire ends its rule.
+    # The root itself is unchanged: allow excuses one edit, retire ends its rule, uphold keeps it.
     fields = {"root_id": root.id, "action": resolution.action, "before": root}
     fields |= {"after": root, "reason": resolution.reason, "by": resolution.by}
     # Microseconds, as the guard stamps, so a learn receipt never sorts before its block.

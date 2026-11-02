@@ -36,3 +36,12 @@ def promote_provisional(
     path = save_case(cases_dir(registry), case.model_copy(update={"note": note}))
     provisional_path(registry, receipt_hash).unlink()
     return path
+
+
+def close_provisional(registry: Path, receipt_hash: str) -> Path | None:
+    # A person upheld the deny: the held case is dropped, never made a case.
+    path = provisional_path(registry, receipt_hash)
+    if not path.is_file():
+        return None
+    path.unlink()
+    return path

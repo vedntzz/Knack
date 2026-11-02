@@ -701,6 +701,21 @@ def test_a_different_edit_is_still_denied_after_a_human_allow(tmp_path: Path) ->
     )
 
 
+def test_the_same_edit_is_still_denied_after_a_person_upholds(tmp_path: Path) -> None:
+    receipts, registry = tmp_path / "verdicts.jsonl", make_registry(tmp_path)
+    event = violating_write_event("new_dags.py", tmp_path)
+    deny_reason(decide(event, registry, tmp_path / "log", receipts))
+    deny = load_receipts(receipts)[0]
+    resolution = Resolution(of=deny.hash, action="uphold", by="maria", reason="stands")
+    append_receipt(
+        receipts, resolution_receipt(deny, resolution, "2026-10-31T09:00:00+00:00")
+    )
+    assert SOURCE_URL in deny_reason(
+        decide(event, registry, tmp_path / "log", receipts)
+    )
+    assert receipt_lines(receipts)[-1]["decision"] == "deny"
+
+
 def test_an_unreadable_chain_never_turns_a_deny_into_an_allow(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

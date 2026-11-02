@@ -117,3 +117,15 @@ def test_the_console_tails_the_guards_receipts_by_default(
 ) -> None:
     monkeypatch.delenv("KNACK_CONSOLE_RECEIPTS", raising=False)
     assert console_receipts() == receipts_path()
+
+
+def test_an_uphold_receipt_is_not_sent_as_a_new_deny(tmp_path: Path) -> None:
+    # A person's uphold records a deny, but it blocks nothing new.
+    receipts = tmp_path / "verdicts.jsonl"
+    receipts.write_text(ALLOW_LINE + "\n")
+    resolution = {"of": DENY, "action": "uphold", "by": "maria", "reason": "stands"}
+    upheld = json.loads(DENY_LINE) | {"hash": "a" * 64, "resolution": resolution}
+    later = json.loads(DENY_LINE) | {"hash": "f" * 64}
+    writer = append_later(receipts, json.dumps(upheld), json.dumps(later))
+    assert first_event(receipts) == ("deny", "f" * 64)
+    writer.join()
