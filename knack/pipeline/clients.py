@@ -14,6 +14,8 @@ EXTRACTORS: dict[str, tuple[str, Callable[[str], Spark]]] = {
 DEFAULT_EXTRACTOR = "spark"
 # Corroboration pairs each extractor with the other one.
 PARTNERS = {"spark": "spark-open", "spark-open": "spark"}
+# A person waits on argue's second opinion, so Spark Open gets 60 s there, not 300.
+SECOND_OPINION_TIMEOUT_SECONDS: float = 60
 
 
 class MissingCredentials(Exception):
@@ -31,6 +33,12 @@ def github_client() -> GitHubApi:
 
 def partner_client(extractor: str) -> Spark:
     return _client(PARTNERS[extractor])
+
+
+def second_opinion_client() -> Spark:
+    client = SparkOpenApi(_required_env(EXTRACTORS["spark-open"][0]))
+    client.timeout_seconds = SECOND_OPINION_TIMEOUT_SECONDS
+    return client
 
 
 def adversary_client(extractor: str, adversary: str | None) -> Spark | None:

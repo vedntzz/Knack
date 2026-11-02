@@ -225,6 +225,7 @@ def install_fakes() -> None:
     cli.github_client = fake_github
     cli.adversary_client = fake_adversary
     cli.partner_client = lambda extractor: SparkOpen()
+    cli.second_opinion_client = lambda: SparkOpen()
     cli.ask_spark = SparkRuling()
     hook.live_clients = fake_clients
     hook.optional_partner = lambda extractor="spark": SparkOpen()

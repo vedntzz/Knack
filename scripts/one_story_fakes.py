@@ -54,6 +54,7 @@ class FakeSparkOpen:
 def install_fakes() -> None:
     cli.ask_spark = FakeSpark()
     cli.partner_client = lambda extractor: FakeSparkOpen()
+    cli.second_opinion_client = lambda: FakeSparkOpen()
 
 
 if __name__ == "__main__":

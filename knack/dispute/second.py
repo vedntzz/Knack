@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.error import URLError
 
 from knack.contracts.models import Ruling
 from knack.dispute.argue import ruling_prompt
@@ -37,6 +38,8 @@ class Second:
     log: Log
     # Each model this second opinion asked, for the ruling to name.
     heard: list[ModelCall] = field(default_factory=list[ModelCall])
+    # The models in heard whose call ran out of time.
+    timed_out: list[str] = field(default_factory=list[str])
 
 
 def spark_escalated(done: Disputed) -> bool:
@@ -63,9 +66,35 @@ def _asked(objection: str, done: Disputed, second: Second) -> Asked:
     # The case comes first in second_opinion, so a deny with no edit snapshot asks no one.
     confirmed = [root for root in done.roots if root.status == "Confirmed"]
     prompt = ruling_prompt(objection, confirmed) + JSON_REPLY
-    judged = ask_judge(second.judge, prompt, escalates)
+    return Asked("argue", QUESTION, [_spark_answer(done), _judged(second, prompt)])
+
+
+def _judged(second: Second, prompt: str) -> ModelAnswer:
+    # Spark Open is named on the ruling once asked, and noted if it ran out of time.
+    timed = Timed(second.judge)
+    judged = ask_judge(timed, prompt, escalates)
     second.heard.append(model_call(second.judge.model, second.judge))
-    return Asked("argue", QUESTION, [_spark_answer(done), judged])
+    second.timed_out.extend([timed.model] if timed.timed_out else [])
+    return judged
+
+
+class Timed:
+    # The judge behind ask_judge, noting whether its call ran out of time.
+    def __init__(self, judge: Spark) -> None:
+        self.judge, self.model, self.timed_out = judge, judge.model, False
+
+    def ask(self, prompt: str) -> str:
+        try:
+            return self.judge.ask(prompt)
+        except Exception as error:
+            self.timed_out = timed_out(error)
+            raise
+
+
+def timed_out(error: Exception) -> bool:
+    # urllib raises TimeoutError mid-read, or wraps it in URLError while connecting.
+    reason = error.reason if isinstance(error, URLError) else error
+    return isinstance(reason, TimeoutError)
 
 
 def _held(second: Second, receipt_hash: str, case: EditCase) -> Path:
