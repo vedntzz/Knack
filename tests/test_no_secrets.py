@@ -53,6 +53,10 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
 ALL_PLACEHOLDERS = frozenset(v for values in PLACEHOLDERS.values() for v in values)
 # A shell variable ($NAME, ${NAME}) or command substitution ($(...)) is a reference.
 SHELL_REFERENCE = re.compile(r"\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*\}|\(.*)")
+# A key's file under $KNACK_HOME is its name in lower case, so that name is a reference.
+KEY_FILE_NAMES = frozenset(
+    {"github_token", "model_api_key", "baseten_api_key", "meta_api_key"}
+)
 
 
 class Hit(NamedTuple):
@@ -76,15 +80,16 @@ def is_placeholder(hit: Hit) -> bool:
     return hit.value in PLACEHOLDERS.get(hit.path, frozenset())
 
 
-def is_shell_reference(hit: Hit) -> bool:
-    return SHELL_REFERENCE.fullmatch(hit.value) is not None
+def is_reference(hit: Hit) -> bool:
+    shell = SHELL_REFERENCE.fullmatch(hit.value) is not None
+    return shell or hit.value in KEY_FILE_NAMES
 
 
 def leaks_in_text(path: str, text: str) -> list[Hit]:
     return [
         hit
         for hit in hits_in_text(path, text)
-        if not is_placeholder(hit) and not is_shell_reference(hit)
+        if not is_placeholder(hit) and not is_reference(hit)
     ]
 
 
@@ -167,3 +172,47 @@ def test_failure_message_never_prints_the_full_secret() -> None:
 def test_no_tracked_file_holds_a_secret() -> None:
     leaks = [hit for path in tracked_files() for hit in leaks_in_file(path)]
     assert leaks == [], "\n".join(describe(hit) for hit in leaks)
+
+
+WATCH_TEST = "tests/pipeline/test_watch_token.py"
+REAL_TOKEN = "gh" + "p_" + "k7Qm2Xv9" * 5
+KEY_FILE_NAME_LINES = [
+    '"GITHUB_TOKEN": "github_token"',
+    "MODEL_API_KEY=model_api_key",
+    'BASETEN_API_KEY = "baseten_api_key"',
+    "Authorization: Bearer meta_api_key",
+]
+
+
+@pytest.mark.parametrize("line", KEY_FILE_NAME_LINES)
+def test_a_key_file_name_is_a_reference_not_a_leak(line: str) -> None:
+    assert leaks_in_text("knack/watch/credentials.py", line) == []
+
+
+def test_only_the_exact_lowercase_key_file_name_is_a_reference() -> None:
+    line = 'GITHUB_TOKEN = "github_token' + '_2"' + "\nMODEL_API_KEY=Model_Api_Key"
+    found = [hit.value for hit in leaks_in_text("knack/x.py", line)]
+    assert found == ["github_token_2", "Model_Api_Key"]
+
+
+def test_a_real_token_where_a_key_file_name_sits_is_a_leak() -> None:
+    line = '"GITHUB_TOKEN": "' + REAL_TOKEN + '"'
+    found = {hit.pattern for hit in leaks_in_text("knack/watch/credentials.py", line)}
+    assert {"named_key_quoted", "github_token"} <= found
+
+
+def test_command_substitution_with_a_real_token_is_still_a_leak() -> None:
+    line = 'curl -H "Authorization: Bearer ' + REAL_TOKEN + '"'
+    found = {hit.pattern for hit in leaks_in_text("spikes/x.sh", line)}
+    assert "authorization_header" in found
+
+
+def test_watch_placeholders_are_allowed_only_in_the_watch_test() -> None:
+    line = '"GITHUB_TOKEN": "fake-watch-file-token-7d1e",'
+    assert leaks_in_text(WATCH_TEST, line) == []
+    assert len(leaks_in_text("knack/x.py", line)) == 1
+
+
+def test_a_real_token_in_the_watch_test_is_still_a_leak() -> None:
+    line = '"GITHUB_TOKEN": "' + REAL_TOKEN + '",'
+    assert len(leaks_in_text(WATCH_TEST, line)) >= 1
