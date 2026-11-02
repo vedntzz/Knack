@@ -27,7 +27,7 @@ from knack.console.pages.verdict import (
     tail,
     verify,
 )
-from knack.console.render import page, PRELOAD, TURNS
+from knack.console.render import page, PRELOAD, RULED_SCRIPTS, watching
 from knack.console.verdict import (
     NO_RULING,
     NoSuchRuling,
@@ -93,9 +93,10 @@ def argue_html(found: ArguePage, receipts: Path) -> str:
 
 
 def ruled_frame(view: VerdictView, receipts: Path, layout: str = "argued") -> Slots:
-    # Both ruling pages: the bar, the faces, the beats and the verify row; no deny listener.
+    # Both ruling pages: the bar, the faces, the beats, the verify row and their block's news.
     frame = {"layout": layout, "state": "ruled", "bar": bar(view)}
-    frame |= {"preload": PRELOAD, "scripts": TURNS}
+    frame |= {"preload": PRELOAD, "scripts": RULED_SCRIPTS}
+    frame |= {"events": watching(view.hash)}
     return frame | {"verify": verify(view, shown_path(receipts))}
 
 
@@ -200,7 +201,7 @@ def later_held(found: ArguePage) -> str:
     if not found.held or found.ruling.decision == "escalate":
         return ""
     link = f'<a href="{held_href(found)}">held for a person</a>'
-    return f'<p class="next">A later objection was {link}{settled(found)}.</p>'
+    return f'<p class="next" data-arrives>A later objection was {link}{settled(found)}.</p>'
 
 
 def settled(found: ArguePage) -> str:

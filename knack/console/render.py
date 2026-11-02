@@ -19,6 +19,8 @@ TURNS = "".join(
     for name in ("turns", "console")
 )
 EVENTS = ' data-events="/events"'
+# A ruled page loads live.js first, so it keeps each region's HTML as served.
+RULED_SCRIPTS = LIVE + TURNS
 # Every base.html slot a page may leave out.
 UNSET = {
     "preload": "",
@@ -28,6 +30,11 @@ UNSET = {
     "bar": "",
     "verify": "",
 }
+
+
+def watching(block: str) -> str:
+    # A ruled page follows only its own block's rulings and resolutions.
+    return f'{EVENTS} data-block="{block}"'
 
 
 def render(name: str, **slots: str) -> str:

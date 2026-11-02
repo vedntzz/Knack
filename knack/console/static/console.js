@@ -40,21 +40,19 @@ function thread() {
   return { dark, light };
 }
 
-function copy() {
-  // The argue command, copied as shown; the label confirms, then returns.
-  document.querySelectorAll("[data-copy], [data-copy-text]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const text = button.dataset.copyText ?? document.getElementById(button.dataset.copy).textContent;
-      const label = (button.dataset.label ??= button.textContent);
-      await navigator.clipboard?.writeText(text);
-      button.textContent = "Copied";
-      setTimeout(() => { button.textContent = label; }, 1600);
-    });
-  });
+async function copy(event) {
+  // The argue command, copied as shown; the label confirms, then returns. One listener, so swapped-in buttons work.
+  const button = event.target.closest("[data-copy], [data-copy-text]");
+  if (!button) return;
+  const text = button.dataset.copyText ?? document.getElementById(button.dataset.copy).textContent;
+  const label = (button.dataset.label ??= button.textContent);
+  await navigator.clipboard?.writeText(text);
+  button.textContent = "Copied";
+  setTimeout(() => { button.textContent = label; }, 1600);
 }
 
 function start() {
-  copy();
+  document.addEventListener("click", copy);
   if (!$(".verdict")) return;
   // Measured before any arrival frame applies, then handed to motion.js to animate.
   document.fonts.ready.then(() => document.dispatchEvent(new CustomEvent("knack:thread", { detail: thread() })));
