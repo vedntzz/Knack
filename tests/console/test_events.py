@@ -129,3 +129,100 @@ def test_an_uphold_receipt_is_not_sent_as_a_new_deny(tmp_path: Path) -> None:
     writer = append_later(receipts, json.dumps(upheld), json.dumps(later))
     assert first_event(receipts) == ("deny", "f" * 64)
     writer.join()
+
+
+# The frozen one-story run: a block, its hold and escalate rulings, and the uphold.
+STORY = Path(__file__).parents[2] / "mockups" / "fixtures" / "one_story"
+STORY_LINES = (STORY / "receipts.jsonl").read_text().splitlines()
+HOLD_LINE, ESCALATE_LINE = (STORY / "rulings.jsonl").read_text().splitlines()
+UPHOLD_LINE = next(x for x in STORY_LINES if '"resolution"' in x)
+BLOCK = json.loads(UPHOLD_LINE)["resolution"]["of"]
+SENTINEL = "f" * 64
+GAP = 0.15
+
+
+def story_without_uphold(base: Path) -> Path:
+    receipts = base / "verdicts.jsonl"
+    receipts.write_text("".join(x + "\n" for x in STORY_LINES if x != UPHOLD_LINE))
+    return receipts
+
+
+def sentinel_deny() -> str:
+    return json.dumps(json.loads(DENY_LINE) | {"hash": SENTINEL})
+
+
+def appended_in_turn(*writes: tuple[Path, str]) -> threading.Thread:
+    # Each line lands a few polls after the last, the way argue and resolve write.
+    def append_each() -> None:
+        for path, line in writes:
+            time.sleep(GAP)
+            with path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+
+    return later(append_each)
+
+
+def events_through_sentinel(receipts: Path) -> list[tuple[str, object]]:
+    # Every named event up to the sentinel deny, which proves nothing else came between.
+    sent: list[tuple[str, object]] = []
+    with client(receipts).stream("GET", "/events") as response:
+        lines = response.iter_lines()
+        while not sent or sent[-1] != ("deny", SENTINEL):
+            name, data = named_event(lines)
+            sent.append((name, data if name == "deny" else json.loads(data)))
+    return sent
+
+
+def sent_after(receipts: Path, *writes: tuple[Path, str]) -> list[tuple[str, object]]:
+    # Writes each line in turn, then the sentinel deny; every event sent before the sentinel.
+    writer = appended_in_turn(*writes, (receipts, sentinel_deny()))
+    sent = events_through_sentinel(receipts)
+    writer.join()
+    return sent[:-1]
+
+
+def ruling_sent(decision: str) -> tuple[str, object]:
+    return "ruling", {"block": BLOCK, "decision": decision}
+
+
+def resolution_sent(action: str) -> tuple[str, object]:
+    return "resolution", {"block": BLOCK, "action": action}
+
+
+def settled(action: str) -> str:
+    # The story's uphold receipt, rewritten as a person's allow or retire.
+    upheld = json.loads(UPHOLD_LINE)
+    resolution = upheld["resolution"] | {"action": action}
+    return json.dumps(upheld | {"decision": "allow", "resolution": resolution})
+
+
+def test_each_ruling_and_resolution_sends_exactly_one_event_in_order(
+    tmp_path: Path,
+) -> None:
+    receipts, rulings = story_without_uphold(tmp_path), tmp_path / "rulings.jsonl"
+    writes = ((rulings, HOLD_LINE), (rulings, ESCALATE_LINE), (receipts, UPHOLD_LINE))
+    in_order = [ruling_sent("hold"), ruling_sent("escalate"), resolution_sent("uphold")]
+    assert sent_after(receipts, *writes) == in_order
+
+
+@pytest.mark.parametrize("action", ["allow", "retire"])
+def test_an_allow_or_retire_is_sent_as_its_resolution(
+    tmp_path: Path, action: str
+) -> None:
+    receipts = story_without_uphold(tmp_path)
+    found = sent_after(receipts, (receipts, settled(action)))
+    assert found == [resolution_sent(action)]
+
+
+def test_rulings_and_resolutions_already_on_file_are_not_sent(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    receipts.write_text("".join(x + "\n" for x in STORY_LINES))
+    rulings = tmp_path / "rulings.jsonl"
+    rulings.write_text(HOLD_LINE + "\n")
+    found = sent_after(receipts, (rulings, ESCALATE_LINE))
+    assert found == [ruling_sent("escalate")]
+
+
+def test_a_torn_ruling_line_is_skipped_not_sent(tmp_path: Path) -> None:
+    receipts, rulings = story_without_uphold(tmp_path), tmp_path / "rulings.jsonl"
+    assert sent_after(receipts, (rulings, HOLD_LINE[:40])) == []
