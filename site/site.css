@@ -62,16 +62,21 @@ h3 { font-size: var(--type-20); line-height: var(--leading-28); font-weight: var
 /* The one red on the page outside the picture: the stop, as the console seals it. */
 .stop { background: var(--red); color: var(--ink); font-weight: var(--weight-bold); padding: 0 var(--space-8); margin-right: var(--space-4); border-radius: var(--radius-paper); }
 
-/* Paper: only a person's words. Serif, verbatim, with who wrote them. */
+/* Paper: a person's words, or what a person must act on. Verbatim, with who wrote it. */
 .paper { background: var(--paper); color: var(--ink); border-radius: var(--radius-paper); padding: var(--space-paper) var(--space-24); }
 .board > .paper { margin: var(--space-4) var(--space-12) var(--space-8); }
 /* What the tool read from those words, and its honest label: the tool's voice, so not paper. */
 .decided { padding: 0 var(--space-24) var(--space-8); color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); }
 .paper p { font-family: var(--serif); font-size: var(--type-20); line-height: var(--leading-28); letter-spacing: var(--tracking-tight); }
 .paper code { font-size: var(--type-code-in-quote); letter-spacing: var(--tracking-none); }
-.paper footer { margin-top: var(--space-12); font-size: var(--type-14); line-height: var(--leading-20); color: var(--ink-muted); }
-.paper footer b { color: var(--ink); font-weight: var(--weight-bold); }
+.paper footer, .paper figcaption { margin-top: var(--space-12); font-size: var(--type-14); line-height: var(--leading-20); color: var(--ink-muted); }
+.paper footer b, .paper figcaption b { color: var(--ink); font-weight: var(--weight-bold); }
 .story .said { margin-top: var(--space-8); padding: var(--space-12) var(--space-16); }
+/* Code on paper: the false alarm a person had to act on, verbatim. */
+.paper pre { font: var(--type-14)/var(--leading-24) var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.paper pre code { font-size: var(--type-same); color: var(--ink); }
+/* A log inside a beat already sits in the beat's padding. */
+.story .log { padding: var(--space-8) 0 0; }
 .story .said p { font-size: var(--type-16); line-height: var(--leading-24); letter-spacing: var(--tracking-none); }
 
 /* Models: a real table, rows parted by space, not lines. */
