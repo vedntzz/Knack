@@ -87,9 +87,7 @@ DEFAULT_PRS = 50
 OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
 NO_GATE_HELP = "skip re-extracting every PR with a Confirmed root after the correction"
 CORROBORATE_HELP = "a second extractor (Spark <-> Spark Open) reads every PR too"
-NO_SECOND_HELP = (
-    "no second model: by default Spark Open judges merges when BASETEN_API_KEY is set"
-)
+NO_SECOND_HELP = "no second model: by default Spark Open writes variants and judges merges when BASETEN_API_KEY is set"
 ADVERSARY_HELP = (
     "model that writes variants; defaults to the other extractor if its key is set"
 )
