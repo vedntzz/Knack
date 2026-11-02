@@ -6,23 +6,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 from knack.console.events import deny_events
-from knack.console.facts import edit_sha_of, verdict_page
 from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
-from knack.console.page import missing_html, verdict_html, waiting_html
-from knack.console.verdict import (
-    deny_rulings,
-    home_registry_for,
-    NoSuchReceipt,
-    RegistryFor,
-    verdict_view,
-    VerdictView,
-)
+from knack.console.pages.verdict import verdict_router
+from knack.console.render import missing_html, waiting_html, wants_html
+from knack.console.verdict import home_registry_for, NoSuchReceipt, RegistryFor
 from knack.day.feed import day_json, local_day
 from knack.day.models import Day
-from knack.dispute.rulings import RulingRecord, rulings_path
+from knack.dispute.rulings import rulings_path
 from knack.home import expand_user_path
 from knack.receipts.chain import receipts_path
-from knack.receipts.edits import edits_dir
 from knack.receipts.warns import warns_path
 
 STATIC = Path(__file__).parent / "static"
@@ -39,8 +31,9 @@ def create_app(
     day: Day | None = None,
     poll_seconds: float = 0.25,
 ) -> FastAPI:
+    # Routes only: each page is its own router.
     app = _bare_app()
-    _add_routes(app, receipts, warns, rulings, registry_for)
+    app.include_router(verdict_router(receipts, warns, rulings, registry_for))
     _add_pages(app, receipts, poll_seconds)
     if day is not None:
         _add_day_route(app, day)
@@ -54,20 +47,6 @@ def _bare_app() -> FastAPI:
     )
     app.add_exception_handler(NoSuchReceipt, _not_found)
     return app
-
-
-def _add_routes(
-    app: FastAPI, receipts: Path, warns: Path, rulings: Path, registry_for: RegistryFor
-) -> None:
-    # Files are read per request, so a deny or ruling made after start is found.
-    @app.get("/verdict/{receipt_hash}", response_model=VerdictView)
-    def verdict(receipt_hash: str, request: Request) -> Response:
-        view = verdict_view(receipt_hash, receipts, warns, registry_for)
-        return _shown(view, receipts) if _wants_html(request) else _json(view)
-
-    @app.get("/verdict/{receipt_hash}/rulings")
-    def rulings_of(receipt_hash: str) -> list[RulingRecord]:
-        return deny_rulings(receipt_hash, receipts, rulings)
 
 
 def _add_day_route(app: FastAPI, day: Day) -> None:
@@ -94,23 +73,8 @@ def _add_events(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
         return StreamingResponse(stream, media_type=EVENT_STREAM, headers=NO_CACHE)
 
 
-def _shown(view: VerdictView, receipts: Path) -> HTMLResponse:
-    # The page reads the edit snapshot the receipt names, beside the receipts file.
-    snapshot = edit_sha_of(receipts, view.hash)
-    page = verdict_page(view, edits_dir(receipts), snapshot)
-    return HTMLResponse(verdict_html(page, receipts))
-
-
-def _json(view: VerdictView) -> JSONResponse:
-    return JSONResponse(view.model_dump(mode="json"))
-
-
-def _wants_html(request: Request) -> bool:
-    return "text/html" in request.headers.get("accept", "")
-
-
 def _not_found(request: Request, error: Exception) -> Response:
-    if _wants_html(request):
+    if wants_html(request):
         return HTMLResponse(missing_html(), status_code=404)
     return JSONResponse(status_code=404, content={"detail": str(error)})
 

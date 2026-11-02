@@ -2,16 +2,75 @@ import re
 from datetime import datetime
 from html import escape
 from pathlib import Path
-from string import Template
 
-from knack.console.facts import CodeLine, Figures, LineSpan, Person, VerdictPage
-from knack.console.verdict import RootView, VerdictView
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
-TEMPLATES = Path(__file__).parent / "templates"
+from knack.console.facts import (
+    CodeLine,
+    Figures,
+    LineSpan,
+    Person,
+    verdict_page,
+    VerdictPage,
+)
+from knack.console.render import EVENTS, page, partial, PRELOAD, SCRIPTS, wants_html
+from knack.console.verdict import (
+    deny_rulings,
+    RegistryFor,
+    RootView,
+    verdict_view,
+    VerdictView,
+)
+from knack.dispute.rulings import RulingRecord
+from knack.receipts.chain import load_receipts
+from knack.receipts.edits import edits_dir, EditSnapshot, load_edit
+
 STATUS = {"deny": "Blocked", "allow": "Allowed", "guard-error": "Guard error"}
 # Backticked spans in the human's words become code, as GitHub rendered them.
 TICKED = re.compile(r"`([^`]+)`")
 EDIT = "The agent’s edit"
+
+
+def verdict_router(
+    receipts: Path, warns: Path, rulings: Path, registry_for: RegistryFor
+) -> APIRouter:
+    # Files are read per request, so a deny or ruling made after start is found.
+    router = APIRouter()
+    _add_verdict(router, receipts, warns, registry_for)
+    _add_rulings(router, receipts, rulings)
+    return router
+
+
+def _add_verdict(
+    router: APIRouter, receipts: Path, warns: Path, registry_for: RegistryFor
+) -> None:
+    @router.get("/verdict/{receipt_hash}", response_model=VerdictView)
+    def verdict(receipt_hash: str, request: Request) -> Response:
+        view = verdict_view(receipt_hash, receipts, warns, registry_for)
+        return _shown(view, receipts) if wants_html(request) else _json(view)
+
+
+def _add_rulings(router: APIRouter, receipts: Path, rulings: Path) -> None:
+    @router.get("/verdict/{receipt_hash}/rulings")
+    def rulings_of(receipt_hash: str) -> list[RulingRecord]:
+        return deny_rulings(receipt_hash, receipts, rulings)
+
+
+def _shown(view: VerdictView, receipts: Path) -> HTMLResponse:
+    snapshot = snapshot_of(receipts, view.hash)
+    return HTMLResponse(verdict_html(verdict_page(view, snapshot), receipts))
+
+
+def _json(view: VerdictView) -> JSONResponse:
+    return JSONResponse(view.model_dump(mode="json"))
+
+
+def snapshot_of(receipts: Path, wanted: str) -> EditSnapshot | None:
+    # The edit snapshot the receipt line names, kept beside the receipts file.
+    found = (r.edit_sha256 for r in load_receipts(receipts) if r.hash == wanted)
+    digest = next(found, None)
+    return load_edit(edits_dir(receipts), digest) if digest else None
 
 
 def gap(label: str) -> str:
@@ -36,24 +95,14 @@ def stamp(time: str) -> str:
     return f"{moment:%b} {moment.day} {moment.year}, {moment:%H:%M:%S} UTC"
 
 
-def render(name: str, **slots: str) -> str:
-    return Template((TEMPLATES / name).read_text(encoding="utf-8")).substitute(slots)
-
-
-def verdict_html(page: VerdictPage, receipts: Path) -> str:
-    view = page.view
+def verdict_html(found: VerdictPage, receipts: Path) -> str:
+    view = found.view
     title = f"{STATUS[view.outcome]}: {tail(view.file)} · knack"
-    slots = {"title": escape(title), "state": view.outcome, "bar": bar(view)}
-    slots |= {"head": head(page), "board": board(page), "rail": rail(page)}
-    return render("verdict.html", **slots, verify=verify(view, shown_path(receipts)))
-
-
-def waiting_html() -> str:
-    return render("waiting.html")
-
-
-def missing_html() -> str:
-    return render("missing.html")
+    frame = {"layout": "verdict", "state": view.outcome, "bar": bar(view)}
+    frame |= {"preload": PRELOAD, "scripts": SCRIPTS, "events": EVENTS}
+    parts = {"head": head(found), "board": board(found), "rail": rail(found)}
+    shown = verify(view, shown_path(receipts))
+    return page("verdict.html", escape(title), **frame, **parts, verify=shown)
 
 
 def bar(view: VerdictView) -> str:
@@ -63,45 +112,43 @@ def bar(view: VerdictView) -> str:
     return f'<p class="where">{where}</p><p class="when">{when}</p>'
 
 
-def head(page: VerdictPage) -> str:
-    seal = f'<p class="seal" data-beat="seal">{STATUS[page.view.outcome]}</p>'
-    title = f"<h1>{headline(page)}</h1>"
+def head(found: VerdictPage) -> str:
+    seal = f'<p class="seal" data-beat="seal">{STATUS[found.view.outcome]}</p>'
+    title = f"<h1>{headline(found)}</h1>"
     return (
-        f'{seal}<div class="claim">{title}<p class="stopped">{stopped(page)}</p></div>'
+        f'{seal}<div class="claim">{title}<p class="stopped">{stopped(found)}</p></div>'
     )
 
 
-def headline(page: VerdictPage) -> str:
-    if not page.blocked:
-        return f"This edit was {STATUS[page.view.outcome].lower()}."
-    if page.pr is None:
-        return f"This edit breaks rule {escape(page.view.rule_id)}."
-    return f"This edit brings back what {escape(page.pr)} removed."
+def headline(found: VerdictPage) -> str:
+    if not found.blocked:
+        return f"This edit was {STATUS[found.view.outcome].lower()}."
+    if found.pr is None:
+        return f"This edit breaks rule {escape(found.view.rule_id)}."
+    return f"This edit brings back what {escape(found.pr)} removed."
 
 
-def stopped(page: VerdictPage) -> str:
+def stopped(found: VerdictPage) -> str:
     # The bar and the board already name the file; this line names the lines.
-    span = (
-        lines_of(page.delete).capitalize()
-        if page.delete
-        else escape(tail(page.view.file))
-    )
-    after = " Stopped before it was written." if page.blocked else ""
+    file = escape(tail(found.view.file))
+    span = lines_of(found.delete).capitalize() if found.delete else file
+    after = " Stopped before it was written." if found.blocked else ""
     return f"{span}.{after}"
 
 
-def board(page: VerdictPage) -> str:
-    path = f'<p class="path"><code>{escape(tail(page.view.file, 6))}</code></p>'
-    lost = f'<p class="lost">{gap(EDIT)}</p>'
-    rows = code_rows(page) if page.code else lost
-    return f'<section class="board" aria-label="{EDIT}">{path}{rows}</section>'
+def board(found: VerdictPage) -> str:
+    rows = code_rows(found) if found.code else f'<p class="lost">{gap(EDIT)}</p>'
+    path = escape(tail(found.view.file, 6))
+    return partial("code.html", edit=EDIT, path=path, rows=rows)
 
 
-def code_rows(page: VerdictPage) -> str:
+def code_rows(found: VerdictPage) -> str:
     # The note hangs under the last forbidden line, above the correct ones.
-    code, marks = page.code or [], linked_names(page.view)
+    code, marks = found.code or [], linked_names(found.view)
     last = max((c.number for c in code if c.kind == "hit"), default=0)
-    rows = [code_row(c, marks) + (note(page) if c.number == last else "") for c in code]
+    rows = [
+        code_row(c, marks) + (note(found) if c.number == last else "") for c in code
+    ]
     return f'<div class="code">{"".join(rows)}</div>'
 
 
@@ -125,29 +172,29 @@ def marked(text: str, names: list[str]) -> str:
     pattern = "|".join(re.escape(name) for name in names if name)
     if not pattern:
         return escape(text)
-    parts = re.split(f"({pattern})", text)
+    parts = enumerate(re.split(f"({pattern})", text))
     return "".join(
-        f"<mark>{escape(p)}</mark>" if i % 2 else escape(p) for i, p in enumerate(parts)
+        f"<mark>{escape(p)}</mark>" if i % 2 else escape(p) for i, p in parts
     )
 
 
-def note(page: VerdictPage) -> str:
-    root = page.view.root
+def note(found: VerdictPage) -> str:
+    root = found.view.root
     if root is None:
         return f'<figure class="note paper" data-beat="note">{gap("The decision")}</figure>'
-    said = f'<blockquote cite="{escape(root.source_url)}">{quote(root, page.view)}</blockquote>'
-    caption = f"<figcaption>{attribution(page, root)}</figcaption>"
-    return f'<figure class="note paper" data-beat="note">{said}{caption}{offered(root)}</figure>'
+    said = {"url": escape(root.source_url), "quote": quote(root, found.view)}
+    said |= {"attribution": attribution(found, root), "offered": offered(root)}
+    return partial("note.html", **said)
 
 
 def quote(root: RootView, view: VerdictView) -> str:
     # The full verbatim quote; linked code spans carry the gold underline.
     linked = set(linked_names(view))
     parts = TICKED.split(root.quote)
-    words = [
+    words = (
         code_span(p, p in linked) if i % 2 else escape(p) for i, p in enumerate(parts)
-    ]
-    return f"<p>“{''.join(words)}”</p>"
+    )
+    return "".join(words)
 
 
 def code_span(name: str, linked: bool) -> str:
@@ -155,10 +202,10 @@ def code_span(name: str, linked: bool) -> str:
     return f"<mark>{code}</mark>" if linked else code
 
 
-def attribution(page: VerdictPage, root: RootView) -> str:
+def attribution(found: VerdictPage, root: RootView) -> str:
     # Who wrote it, who merged it, when, and the PR, each a gap when missing.
-    when = escape(page.merged_on) if page.merged_on else gap("Merge date")
-    parts = [*people(page.person), when, pr_link(page.pr, root.source_url)]
+    when = escape(found.merged_on) if found.merged_on else gap("Merge date")
+    parts = [*people(found.person), when, pr_link(found.pr, root.source_url)]
     return " · ".join(part for part in parts if part)
 
 
@@ -179,17 +226,17 @@ def offered(root: RootView) -> str:
     return f'<p class="offered"><b>Offered, not taken:</b> {escape(root.rejected_alternative)}</p>'
 
 
-def rail(page: VerdictPage) -> str:
-    if not page.blocked:
+def rail(found: VerdictPage) -> str:
+    if not found.blocked:
         return ""
-    return f'<aside class="rail">{fix(page)}{figures(page)}</aside>'
+    return f'<aside class="rail">{fix(found)}{figures(found)}</aside>'
 
 
-def fix(page: VerdictPage) -> str:
-    todo = f"Delete {lines_of(page.delete)}." if page.delete else gap("Matched lines")
-    kept = f"<p>{already_right(page.right)}</p>"
-    pr = escape(page.pr or "the decision")
-    return render("fix.html", todo=todo, kept=kept, pr=pr)
+def fix(found: VerdictPage) -> str:
+    todo = f"Delete {lines_of(found.delete)}." if found.delete else gap("Matched lines")
+    kept = f"<p>{already_right(found.right)}</p>"
+    pr = escape(found.pr or "the decision")
+    return partial("fix.html", todo=todo, kept=kept, pr=pr)
 
 
 def already_right(span: LineSpan | None) -> str:
@@ -198,13 +245,10 @@ def already_right(span: LineSpan | None) -> str:
     return f"{lines_of(span).capitalize()} already use the right names."
 
 
-def figures(page: VerdictPage) -> str:
-    rows = [
-        checks(page.figures),
-        alarms(page.figures, page.view.repo),
-        timing(page.view),
-    ]
-    return f'<ul class="figures" data-beat="figures">{"".join(rows)}</ul>'
+def figures(found: VerdictPage) -> str:
+    alarm = alarms(found.figures, found.view.repo)
+    rows = [checks(found.figures), alarm, timing(found.view)]
+    return partial("figures.html", rows="".join(rows))
 
 
 def figure(number: str, unit: str, label: str) -> str:
@@ -228,9 +272,8 @@ def alarms(found: Figures | None, repo: str) -> str:
 
 
 def timing(view: VerdictView) -> str:
-    return figure(
-        f"{view.latency_ms:.1f}", "\u2009ms", "to decide, no AI model in the check"
-    )
+    latency = f"{view.latency_ms:.1f}"
+    return figure(latency, " ms", "to decide, no AI model in the check")
 
 
 def shown_path(receipts: Path) -> str:
@@ -244,12 +287,10 @@ def shown_path(receipts: Path) -> str:
 def verify(view: VerdictView, receipts: str) -> str:
     # The receipt, the command that checks it, and the rule, each copyable in full.
     command = f"knack receipts verify --path {receipts}"
-    receipt = (
-        f"<span>Receipt <code>{view.hash[:8]}</code></span>{copy_button(view.hash)}"
-    )
-    check = f"<code>{escape(command)}</code>{copy_button(command)}"
-    rule = f"Rule {escape(view.rule_id)} · {decision_label(view.root)}"
-    return f"<p>{receipt}</p><p>{check}</p><p>{rule}</p>"
+    receipt = {"short": view.hash[:8], "copy_receipt": copy_button(view.hash)}
+    check = {"command": escape(command), "copy_command": copy_button(command)}
+    rule = {"rule": escape(view.rule_id), "label": decision_label(view.root)}
+    return partial("verify.html", **receipt, **check, **rule)
 
 
 def copy_button(text: str) -> str:

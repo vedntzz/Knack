@@ -1,7 +1,6 @@
 import difflib
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -11,8 +10,7 @@ from knack.bench.proof_grid import GATES, SIDE_GATES
 from knack.console.verdict import RootView, VerdictView
 from knack.contracts.models import HeldOutScore, RuleProof, SideProof
 from knack.pipeline.prove import MIN_FLAGGED, MUST_FLAG
-from knack.receipts.chain import load_receipts
-from knack.receipts.edits import EditSnapshot, load_edit
+from knack.receipts.edits import EditSnapshot
 
 # Lines shown above the first matched line and below the last right one.
 ABOVE, BELOW = 3, 2
@@ -64,14 +62,8 @@ class VerdictPage(BaseModel):
     figures: Figures | None
 
 
-def edit_sha_of(receipts: Path, wanted: str) -> str | None:
-    # The verdict view leaves the snapshot hash out; the receipt line keeps it.
-    found = (r.edit_sha256 for r in load_receipts(receipts) if r.hash == wanted)
-    return next(found, None)
-
-
-def verdict_page(view: VerdictView, edits: Path, edit_sha: str | None) -> VerdictPage:
-    snapshot = load_edit(edits, edit_sha) if edit_sha else None
+def verdict_page(view: VerdictView, snapshot: EditSnapshot | None) -> VerdictPage:
+    # Pure: the block page's facts from the verdict, its root, its proof and the edit.
     delete, root = matched_span(view), view.root
     right = right_span(snapshot, root, view) if snapshot and delete else None
     code = code_lines(snapshot, delete, right) if snapshot and delete else None
