@@ -84,22 +84,44 @@ knack watch apache/airflow: 1 merged PR: #75271
     <article class="promise" id="repairs" aria-labelledby="repairs-title">
       <h3 id="repairs-title">When it misses, it repairs the rule and proves the repair.</h3>
       <div class="board" data-arrive>
-        <blockquote class="paper" data-root="data/roots/fastapi/16062-1.json">
-          <p>“I'll wait to see if anyone requests an even larger bump, for now this should work.”</p>
-          <footer><b>tiangolo</b> · fastapi/fastapi #16062</footer>
-        </blockquote>
-        <p class="decided" data-root="data/roots/fastapi/16062-1.json">Decision, Inferred: Update the lru_cache limit for dependencies to account for large apps</p>
-        <pre class="log" data-source="bench/misses/16062-none-2.bar2.log"><code>fastapi-16062 fails: guard edit fastapi/dependencies/models.py [77322b4d226e] adds no new match; recompiling with muse-spark-1.3
+        <p class="decided" data-root="data/roots/airflow/75025.json">Decision, Confirmed: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.</p>
+        <ol class="story">
+          <li><time datetime="2026-11-02T19:57:20Z">19:57:20</time><p>The #75025 rule let an edit through that aliased state and start_date onto DagRun, the alternative #75025 rejected, spelled as <code>dict(state=DagRun.state, start_date=DagRun.start_date)</code>. Receipt <code>b27a4e112756</code>.</p></li>
+          <li><time datetime="2026-11-02T19:57:20Z">19:57:20</time><div><p>The same rule denied <code>compliant_3.py</code>, a file Spark Open wrote to follow the decision. A false alarm, receipt <code>f679bf658d9f</code>:</p><figure class="paper said" data-source="mockups/fixtures/self_repair/cases/must-pass-6633cbc47011.json">
+            <pre><code>from airflow.api_fastapi.common.parameters import SortParam
+from airflow.models import DagModel
+from airflow.models.dagrun import DagRun
+
+allowed_keys = [k for k in ["dag_id", "dag_display_name"]]
+extra = {a: b for a, b in [("last_run_state", DagRun.state), ("last_run_start_date", DagRun.start_date)]}
+sorter_cc = SortParam(allowed_keys, DagModel, extra)
+dep_fn = sorter_cc.dynamic_depends()</code></pre>
+            <figcaption><b>compliant_3.py</b>, by Spark Open · sorts the latest run only as last_run_state and last_run_start_date</figcaption>
+          </figure></div></li>
+          <li><time datetime="2026-11-02T20:01:46Z">20:01:46</time><div><p>A person ran <code>knack false-block</code> on that receipt. With both edits as cases, Spark recompiled the rule. Its second attempt dropped 1, kept 6, added 5 branches; the one dropped is the branch that flagged <code>compliant_3.py</code>. Every gate passed, and it was installed:</p>
+            <pre class="log" data-source="mockups/fixtures/self_repair/traces/steps/04_04_knack_false_block.txt"><code>airflow-75025 fails: guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] adds no new match; guard allow airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] adds a new match; recompiling with muse-spark-1.3
 PASS cases: every must-fail edit denied, every must-pass edit allowed
-PASS proof: base, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 0.140.0
+PASS proof: base, guard-allow, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 3.3.2
+PASS no coverage loss: every input v1 denied is still denied
 PASS held-out same: 2/3 violations caught (old rule 2), 3/3 compliant allowed
 PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed
-installed fastapi-16062 -> data/registry/../rules/fastapi/16062.yml (2 attempt(s))</code></pre>
+PASS fresh cross-model: 3/3 violations caught (old rule 3), 3/3 compliant allowed (/var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH/work/75025/fresh-20261102T200131Z-33aea6)</code></pre></div></li>
+          <li><span class="gap">not recorded</span><div><p>Vedant Srivastava ran <code>knack confirm airflow-75025-1</code> to pin the Confirmed root to the new rule. The regression gate re-read #75025 and #75774 with Spark. Spark’s re-read of #75774, an unrelated PR, lost a rejected alternative, so the gate rolled everything back:</p>
+            <pre class="log" data-source="mockups/fixtures/self_repair/traces/steps/05_05_knack_confirm.txt"><code>gate: re-extracting 2 PR(s) with Confirmed roots
+airflow-75025-1: Confirmed -> Confirmed, pinned to rule 865e1a983ffe rolled back
+  airflow-75774-1 (#75774) no longer extracted: rejected alternative 'sliding re-defer timeout that put timeout=self.timeout on the sleep re-defer only' quoting 'put `timeout=self.timeout` on the sleep re-defer only'
+exit 1, wall 30141.8 ms</code></pre></div></li>
+          <li><time datetime="2026-11-02T21:09:27Z">21:09:27</time><div><p>The same command, retried once with the gate, passed. The root is pinned to rule <code>865e1a983ffe</code>.</p>
+            <pre class="log" data-source="mockups/fixtures/self_repair/traces/steps/10_05b_knack_confirm_retry.txt"><code>gate: re-extracting 2 PR(s) with Confirmed roots
+airflow-75025-1: Confirmed -> Confirmed, pinned to rule 865e1a983ffe
+exit 0, wall 39593.5 ms</code></pre></div></li>
+          <li><time datetime="2026-11-02T21:10:07Z">21:10:07</time><p><b class="stop">Blocked</b> The repaired rule denied the same evasion, matching <code>dict(state=DagRun.state, start_date=DagRun.start_date)</code> on line 89. Receipt <code>66a1c247a7e3</code>. It allowed <code>compliant_3.py</code> and the corrected edit.</p></li>
+        </ol>
       </div>
       <div class="rail">
-        <p>An agent raised fastapi’s cache size to 8192 through a name, and the #16062 rule, which saw only literals, let it pass. Recorded as a case, the edit sent the rule back to Spark. The repair went in only after it denied that edit, allowed every must-pass edit, caught as much held-out code as the old rule and matched nothing on fastapi’s default branch or release 0.140.0.</p>
-        <p class="limit">Started by hand with <code>knack miss</code>, on a case rebuilt from the audit. The unattended path, from a self-check case to an install, has run only with fake models, in the end-to-end test. Its root is Inferred, so the repaired rule advises and does not block until a person confirms it.</p>
-        <p><a href="https://github.com/vedntzz/Knack/blob/main/bench/misses/16062-none-2.bar2.log">The run: <code>bench/<wbr>misses/<wbr>16062-none-2.bar2.log</code></a></p>
+        <p>One rule, two mistakes: it missed an alias spelled as keywords and flagged code that followed the decision. Both became cases, and the repair went in only after it denied the one, allowed the other, still denied everything the old rule denied, caught as much held-out code from both models, and matched nothing on Airflow’s default branch or release 3.3.2. <code>compliant_3.py</code> is now a permanent must-pass case for every later recompile.</p>
+        <p class="limit">Started by a person: a script recorded the missed edit, and Knack’s author ran <code>knack false-block</code> and both confirms. The edits were replayed inside a captured Muse Code hook payload; the models were live. The unattended path, from a self-check case to an install, has run only with fake models, in the end-to-end test.</p>
+        <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/self_repair_live.md">The run: <code>spikes/<wbr>self_repair_live.md</code></a></p>
       </div>
     </article>
   </section>

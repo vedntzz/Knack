@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import struct
 import subprocess
@@ -6,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).parents[1]
 SITE = REPO_ROOT / "site"
@@ -245,7 +247,15 @@ def test_pages_workflow_publishes_site_on_push_to_main() -> None:
 PROMISES = {
     "stops": "spikes/one_story_live.md",
     "learns": "spikes/self_improving.md",
-    "repairs": "bench/misses/16062-none-2.bar2.log",
+    "repairs": "spikes/self_repair_live.md",
+}
+SELF_REPAIR = REPO_ROOT / "mockups" / "fixtures" / "self_repair"
+STEPS = "mockups/fixtures/self_repair/traces/steps/"
+# The repair's logs: false-block, the confirm the gate rolled back, and the retry.
+REPAIR_LOGS = {
+    STEPS + "04_04_knack_false_block.txt",
+    STEPS + "05_05_knack_confirm.txt",
+    STEPS + "10_05b_knack_confirm_retry.txt",
 }
 LOG = re.compile(
     r'<pre class="log" data-source="([^"]+)"><code>(.*?)</code></pre>', re.S
@@ -279,7 +289,7 @@ def test_each_promise_links_the_run_that_shows_it(element_id: str, source: str) 
 
 def test_every_log_line_shown_is_verbatim_in_its_run() -> None:
     logs = LOG.findall(section("promises"))
-    assert {s for s, _ in logs} == {PROMISES["learns"], PROMISES["repairs"]}
+    assert {s for s, _ in logs} == {PROMISES["learns"], *REPAIR_LOGS}
     for source, body in logs:
         recorded = (REPO_ROOT / source).read_text(encoding="utf-8")
         assert not [x for x in unescaped(body).splitlines() if x not in recorded]
@@ -287,7 +297,7 @@ def test_every_log_line_shown_is_verbatim_in_its_run() -> None:
 
 def test_every_quote_on_paper_is_its_roots_quote_verbatim() -> None:
     quotes = ROOT_QUOTE.findall(section("promises"))
-    assert len(quotes) == 2
+    assert len(quotes) == 1
     for root, shown in quotes:
         quote = json.loads((REPO_ROOT / root).read_text())["quote"].replace("`", "")
         assert unescaped(re.sub(r"<[^>]+>", "", shown)) == f"“{quote}”"
@@ -321,7 +331,91 @@ def test_each_learned_rule_states_its_roots_decision_and_label() -> None:
 
 def test_each_proof_says_what_it_does_not_prove() -> None:
     assert "Inferred" in text_of(article("learns"))
-    assert "does not block" in text_of(article("repairs"))
     assert "Knack’s author" in text_of(article("stops"))
-    assert "by hand" in text_of(article("repairs"))
-    assert "fake" in text_of(article("repairs"))
+    limit = text_of(re.findall(r'<p class="limit">(.*?)</p>', article("repairs"))[0])
+    assert "Started by a person" in limit and "only with fake models" in limit
+
+
+def self_repair_jsonl(name: str) -> list[dict[str, Any]]:
+    lines = (SELF_REPAIR / name).read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines]
+
+
+def candidate_time() -> str:
+    # The passing candidate's file name carries the second it was written, in UTC.
+    names = " ".join(os.listdir(SELF_REPAIR / "rule"))
+    [s] = re.findall(r"candidate-(\d{8}T\d{6})Z", names)
+    return f"{s[:4]}-{s[4:6]}-{s[6:11]}:{s[11:13]}:{s[13:]}Z"
+
+
+def self_repair_times() -> set[str]:
+    # Receipt and correction times, and the passing candidate's own stamp, in UTC.
+    receipts = {r["time"][:19] + "Z" for r in self_repair_jsonl("receipts.jsonl")}
+    confirms = {c["at"][:19] + "Z" for c in self_repair_jsonl("corrections.jsonl")}
+    return receipts | confirms | {candidate_time()}
+
+
+def test_every_time_in_the_repair_is_a_time_the_run_recorded() -> None:
+    # The rolled-back confirm left no line, so its time is a gap, not a guess.
+    shown = STAMP.findall(article("repairs"))
+    assert len(shown) == 5 and set(shown) <= self_repair_times()
+    assert '<span class="gap">not recorded</span>' in article("repairs")
+
+
+def receipt(prefix: str) -> dict[str, Any]:
+    [found] = [
+        r for r in self_repair_jsonl("receipts.jsonl") if r["hash"].startswith(prefix)
+    ]
+    return found
+
+
+@pytest.mark.parametrize(
+    "prefix,decision,file",
+    [
+        ("b27a4e112756", "allow", "public/dags.py"),
+        ("f679bf658d9f", "deny", "public/dag_sort_keys.py"),
+        ("66a1c247a7e3", "deny", "public/dags.py"),
+    ],
+)
+def test_each_repair_receipt_shown_is_the_runs(
+    prefix: str, decision: str, file: str
+) -> None:
+    found = receipt(prefix)
+    assert f"<code>{prefix}</code>" in article("repairs")
+    assert found["decision"] == decision and found["file"].endswith(file)
+
+
+CODE_ON_PAPER = re.compile(
+    r'<figure class="paper[^"]*"[^>]*>\s*<pre><code>(.*?)</code></pre>', re.S
+)
+
+
+def test_the_false_alarm_on_paper_is_compliant_3_verbatim() -> None:
+    case = json.loads(
+        (SELF_REPAIR / "cases" / "must-pass-6633cbc47011.json").read_text()
+    )
+    [shown] = CODE_ON_PAPER.findall(article("repairs"))
+    assert unescaped(shown) == case["after"].rstrip("\n")
+    assert case["source"] == f"receipt {receipt('f679bf658d9f')['hash']}"
+
+
+def rule_branches(version: str) -> list[Any]:
+    return yaml.safe_load((SELF_REPAIR / "rule" / f"{version}.yml").read_text())[
+        "rule"
+    ]["any"]
+
+
+def test_the_repair_counts_are_the_rule_diff() -> None:
+    v1, v2 = rule_branches("v1"), rule_branches("v2")
+    kept, dropped = sum(b in v2 for b in v1), sum(b not in v2 for b in v1)
+    added = sum(b not in v1 for b in v2)
+    assert f"dropped {dropped}, kept {kept}, added {added}" in text_of(
+        article("repairs")
+    )
+
+
+def test_the_pin_shown_is_the_second_confirms() -> None:
+    [confirm] = self_repair_jsonl("corrections.jsonl")
+    after = json.loads((SELF_REPAIR / "rule" / "root_after.json").read_text())
+    assert confirm["after"]["rule_sha"] == after["rule_sha"]
+    assert f"<code>{after['rule_sha'][:12]}</code>" in article("repairs")
