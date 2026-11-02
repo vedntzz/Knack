@@ -3,6 +3,7 @@
 import json
 import re
 from pathlib import Path
+from typing import TypedDict
 
 REPO_ROOT = Path(__file__).parents[1]
 README = REPO_ROOT / "README.md"
@@ -14,8 +15,21 @@ GET_IT_RUNNING = re.compile(r"^## Get it running\n.*?^```sh\n(.*?)^```", re.M | 
 CLONE_URL = re.compile(r"^git clone (\S+)$", re.M)
 
 
+class Lines(TypedDict):
+    repo: int
+    install: list[int]
+
+
+class Readme(TypedDict):
+    repo: str
+    install: str
+    lines: Lines
+
+
 def install_block() -> str:
-    return GET_IT_RUNNING.search(README.read_text()).group(1).rstrip("\n")
+    match = GET_IT_RUNNING.search(README.read_text())
+    assert match is not None
+    return match.group(1).rstrip("\n")
 
 
 def readme_line(text: str) -> int:
@@ -23,7 +37,7 @@ def readme_line(text: str) -> int:
     return README.read_text().splitlines().index(text) + 1
 
 
-def frozen() -> dict:
+def frozen() -> Readme:
     return json.loads(FIXTURE.read_text())
 
 
@@ -32,7 +46,9 @@ def test_install_is_readme_get_it_running_block_verbatim():
 
 
 def test_repo_is_readme_clone_url_verbatim():
-    assert frozen()["repo"] == CLONE_URL.search(install_block()).group(1)
+    match = CLONE_URL.search(install_block())
+    assert match is not None
+    assert frozen()["repo"] == match.group(1)
 
 
 def test_fixture_cites_the_readme_lines_it_copied():
@@ -48,7 +64,8 @@ def test_readme_js_is_the_same_values():
 
 
 def test_sources_md_cites_both_readme_lines():
-    lines, sources = frozen()["lines"], (LANDING / "SOURCES.md").read_text()
+    lines: Lines = frozen()["lines"]
+    sources = (LANDING / "SOURCES.md").read_text()
     assert f"README.md line {lines['repo']}" in sources
     assert f"README.md lines {lines['install'][0]}–{lines['install'][1]}" in sources
 
