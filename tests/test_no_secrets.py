@@ -42,9 +42,17 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
     "tests/bench/test_run.py": frozenset({"sk-bench-test-key-0123456789"}),
     "tests/guard/test_pr_comment.py": frozenset({"t0ken"}),
     "tests/pipeline/test_spark_open.py": frozenset({"key"}),
+    "tests/pipeline/test_watch_token.py": frozenset(
+        {
+            "fake-watch-file-token-7d1e",
+            "fake-watch-file-model-5b2f",
+            "fake-watch-file-open-8c4a",
+        }
+    ),
 }
 ALL_PLACEHOLDERS = frozenset(v for values in PLACEHOLDERS.values() for v in values)
-SHELL_VARIABLE = re.compile(r"\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*\})")
+# A shell variable ($NAME, ${NAME}) or command substitution ($(...)) is a reference.
+SHELL_REFERENCE = re.compile(r"\$(?:[A-Za-z_]\w*|\{[A-Za-z_]\w*\}|\(.*)")
 
 
 class Hit(NamedTuple):
@@ -68,15 +76,15 @@ def is_placeholder(hit: Hit) -> bool:
     return hit.value in PLACEHOLDERS.get(hit.path, frozenset())
 
 
-def is_shell_variable(hit: Hit) -> bool:
-    return SHELL_VARIABLE.fullmatch(hit.value) is not None
+def is_shell_reference(hit: Hit) -> bool:
+    return SHELL_REFERENCE.fullmatch(hit.value) is not None
 
 
 def leaks_in_text(path: str, text: str) -> list[Hit]:
     return [
         hit
         for hit in hits_in_text(path, text)
-        if not is_placeholder(hit) and not is_shell_variable(hit)
+        if not is_placeholder(hit) and not is_shell_reference(hit)
     ]
 
 
@@ -123,6 +131,7 @@ REFERENCES = [
     "Authorization: Bearer $GITHUB_TOKEN",
     "${GITHUB_TOKEN}",
     "Authorization: Bearer ${GITHUB_TOKEN}",
+    'curl -H "Authorization: Bearer $(cat "$KNACK_HOME/github_token")"',
 ]
 
 

@@ -13,6 +13,7 @@ from knack.pipeline.clients import (
     MissingCredentials,
     optional_partner,
 )
+from knack.watch.credentials import watch_key
 from knack.watch.install import second_model_flags
 from knack.watch.run import Clients, Judge, pending_root, run_pending
 
@@ -69,12 +70,16 @@ def _dispatch(args: argparse.Namespace, stdin: TextIO) -> None:
 
 
 def _clients(corroborate: bool) -> Clients:
-    return corroborating_clients if corroborate else live_clients
+    # Each key from its env var or its file; hooks do not inherit the shell's env.
+    build = corroborating_clients if corroborate else live_clients
+    return lambda: build(key=watch_key)
 
 
 def _judge(args: argparse.Namespace) -> Judge | None:
     # By default Spark Open writes variants and judges merges when its key is set; --corroborate brings its own.
-    return None if args.corroborate or args.no_corroborate else optional_partner
+    if args.corroborate or args.no_corroborate:
+        return None
+    return lambda: optional_partner(key=watch_key)
 
 
 def _tool_batch(

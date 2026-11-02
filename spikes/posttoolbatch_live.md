@@ -151,3 +151,90 @@ knack watch: GITHUB_TOKEN is not set
 In both runs, `GITHUB_TOKEN` was in the environment that started `muse exec`, and it was missing in the hook's background process. In this run it was certainly exported: the script's curl fetches used it and succeeded. So the first run's failure was not a token the shell had failed to pass on. The likeliest cause is that Muse Code 1.4.14 does not pass `GITHUB_TOKEN` to `PostToolBatch` hook commands.
 
 This is still inferred, not verified. Muse documents no rule for the hook environment. Exporting the token in the shell does not fix it, so the fix belongs in watch: the next step from "Not done" above still stands. That step is to have the hook command carry the path of a credentials file outside the agent's view, rather than depend on what Muse passes to hooks.
+
+## Rerun 2026-11-02 (KN-113): watch's keys only in files, none exported
+
+**Result: the PostToolBatch hook fired, watch ran past select, and it installed #75271's rule.** The proof passed every side, plus the 3.3.2 old release and Spark Open's held-out set (3/3 caught, 3/3 allowed). Its root was written as Inferred, so the guard will not block on it until someone confirms it.
+
+One run, no retries, on `fix/kn-113-watch-token-file`, with the same Muse Code 1.4.14 (1.4.14-R7309.1). The script was `spikes/posttoolbatch_live_files.sh`. It is `posttoolbatch_live.sh` with only these changes:
+- **The three keys are only in files.** It copies `~/.knack/github_token` into the sandbox's `KNACK_HOME`, and writes `model_api_key` and `baseten_api_key` there from the launching shell. All three are mode 600, and none is printed. Then it unsets `GITHUB_TOKEN`, `MODEL_API_KEY`, `BASETEN_API_KEY` and `META_API_KEY`, and prints `key vars in env: 0`.
+- **The fixture fetches** read the token file.
+- **Muse's own key:** Muse gets its `META_API_KEY` inline from the model key file. That variable is for Muse's own run only; watch does not read it.
+- **It waits** for watch's background run to exit, then checks every file under `$W` for each key.
+
+The real `~/.knack` was only read. `$W` = `/private/tmp/claude-501/-Users-vedant-Documents-knack/8a14c651-6e15-420d-8a70-0e98b3e44052/scratchpad/ptb.AQS2Vi`.
+
+### Output (verbatim, `$W` shortened)
+
+```text
+--- key files
+-rw------- 93 bytes $KNACK_HOME/github_token
+-rw------- 48 bytes $KNACK_HOME/model_api_key
+-rw------- 45 bytes $KNACK_HOME/baseten_api_key
+key vars in env: 0
+$ knack watch --registry $W/data/registry/airflow.json --muse-settings $HOME/.config/muse/settings.json
+knack watch apache/airflow
+  post-merge hook: $W/airflow/.git/hooks/post-merge
+  Muse Code PostToolBatch hook: added to $W/home/.config/muse/settings.json
+  watching merges after 94605fd
+  self-check: Spark Open judges each merge when BASETEN_API_KEY is set
+exit 0
+main at 94605fd, pr-75271 at e518f6e
+watch.json before muse: {"seen_head":"94605fda861069a86ca743c7af26c01065a6d362"}
+$ muse exec --disable-web-tools --disable-request-user-input --session-id f15451c6-3468-471e-9bff-21d3503632e1 'Run exactly this one shell command in the current directory, once, and then stop: git -c core.hooksPath=/dev/null merge --ff-only pr-75271'
+muse exit 0
+muse: workspace root: $W/airflow (cwd default)
+muse: Agent delegation: auto unavailable: workspace is untrusted.
+Done. Fast-forwarded 94605fd..e518f6e.
+main now at e518f6e
+export exit 0
+--- background run gone after ~320s (pgrep: 0 left)
+--- watch.json after: {"seen_head":"e518f6ef896617e60ba5958cbb61fe3f893083b0"}
+```
+
+The settings file was the same as in the first run, apart from the `$W` path. The script exited 1, but only because its last `grep -v` had no lines to print. Every step above it succeeded.
+
+### Hook fired
+
+From `muse export --session f15451c6-3468-471e-9bff-21d3503632e1`, the events in order, with fields trimmed:
+
+```json
+{"kind": "assistant_tool_calls_committed", "tool_calls": [{"name": "bash", "args": "{\"command\":\"git -c core.hooksPath=/dev/null merge --ff-only pr-75271\",\"description\":\"Merge branch fast-forward only\"}"}]}
+{"kind": "tool_result_batch_committed"}
+{"kind": "hook_run_started", "hook_key": "$W/home/.config/muse/settings.json:post_tool_batch:def-1d0259cfd6dc70bd", "event": "PostToolBatch"}
+{"kind": "hook_run_terminal", "hook_key": "$W/home/.config/muse/settings.json:post_tool_batch:def-1d0259cfd6dc70bd", "event": "PostToolBatch", "status": "completed", "duration_ms": 157, "exit_code": 0, "stdout": "", "stderr": "", "error": null}
+```
+
+### What watch did: installed
+
+`$W/data/registry/watch.log`, the whole file:
+
+```text
+knack watch apache/airflow: 1 merged PR: #75271
+[1/5] select   1 PRs read, 1 kept
+[2/5] extract  reading 1 PRs
+  #75271: 1 decision, 1 rejected alternative
+  1 decisions found, 1 rejected alternatives (1 verbatim), 0 failed
+[3/5] roots    1 Inferred roots written (0 Confirmed, 0 Unknown kept)
+[4/5] compile  1 PRs with a verbatim rejected alternative
+  adversary: meta-models/muse-spark-open-1026 writes variants, muse-spark-1.3 compiles
+  #75271 old release: 3.3.2 (last release before merge 2026-10-28)
+  #75271 proven on attempt 2
+  #75271 held-out by meta-models/muse-spark-open-1026: 3/3 violations caught, 3/3 compliant allowed (pass)
+[5/5] install  1 rules proven, 0 discarded, 5 in registry -> $W/data/registry/airflow.json
+self-check airflow-75025 providers/common/compat/src/airflow/providers/common/compat/_resumable_job_mixin.py (the change takes the rejected path): muse-spark-1.3 no, meta-models/muse-spark-open-1026 no; logged only
+self-check airflow-75025 providers/common/compat/tests/unit/common/compat/test__resumable_job_mixin.py (the change takes the rejected path): muse-spark-1.3 no, meta-models/muse-spark-open-1026 no; logged only
+self-check airflow-75774 providers/common/compat/src/airflow/providers/common/compat/_resumable_job_mixin.py (the change takes the rejected path): muse-spark-1.3 no, meta-models/muse-spark-open-1026 no; logged only
+self-check airflow-75774 providers/common/compat/tests/unit/common/compat/test__resumable_job_mixin.py (the change takes the rejected path): muse-spark-1.3 no, meta-models/muse-spark-open-1026 no; logged only
+```
+
+- **Trace:** `$W/data/registry/work/75271/writers.json` is `{"compiler": "muse-spark-1.3", "variants": "meta-models/muse-spark-open-1026", "heldout": "meta-models/muse-spark-open-1026", "adversary": "meta-models/muse-spark-open-1026"}`. So all three keys reached watch from their files: the GitHub fetches worked, Spark compiled and Spark Open wrote the variants.
+- **Registry:** `diff $W/airflow.before.json $W/data/registry/airflow.json` adds one entry, `rules/75271.yml` with root `airflow-75271-1`. The rule was proven on attempt 2. Its sides: base flagged 1/2, head 0/2, rename-base 1/2, rename-head 0/2, violation variants 3/3, compliant variants 0/3. It had 0 false positives, the old release 3.3.2 gave 0 false positives, and the held-out set scored 3/3 caught, 3/3 allowed.
+- **Root:** `$W/data/roots/airflow/airflow-75271-1.json` has status `Inferred` and seeded `false`.
+- **Baseline:** `watch.json` moved to `e518f6e`, so the merge is no longer pending.
+- **Agent's turn:** not affected. The hook took 157 ms and exited 0; the run took about 320 s in the background.
+- **Keys not written out:** the script searched every file under `$W` for each key's value (`grep -rlF`), excluding the key's own file: `github_token: 0 files`, `model_api_key: 0 files`, `baseten_api_key: 0 files`. That covers the receipts, traces, work folder, logs and Muse's session export.
+
+### What this rerun settles
+
+The earlier runs found that the hook's process did not get the keys from the environment that started `muse exec`. With the keys in `$KNACK_HOME` files, mode 600, watch no longer depends on that environment and runs the whole pipeline from a Muse Code `PostToolBatch` hook. Whether Muse strips the environment on purpose is still not documented. With file keys, watch does not depend on the answer.

@@ -2,6 +2,7 @@ import io
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -79,6 +80,22 @@ def registry(repo: Path) -> Path:
     return repo.parent / "reg" / "registry.json"
 
 
+def fixed(clients: object) -> Callable[..., object]:
+    # A fake client builder that ignores how the hook asks for GitHub.
+    def build(**_: object) -> object:
+        return clients
+
+    return build
+
+
+def fixed_call(action: Callable[[int], None], value: int) -> Callable[..., None]:
+    # A fake builder that runs action(value) whatever it is asked.
+    def build(**_: object) -> None:
+        action(value)
+
+    return build
+
+
 def post_merge_args(repo: Path) -> list[str]:
     return ["post-merge", "--registry", str(registry(repo))]
 
@@ -96,7 +113,7 @@ def test_post_merge_runs_in_the_foreground_with_the_log(
     repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     pair = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]))
-    monkeypatch.setattr(hook, "live_clients", lambda: pair)
+    monkeypatch.setattr(hook, "live_clients", fixed(pair))
     monkeypatch.chdir(repo)
     merge_pr(repo)
     assert post_merge(repo) == 0
@@ -109,7 +126,7 @@ def test_post_merge_corroborate_reads_with_both_extractors(
 ) -> None:
     second = FakeSparkOpen({**EXTRACTIONS})
     trio = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]), second)
-    monkeypatch.setattr(hook, "corroborating_clients", lambda: trio)
+    monkeypatch.setattr(hook, "corroborating_clients", fixed(trio))
     monkeypatch.chdir(repo)
     merge_pr(repo)
     assert hook.main([*post_merge_args(repo), "--corroborate"]) == 0
@@ -228,9 +245,9 @@ def judge_built(monkeypatch: pytest.MonkeyPatch, repo: Path) -> list[int]:
     built = list[int]()
     pair = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]))
     trio = (*pair, FakeSparkOpen({**EXTRACTIONS}))
-    monkeypatch.setattr(hook, "live_clients", lambda: pair)
-    monkeypatch.setattr(hook, "corroborating_clients", lambda: trio)
-    monkeypatch.setattr(hook, "optional_partner", lambda: built.append(1))
+    monkeypatch.setattr(hook, "live_clients", fixed(pair))
+    monkeypatch.setattr(hook, "corroborating_clients", fixed(trio))
+    monkeypatch.setattr(hook, "optional_partner", fixed_call(built.append, 1))
     return built
 
 
@@ -251,7 +268,7 @@ def test_post_merge_with_no_key_set_says_the_self_check_was_skipped(
     repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     pair = (FakeGitHub(clean_tree(repo.parent)), FakeSpark([STRUCTURAL]))
-    monkeypatch.setattr(hook, "live_clients", lambda: pair)
+    monkeypatch.setattr(hook, "live_clients", fixed(pair))
     monkeypatch.chdir(repo)
     merge_pr(repo)
     assert post_merge(repo) == 0

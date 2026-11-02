@@ -206,7 +206,10 @@ def spark_ruling(prompt: str) -> str:
     )
 
 
-def fake_clients(extractor: str = "spark") -> tuple[AirflowGitHub, AirflowSpark]:
+def fake_clients(
+    extractor: str = "spark", key: object = None
+) -> tuple[AirflowGitHub, AirflowSpark]:
+    # key is how watch's hook reads keys from env or file; the fake needs none.
     return AirflowGitHub(FIXTURES / str(PR) / "head"), AirflowSpark()
 
 
@@ -228,7 +231,7 @@ def install_fakes() -> None:
     cli.second_opinion_client = lambda: SparkOpen()
     cli.ask_spark = SparkRuling()
     hook.live_clients = fake_clients
-    hook.optional_partner = lambda extractor="spark": SparkOpen()
+    hook.optional_partner = lambda extractor="spark", key=None: SparkOpen()
 
 
 def edit_case(kind: str, clone: str, out: str) -> int:
