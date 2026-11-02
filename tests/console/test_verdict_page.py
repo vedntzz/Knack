@@ -118,7 +118,7 @@ def test_the_75025_page_shows_the_proof_figures_from_the_rules_record(
 ) -> None:
     text = visible(console.page())
     assert "8/8 checks passed" in text
-    assert "0 false alarms on Airflow’s code and release 3.3.2" in text
+    assert "0 false alarms on Airflow’s default branch and release 3.3.2" in text
     assert "17.3 ms to decide, no AI model in the check" in text
 
 
