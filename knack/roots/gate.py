@@ -96,7 +96,26 @@ def _confirmed_by_pr(roots: list[Root]) -> dict[int, list[Root]]:
 def _lost_in(
     gate: Gate, repo: str, number: int, roots: list[Root], few_shot: str
 ) -> list[Root]:
-    # A PR that can no longer be read loses every root it backed.
+    # A root is lost only when two independent readings of its PR both miss it.
+    missed = _missed_in(gate, repo, number, roots, few_shot)
+    if not missed:
+        return []
+    lost = _missed_in(gate, repo, number, missed, few_shot)
+    gate.log(reread_line(number, missed, lost))
+    return lost
+
+
+def reread_line(number: int, missed: list[Root], lost: list[Root]) -> str:
+    kept = [root.id for root in missed if root not in lost]
+    named = ", ".join(kept) or "none"
+    gone = ", ".join(root.id for root in lost) or "none"
+    return f"gate: #{number} re-read twice after a miss; kept: {named}; lost: {gone}"
+
+
+def _missed_in(
+    gate: Gate, repo: str, number: int, roots: list[Root], few_shot: str
+) -> list[Root]:
+    # A PR that can no longer be read misses every root it backed.
     extraction = _extracted(gate, repo, number, few_shot)
     if extraction is None:
         return roots

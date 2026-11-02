@@ -239,3 +239,89 @@ def test_pages_workflow_publishes_site_on_push_to_main() -> None:
         r"upload-pages-artifact@\S+\s*\n\s*with:\s*\n\s*path:\s*site\b", flow
     )
     assert "actions/deploy-pages@" in flow and "pages: write" in flow
+
+
+# The three promises: each proof is a run the repo keeps, shown as it was recorded.
+PROMISES = {
+    "stops": "spikes/one_story_live.md",
+    "learns": "spikes/self_improving.md",
+    "repairs": "bench/misses/16062-none-2.bar2.log",
+}
+LOG = re.compile(
+    r'<pre class="log" data-source="([^"]+)"><code>(.*?)</code></pre>', re.S
+)
+ROOT_QUOTE = re.compile(
+    r'<blockquote class="paper" data-root="([^"]+)">\s*<p>(.*?)</p>', re.S
+)
+STAMP = re.compile(r'<time datetime="([^"]+)">')
+BLOB = "https://github.com/vedntzz/Knack/blob/main/"
+
+
+def article(element_id: str) -> str:
+    start = html().index(f'<article class="promise" id="{element_id}"')
+    return html()[start : html().index("</article>", start)]
+
+
+def run_times() -> set[str]:
+    # Every receipt and ruling time in the one-story run, to the second, in UTC.
+    lines = [
+        *(ONE_STORY / "receipts.jsonl").read_text().splitlines(),
+        *(ONE_STORY / "rulings.jsonl").read_text().splitlines(),
+    ]
+    return {json.loads(x)["time"][:19] + "Z" for x in lines}
+
+
+@pytest.mark.parametrize("element_id,source", PROMISES.items())
+def test_each_promise_links_the_run_that_shows_it(element_id: str, source: str) -> None:
+    assert f'href="{BLOB}{source}"' in article(element_id)
+    assert (REPO_ROOT / source).exists()
+
+
+def test_every_log_line_shown_is_verbatim_in_its_run() -> None:
+    logs = LOG.findall(section("promises"))
+    assert {s for s, _ in logs} == {PROMISES["learns"], PROMISES["repairs"]}
+    for source, body in logs:
+        recorded = (REPO_ROOT / source).read_text(encoding="utf-8")
+        assert not [x for x in unescaped(body).splitlines() if x not in recorded]
+
+
+def test_every_quote_on_paper_is_its_roots_quote_verbatim() -> None:
+    quotes = ROOT_QUOTE.findall(section("promises"))
+    assert len(quotes) == 2
+    for root, shown in quotes:
+        quote = json.loads((REPO_ROOT / root).read_text())["quote"].replace("`", "")
+        assert unescaped(re.sub(r"<[^>]+>", "", shown)) == f"“{quote}”"
+
+
+def test_the_uphold_on_paper_is_the_persons_reason_verbatim() -> None:
+    story = (ONE_STORY / "story.json").read_text(encoding="utf-8")
+    [reason] = re.findall(
+        r'<blockquote class="paper said">\s*<p>(.*?)</p>', html(), re.S
+    )
+    assert text_of(reason) and json.dumps(text_of(reason))[1:-1] in story
+
+
+def test_every_time_in_the_story_is_a_time_the_run_recorded() -> None:
+    shown = STAMP.findall(article("stops"))
+    assert len(shown) == 5 and set(shown) <= run_times()
+
+
+DECIDED = re.compile(
+    r'<p class="decided" data-root="([^"]+)">Decision, (\w+): (.*?)</p>', re.S
+)
+
+
+def test_each_learned_rule_states_its_roots_decision_and_label() -> None:
+    found = DECIDED.findall(section("promises"))
+    assert len(found) == 2
+    for root, label, decision in found:
+        data = json.loads((REPO_ROOT / root).read_text())
+        assert (label, text_of(decision)) == (data["status"], data["decision"])
+
+
+def test_each_proof_says_what_it_does_not_prove() -> None:
+    assert "Inferred" in text_of(article("learns"))
+    assert "does not block" in text_of(article("repairs"))
+    assert "Knack’s author" in text_of(article("stops"))
+    assert "by hand" in text_of(article("repairs"))
+    assert "fake" in text_of(article("repairs"))

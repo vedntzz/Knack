@@ -184,3 +184,48 @@ def test_the_gate_reports_how_many_prs_it_reads(registry: Path, log: Path) -> No
     gate = Gate(FakeGitHub(), FakeSpark(), log=lines.append)
     gated(registry, reject(log), gate, log)
     assert lines == ["gate: re-extracting 1 PR(s) with Confirmed roots"]
+
+
+def test_one_miss_then_one_hit_keeps_the_correction(registry: Path, log: Path) -> None:
+    gate = Gate(FakeGitHub(), FakeSpark(misses=1))
+    outcome = gated(registry, reject(log), gate, log)
+    assert outcome.lost == [] and not outcome.rolled_back
+    assert status_on_disk(registry, "widgets-4-1") == "Unknown"
+    assert len(log.read_text().splitlines()) == 1
+
+
+def test_a_miss_reads_the_pr_a_second_time(registry: Path, log: Path) -> None:
+    github, spark = FakeGitHub(), FakeSpark(misses=1)
+    gated(registry, reject(log), Gate(github, spark), log)
+    assert github.read == [3, 3] and len(spark.prompts) == 2
+    assert spark.prompts[0] == spark.prompts[1]
+
+
+def test_one_miss_then_one_hit_says_re_read_twice(registry: Path, log: Path) -> None:
+    lines = list[str]()
+    gate = Gate(FakeGitHub(), FakeSpark(misses=1), log=lines.append)
+    gated(registry, reject(log), gate, log)
+    assert any("re-read twice" in line and "#3" in line for line in lines)
+    assert any("widgets-3-1" in line and "kept" in line for line in lines)
+
+
+def test_two_misses_roll_back_as_one_did_before(registry: Path, log: Path) -> None:
+    registry_before = registry.read_text()
+    gate = Gate(FakeGitHub(), FakeSpark(misses=2))
+    outcome = gated(registry, reject(log), gate, log)
+    assert outcome.rolled_back and [r.id for r in outcome.lost] == ["widgets-3-1"]
+    assert status_on_disk(registry, "widgets-4-1") == "Inferred"
+    assert registry.read_text() == registry_before
+    assert log.read_text() == ""
+
+
+def test_an_unreadable_pr_then_a_hit_keeps_the_correction(
+    registry: Path, log: Path
+) -> None:
+    class BabblesOnce(FakeSpark):
+        def ask(self, prompt: str) -> str:
+            reply = super().ask(prompt)
+            return "I think this PR is great!" if len(self.prompts) == 1 else reply
+
+    outcome = gated(registry, reject(log), Gate(FakeGitHub(), BabblesOnce()), log)
+    assert not outcome.rolled_back

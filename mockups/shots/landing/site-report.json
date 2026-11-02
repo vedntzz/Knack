@@ -1,9 +1,9 @@
 {
   "390": {
-    "nodes": 125,
+    "nodes": 170,
     "fails": [],
     "minPx": 12.25,
-    "lowestRatio": 6.85,
+    "lowestRatio": 6.41,
     "overflow": 0,
     "h1Lines": 3,
     "errors": [],
@@ -12,14 +12,15 @@
       "Plex Sans 400",
       "Plex Sans 500",
       "Plex Sans 600",
+      "Plex Serif 400",
       "Plex Mono 400"
     ]
   },
   "1080p": {
-    "nodes": 134,
+    "nodes": 177,
     "fails": [],
     "minPx": 18.3748,
-    "lowestRatio": 6.85,
+    "lowestRatio": 6.41,
     "overflow": 0,
     "h1Lines": 2,
     "errors": [],
@@ -28,14 +29,15 @@
       "Plex Sans 400",
       "Plex Sans 500",
       "Plex Sans 600",
+      "Plex Serif 400",
       "Plex Mono 400"
     ]
   },
   "720p": {
-    "nodes": 134,
+    "nodes": 177,
     "fails": [],
     "minPx": 12.2499,
-    "lowestRatio": 6.85,
+    "lowestRatio": 6.41,
     "overflow": 0,
     "h1Lines": 2,
     "errors": [],
@@ -44,14 +46,15 @@
       "Plex Sans 400",
       "Plex Sans 500",
       "Plex Sans 600",
+      "Plex Serif 400",
       "Plex Mono 400"
     ]
   },
   "720p-reduced": {
-    "nodes": 134,
+    "nodes": 177,
     "fails": [],
     "minPx": 12.2499,
-    "lowestRatio": 6.85,
+    "lowestRatio": 6.41,
     "overflow": 0,
     "h1Lines": 2,
     "errors": [],
@@ -60,6 +63,7 @@
       "Plex Sans 400",
       "Plex Sans 500",
       "Plex Sans 600",
+      "Plex Serif 400",
       "Plex Mono 400"
     ]
   }

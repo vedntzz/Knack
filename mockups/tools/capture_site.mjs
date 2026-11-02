@@ -49,6 +49,10 @@ const shoot = async (name, viewport, extra = {}) => {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(900);
   await page.screenshot({ path: join(SHOTS, `site-${name}.png`) });
+  // Scroll the page once, as a reader would, so every board has made its one move before the full-page shot.
+  for (let y = 0; y < (await page.evaluate(() => document.body.scrollHeight)); y += viewport.height / 2) { await page.evaluate((to) => scrollTo(0, to), y); await page.waitForTimeout(120); }
+  await page.waitForTimeout(900);
+  await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({ path: join(SHOTS, `site-${name}-fullpage.png`), fullPage: true });
   report[name] = { ...(await page.evaluate(measure)), errors, outside, fonts: await page.evaluate(() => [...document.fonts].filter((f) => f.status === "loaded").map((f) => `${f.family} ${f.weight}`)) };
   await context.close();

@@ -51,19 +51,26 @@ class FakeGitHub:
 
 class FakeSpark:
     # Extracts every fixture root of the PR, unless its prompt holds `forget_on`.
+    # The first `misses` reads also forget, as a differently worded live reading.
     model = "fake-spark"
 
-    def __init__(self, forget_on: str | None = None, babble: bool = False) -> None:
+    def __init__(
+        self, forget_on: str | None = None, babble: bool = False, misses: int = 0
+    ) -> None:
         self.forget_on, self.babble, self.prompts = forget_on, babble, list[str]()
+        self.misses = misses
 
     def ask(self, prompt: str) -> str:
         self.prompts.append(prompt)
         if self.babble:
             return "I think this PR is great!"
-        if self.forget_on is not None and self.forget_on in prompt:
+        if len(self.prompts) <= self.misses or self._forgets(prompt):
             return json.dumps({"decisions": []})
         number = int(prompt.split("Title: PR ")[1].split("\n")[0])
         return json.dumps({"decisions": [decision(r) for r in roots_of(number)]})
+
+    def _forgets(self, prompt: str) -> bool:
+        return self.forget_on is not None and self.forget_on in prompt
 
 
 def decision(root_id: str) -> dict[str, object]:
