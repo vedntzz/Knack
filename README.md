@@ -52,6 +52,8 @@ Then open:
 
 `tests/test_readme_console.py` starts the console exactly this way, from a fresh clone of the committed HEAD and in a HOME with no `~/.knack`. It checks that every link returns 200, that the block page shows the full #75025 quote, and that the argue and held pages show the objection each one answers.
 
+`bash scripts/e2e_console.sh` runs the whole story live against a running console in a sandbox HOME, with fake models unless you pass `--live`, checks every page over HTTP and ends `E2E: PASS` (it needs port 7655 free).
+
 ## Verify any claim: reproduce.sh runs in 80 s
 
 `bash scripts/reproduce.sh` checks every row below in one run. It took 80 s of wall time on an Apple M5 Pro on 2026-11-01, ending `PROOF: PASS`.
