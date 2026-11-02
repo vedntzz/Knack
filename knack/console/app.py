@@ -1,9 +1,14 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
+from knack.console.events import deny_events
+from knack.console.facts import edit_sha_of, verdict_page
 from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
+from knack.console.page import missing_html, verdict_html, waiting_html
 from knack.console.verdict import (
     deny_rulings,
     home_registry_for,
@@ -15,8 +20,15 @@ from knack.console.verdict import (
 from knack.day.feed import day_json, local_day
 from knack.day.models import Day
 from knack.dispute.rulings import RulingRecord, rulings_path
+from knack.home import expand_user_path
 from knack.receipts.chain import receipts_path
+from knack.receipts.edits import edits_dir
 from knack.receipts.warns import warns_path
+
+STATIC = Path(__file__).parent / "static"
+NO_CACHE = {"cache-control": "no-cache"}
+EVENT_STREAM = "text/event-stream"
+RECEIPTS_ENV = "KNACK_CONSOLE_RECEIPTS"
 
 
 def create_app(
@@ -25,15 +37,22 @@ def create_app(
     rulings: Path,
     registry_for: RegistryFor,
     day: Day | None = None,
+    poll_seconds: float = 0.25,
 ) -> FastAPI:
-    # JSON only: no docs pages, no HTML; an unknown hash is 404 on every route.
+    app = _bare_app()
+    _add_routes(app, receipts, warns, rulings, registry_for)
+    _add_pages(app, receipts, poll_seconds)
+    if day is not None:
+        _add_day_route(app, day)
+    return app
+
+
+def _bare_app() -> FastAPI:
+    # No docs pages; an unknown hash is 404 on every route, as HTML to a browser.
     app = FastAPI(
         title="knack console", docs_url=None, redoc_url=None, openapi_url=None
     )
     app.add_exception_handler(NoSuchReceipt, _not_found)
-    _add_routes(app, receipts, warns, rulings, registry_for)
-    if day is not None:
-        _add_day_route(app, day)
     return app
 
 
@@ -41,9 +60,10 @@ def _add_routes(
     app: FastAPI, receipts: Path, warns: Path, rulings: Path, registry_for: RegistryFor
 ) -> None:
     # Files are read per request, so a deny or ruling made after start is found.
-    @app.get("/verdict/{receipt_hash}")
-    def verdict(receipt_hash: str) -> VerdictView:
-        return verdict_view(receipt_hash, receipts, warns, registry_for)
+    @app.get("/verdict/{receipt_hash}", response_model=VerdictView)
+    def verdict(receipt_hash: str, request: Request) -> Response:
+        view = verdict_view(receipt_hash, receipts, warns, registry_for)
+        return _shown(view, receipts) if _wants_html(request) else _json(view)
 
     @app.get("/verdict/{receipt_hash}/rulings")
     def rulings_of(receipt_hash: str) -> list[RulingRecord]:
@@ -60,7 +80,38 @@ def _add_day_route(app: FastAPI, day: Day) -> None:
             return JSONResponse(status_code=503, content={"detail": str(error)})
 
 
-def _not_found(request: Request, error: Exception) -> JSONResponse:
+def _add_pages(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
+    # The waiting page, every page's static files, and the deny stream they listen on.
+    app.mount("/static", StaticFiles(directory=STATIC), name="static")
+    app.get("/", response_class=HTMLResponse)(waiting_html)
+    _add_events(app, receipts, poll_seconds)
+
+
+def _add_events(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
+    @app.get("/events")
+    def events() -> StreamingResponse:
+        stream = deny_events(receipts, poll_seconds)
+        return StreamingResponse(stream, media_type=EVENT_STREAM, headers=NO_CACHE)
+
+
+def _shown(view: VerdictView, receipts: Path) -> HTMLResponse:
+    # The page reads the edit snapshot the receipt names, beside the receipts file.
+    snapshot = edit_sha_of(receipts, view.hash)
+    page = verdict_page(view, edits_dir(receipts), snapshot)
+    return HTMLResponse(verdict_html(page, receipts))
+
+
+def _json(view: VerdictView) -> JSONResponse:
+    return JSONResponse(view.model_dump(mode="json"))
+
+
+def _wants_html(request: Request) -> bool:
+    return "text/html" in request.headers.get("accept", "")
+
+
+def _not_found(request: Request, error: Exception) -> Response:
+    if _wants_html(request):
+        return HTMLResponse(missing_html(), status_code=404)
     return JSONResponse(status_code=404, content={"detail": str(error)})
 
 
@@ -69,6 +120,12 @@ def serve() -> None:
     import uvicorn
 
     # GET /day reads the clone the console was started in.
-    places = (receipts_path(), warns_path(), rulings_path(), home_registry_for)
+    places = (console_receipts(), warns_path(), rulings_path(), home_registry_for)
     app = create_app(*places, local_day(Path.cwd()))
     uvicorn.run(app, host=CONSOLE_HOST, port=CONSOLE_PORT)
+
+
+def console_receipts() -> Path:
+    # KNACK_CONSOLE_RECEIPTS points the console at kept receipts, e.g. the demo's.
+    kept = os.environ.get(RECEIPTS_ENV)
+    return expand_user_path(kept) if kept else receipts_path()

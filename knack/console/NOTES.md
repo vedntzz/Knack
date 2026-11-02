@@ -1,0 +1,92 @@
+# KN-80: the block screen as a console page
+
+Served at `/verdict/<hash>`, the URL the deny already prints. The page is built from the verdict JSON, the root it cites, the rule's stored proof and the receipt's edit snapshot. A browser asking for HTML gets the page; any other client gets the same JSON as before. `/` waits on `GET /events` and switches to a new deny when one lands. `KNACK_CONSOLE_RECEIPTS` points the console at kept receipts, such as `bench/demo_block.receipts.jsonl`.
+
+Live demo:
+```
+KNACK_CONSOLE_RECEIPTS=$PWD/bench/demo_block.receipts.jsonl KNACK_REGISTRY=$PWD/data/registry/airflow.json knack console
+bash scripts/demo_block.sh    # with http://127.0.0.1:7655/ open
+```
+
+## What changed from the draft (mockups/final.html, round 5), and why
+The brief's draft, `mockups/refs/knack-board-preview.html`, does not exist in the repo or its history. On Vedant's call, round 5's `final.html` served as the draft.
+
+| Draft | Shipped | Why |
+|---|---|---|
+| Warm sumi ground #1f1e1c, kuchiba gold #c9a04a, shu #e35941 | Cool #0B0C0E / #131418 / #1C1E23, gold #D8C08A and #7A5E00, red #FF5A47 | These are the brief's locks. |
+| The comment was a dark band inside the diff | A paper note hung between line 136 and line 137 | "The tool is dark; the human is paper": the human's words are the only light thing next to the code. |
+| "To fix it" was a label above a raised panel | The instruction itself is the heading of a paper card | Removes the eyebrow. The fix is the second piece of paper. |
+| A fixed 1280×720 frame scaled with a transform | A rem-based 16:9 composition: 1rem = min(1.25vw, 2.22vh), stacked below 760 px | A real page that is exactly 1.5× at 1080p and still reflows on a phone. |
+| Every value bound from a frozen `block.json` | Every value derived on the server from the verdict JSON, root, proof and snapshot; a missing field renders "X not recorded" | A real console, not a fixture. Tests cover each gap. |
+| Gold edge down the comment | One SVG thread: under the gold gutter of lines 135–136, down the margin, into the note, meeting the underline of `DagRun.state` | The link is literal: the quote's code spans are the same identifiers the matched code spells. |
+| 212 ms round trip as the headline figure | The receipt's own `latency_ms` (e.g. 15.3 ms) | See Gaps. |
+| Argue and Dismiss buttons with keys | The `knack argue` command with a Copy button | The page can't argue or dismiss for you; the command is the real action. |
+| JetBrains Mono, Plex Sans | Plex Serif (the human), Plex Sans (the tool), Plex Mono (code, hashes, commands), self-hosted with the OFL | The brief's font locks. |
+
+## Motion (`static/console.js`)
+One move per beat, then still. Nothing loops, and it only runs on a deny.
+
+| Beat (ms from load) | Move | Easing, duration | Why |
+|---|---|---|---|
+| 120 | The "Blocked" seal goes from scale 1.35 and opacity 0 to rest | `cubic-bezier(0.5,0,0.75,0)`, 200 ms | A stamp accelerates into the paper and stops dead. This is an impact, not a UI response, so it is the one deliberate ease-in. It is short enough to read as a hit. |
+| 520 | The note rises 0.75 rem and fades in | `cubic-bezier(0.23,1,0.32,1)`, 420 ms | A strong ease-out arrives fast and settles slowly. It is long enough to see on muted video and lands before the thread starts. |
+| 1000 | The gold thread draws | linear, 520 ms over both segments, split by length | A constant-speed pen stroke. Easing a two-colour path would make its speed jump at the paper edge. |
+| 1560 | The figures fade in (160 ms) and count up once over 700 ms (ease-out cubic, tabular figures) | | The proof counts in after the link is made. |
+| 2160 | The fix card rises | same as the note | The last beat is the instruction, so the frame you remember is what to do, not a number. |
+
+The thread is measured before any start frame applies; measuring while the note sat 0.75 rem low made it miss the underline by 12 px (critique P0, fixed). Measured after the fix: 0 px off at 720p and at 1080p. Under `prefers-reduced-motion` nothing animates and the thread is drawn at once. With no script, all content is present and only the thread is missing.
+
+## Impeccable critique (dual-agent: A design review, B detector)
+- **Verdict:** specific, not generic. The paper note inside the diff, the gold thread and the paper fix belong only to this product. Heuristics scored 25/40, held down by an Operate-mode tool with one action.
+- **Detector (B):** templates gave 0 findings. Live page via CDP: 0 findings at 1280×720 and 1920×1080. At 390×844 there were 2 findings: the board path overflowed by 78 px.
+- **Lints:** taste's `[mono]` fired on the Plex Mono token and hallmark's stamp, reduced-motion, focus and overflow checks fired on the templates read without their stylesheet. All are false positives for this brief.
+
+Fixed after the critique:
+1. **P0:** the thread landed 12 px below the underline. It is now measured before the arrival starts (0 px).
+2. **P1:** the attribution line was 14 px. It is now 16 px with the name at 600, so who decided reads in 5 s at 720p.
+3. **P2:** the figures out-weighed the fix. They are now 28 px/500, with the fix as the last beat.
+4. **P2:** the path appeared three times. The head subline now says "Lines 135–136. Stopped before it was written."
+5. The h1 was the same size as the fix heading. It is now 40 px.
+6. The mobile path overflowed. It now wraps with `overflow-wrap: anywhere`.
+7. The Copy confirmation now has `aria-live`.
+
+Not changed, with reasons:
+- **Gold on `DagRun.state` rather than the `"state"` keys.** Gold means quote-to-code only, and `DagRun.state` is what the quote names.
+- **No keyboard shortcut for copy.** The page is a viewer.
+- **`impeccable detect <url>` times out.** The page holds an open EventSource (by design); the scan ran over CDP instead.
+
+## Contrast (measured in the browser at 1280×720 after the arrival)
+61 text nodes and both thread strokes; all pass AA. The lowest pairs:
+
+| Pair | Ratio | Needs |
+|---|---|---|
+| Thread #7A5E00 on paper #F6F6F4 | 5.66 | 3.0 |
+| "Blocked" #0A0A0B on red #FF5A47 (28 px/600) | 6.41 | 3.0 |
+| Muted #9A9EA6 on panel #131418 (line numbers, context code) | 6.85 | 4.5 |
+| Muted #9A9EA6 on ground #0B0C0E (bar, subline, labels) | 7.28 | 4.5 |
+| Ink-muted #4D4F55 on paper (attribution) | 7.57 | 4.5 |
+| Gold #D8C08A on panel (marked code, thread) | 10.37 | 3.0 / 4.5 |
+
+0 console errors, 0 non-loopback requests, and no overflow at 720p or 1080p.
+
+## Gaps (honest)
+- **"212 ms"** is the hook round trip `demo_block.sh` prints (176–212 ms across runs). No receipt records it. The page shows the receipt's guard `latency_ms`, labelled "to decide, no AI model in the check".
+- **"aliasing was offered, not taken"** is in no field. The note shows the root's `rejected_alternative` verbatim after "Offered, not taken:".
+- **"Lines 137–138 already use the right names"** is derived from the edit snapshot: lines within 8 of the match that quote a snake_case name the decision uses and the match lacks. Without a snapshot it is a gap.
+- **The tool name** (`edit_file`) is not on the receipt, so the page doesn't claim it.
+- **The draft file named in the brief** was missing; `final.html` stood in.
+- **`ufmt check .`** reports 76 files: 72 committed `data/variants` fixtures this branch doesn't touch, and 4 in the untracked `.agents/`. `ufmt check knack tests` is clean.
+- **Captures:** `mockups/shots/kn80/verdict-1080p.png`, `verdict-720p.png` and `arrival-720p-5s.webm` (VP9, from a real `demo_block.sh` run with the console open). The live run receipts in `bench/` are from the 720p capture run.
+- `bench/edits/` gains one snapshot per demo run, because the sandbox path is part of the snapshot. I pruned it by hand to the one the kept receipts cite. The script never deletes in `bench/edits/`, because the same copy step would be unsafe if pointed at a real knack home.
+
+## Follow-up: verify row, headline, full comment
+- **Headline:** now "This edit brings back what #75025 removed."
+- **Footer:** replaced by a "Verify it" row at body size. It holds:
+  - "Receipt" with the first 8 characters of the hash and a Copy button that copies the full hash;
+  - `knack receipts verify --path <the receipts file the console reads>` with a Copy button;
+  - "Rule airflow-75025 · decision confirmed".
+
+  "root" and "not seeded" are no longer on screen. A seeded root still says ", seeded", so the honest seeded flag never disappears when it is true.
+- **Full comment:** `data/roots/airflow/75025.json` `quote` is now Pushkal Gupta's whole paragraph, cut verbatim from the PR body in `mockups/refs/github-75025.json`. Before, it held only the first sentence. The note renders every sentence and grows; nothing clips it, and a test guards that.
+  - At 720p the three-sentence note pushes lines 137–140 and the Verify row below the fold; the page is 866 px tall and scrolls. At 1080p lines 137–138 sit at the bottom edge. See `verdict-720p-fullpage.png`.
+- **Receipts:** receipts made before this change hash the old one-sentence quote, so their `quote_verified` reads false. That includes `tests/fixtures/console_75025`, which is kept as a historical receipt. `bench/demo_block.receipts.jsonl` was re-run after the change.
