@@ -46,9 +46,11 @@ KNACK_CONSOLE_RECEIPTS=$PWD/mockups/fixtures/one_story/receipts.jsonl KNACK_REGI
 Then open:
 
 - The block page for receipt `0e7ab6083866`, the deny's Console link: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9
+- The argue page, where Spark held the decision against the agent's first objection: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/argue
+- The held page, where both models escalated the second objection and a person upheld the decision: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/held
 - The repo's memory: http://127.0.0.1:7655/
 
-`tests/test_readme_console.py` starts the console exactly this way, in a HOME with no `~/.knack`, and checks that both links return 200 and that the block page shows the full #75025 quote.
+`tests/test_readme_console.py` starts the console exactly this way, from a fresh clone of the committed HEAD and in a HOME with no `~/.knack`. It checks that every link returns 200, that the block page shows the full #75025 quote, and that the argue and held pages show the objection each one answers.
 
 ## Verify any claim: reproduce.sh runs in 80 s
 
@@ -225,7 +227,7 @@ e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fix
 
 ### The block, timed (not in `reproduce.sh`)
 
-`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. The committed log is [`bench/demo_block.log`](bench/demo_block.log). Timings come from one place, [`spikes/one_story_live.md`](spikes/one_story_live.md): in this run (the live one-story run, 2026-11-02), the guard verdict took 17.3 ms on the block (the ast-grep scan, from the deny receipt) and the hook round trip took 171 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Across today's three live runs, including this one, the verdict took 16.3–18.4 ms and the round trip 163–256 ms. The timings and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
+`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. The committed log is [`bench/demo_block.log`](bench/demo_block.log). Timings come from one place, [`spikes/one_story_live.md`](spikes/one_story_live.md): in this run (the live one-story run, 2026-11-02), the guard verdict took 17.3 ms on the block (the ast-grep scan, from the deny receipt) and the hook round trip took 171 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Both are in the run's committed `latency.json`: `jq .block.guard_ms mockups/fixtures/one_story/latency.json` prints the first, and `jq .wall_ms.block mockups/fixtures/one_story/latency.json` prints the second. `knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl` checks the run's receipt chain. Across today's three live runs, including this one, the verdict took 16.3–18.4 ms and the round trip 163–256 ms. The timings and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
 
 ### Miss loop (not in `reproduce.sh`)
 
