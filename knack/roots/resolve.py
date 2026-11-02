@@ -96,7 +96,8 @@ def _correction(root: Root, resolution: Resolution) -> Correction:
     # The root itself is unchanged: an allow excuses one edit, a retire ends its rule.
     fields = {"root_id": root.id, "action": resolution.action, "before": root}
     fields |= {"after": root, "reason": resolution.reason, "by": resolution.by}
-    at = datetime.now(UTC).isoformat(timespec="seconds")
+    # Microseconds, as the guard stamps, so a learn receipt never sorts before its block.
+    at = datetime.now(UTC).isoformat()
     return Correction.model_validate(fields | {"at": at, "receipt_hash": resolution.of})
 
 

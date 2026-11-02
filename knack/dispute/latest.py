@@ -3,8 +3,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from knack.contracts.models import Root, Ruling
-from knack.dispute.argue import argue, Ask, SPARK_MODEL
-from knack.dispute.rulings import model_call, ModelCall, NOT_RECORDED, RulingRecord
+from knack.dispute.argue import argue, Ask
+from knack.dispute.rulings import (
+    model_call,
+    model_of,
+    ModelCall,
+    NOT_RECORDED,
+    RulingRecord,
+)
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import hook_registry_path, scoped_registry
 from knack.receipts.chain import load_receipts, Receipt
@@ -107,7 +113,7 @@ def _record(
 
 def _spark_calls(ask: Ask, asked: list[tuple[str, str | None]]) -> list[ModelCall]:
     # Spark is on record once it was asked, even if it then failed.
-    return [model_call(SPARK_MODEL, ask)] if asked else []
+    return [model_call(model_of(ask), ask)] if asked else []
 
 
 def _noting_asks(ask: Ask, asked: list[tuple[str, str | None]]) -> Ask:

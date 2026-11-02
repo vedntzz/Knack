@@ -32,7 +32,7 @@ from knack.pipeline.progress import (
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
-from knack.pipeline.readings import save_readings, save_trace
+from knack.pipeline.readings import save_readings, save_trace, save_writers
 from knack.pipeline.record import rule_proof, with_heldout, with_merged_at
 from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
@@ -42,6 +42,8 @@ from knack.roots.corrections import corrections_path, few_shot_block, recent_cor
 from knack.walk.registry import Registry, RegistryEntry
 
 Log = Callable[[str], None]
+# Recorded as the adversary when the caller named none and gave no reason.
+NO_ADVERSARY = "none given: the compiler wrote its own variants"
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,10 @@ class Run:
     second: Spark | None = None
     # The model that writes variants; None means the compiler, with a warning.
     adversary: Spark | None = None
+    # The registry file to update; None writes out/registry.json.
+    registry: Path | None = None
+    # Why there is no adversary, for the writers trace.
+    no_adversary: str = NO_ADVERSARY
 
 
 @dataclass(frozen=True)
@@ -163,8 +169,8 @@ def _roots_stage(
     # New roots carry machine labels and merge time; reviewed ones on disk stay.
     found = [r for e in extractions for r in _roots_of(run, e, second)]
     roots = with_merged_at(found, prs)
-    reviewed = reviewed_roots(run.out / "roots")
-    written = install_roots(roots, run.out / "roots")
+    reviewed = reviewed_roots(_roots_dir(run))
+    written = install_roots(roots, _roots_dir(run))
     kept = [reviewed[r.id] for r in roots if r.id in reviewed]
     run.log(roots_line(written, kept, corroborating=second is not None))
     return [r for r in roots if reviewed.get(r.id, r).status != "Unknown"]
@@ -202,6 +208,13 @@ def _writer(run: Run) -> Spark:
     return run.adversary or run.spark
 
 
+def _writers(run: Run) -> dict[str, str]:
+    writer = _writer(run).model
+    adversary = writer if run.adversary else run.no_adversary
+    fields = {"compiler": run.spark.model, "variants": writer, "heldout": writer}
+    return fields | {"adversary": adversary}
+
+
 def _targets(
     prs: list[PullRequest], extractions: list[Extraction], roots: list[Root]
 ) -> list[Target]:
@@ -234,6 +247,7 @@ def _old_release(run: Run, pr: PullRequest, tags: dict[str, str]) -> dict[str, A
 
 
 def _compile_logged(run: Run, target: Target, trees: Trees) -> Compiled:
+    save_writers(run.out / "work", target.pr.number, _writers(run))
     compiled = _compile_safely(run, target, trees)
     run.log(outcome_line(compiled))
     if compiled.heldout is not None:
@@ -360,11 +374,23 @@ def _install_stage(
 
 def _write_registry(run: Run, rules: list[RegistryEntry]) -> Path:
     # Paths in the registry are relative to it, so the folder can move.
-    registry = Registry(repo=run.repo, roots_dir=Path("roots"), rules=rules)
-    path = run.out / "registry.json"
+    registry = Registry(repo=run.repo, roots_dir=_roots_field(run), rules=rules)
+    path = run.registry or run.out / "registry.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(registry.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def _roots_dir(run: Run) -> Path:
+    return run.out / _roots_field(run)
+
+
+def _roots_field(run: Run) -> Path:
+    # A given registry keeps its own roots_dir, relative to its file.
+    if run.registry is None:
+        return Path("roots")
+    text = run.registry.read_text(encoding="utf-8")
+    return Registry.model_validate_json(text).roots_dir
 
 
 def _entry(compiled: Compiled) -> RegistryEntry:

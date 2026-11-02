@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from knack import cli
+from knack.dispute.argue import SparkRuling
 from knack.dispute.rulings import load_rulings, ModelCall, NOT_RECORDED
 from knack.receipts.chain import append_receipt, Receipt
 
@@ -67,7 +68,8 @@ def spark_says(
 
 
 class TracedSpark:
-    # Fake Spark that, like the live one, names its host and last response id.
+    # Fake Spark that, like the live one, names its model, host and last response id.
+    model = "muse-spark-1.3"
     host = "api.meta.ai"
 
     def __init__(self, answer: str) -> None:
@@ -203,7 +205,7 @@ def test_a_hold_is_recorded_against_its_deny_receipt(
     [ruling] = load_rulings(rulings_file(clone))
     assert (ruling.receipt_hash, ruling.objection) == (denied.hash, RESTATES_REJECTED)
     assert (ruling.decision, ruling.reply) == ("hold", "We chose not to alias.")
-    assert (ruling.cited_quotes, ruling.model) == ([cited], "muse-spark-1.3")
+    assert (ruling.cited_quotes, ruling.model) == ([cited], NOT_RECORDED)
     assert ruling.time
 
 
@@ -226,7 +228,7 @@ def test_a_rejected_fabrication_is_recorded_as_the_escalation(
     assert cli.main(["argue", RESTATES_REJECTED]) == 0
     [ruling] = load_rulings(rulings_file(clone))
     assert (ruling.decision, ruling.cited_quotes) == ("escalate", [])
-    assert ruling.model == "muse-spark-1.3"
+    assert ruling.model == NOT_RECORDED
 
 
 def test_a_single_model_argue_records_exactly_spark(
@@ -257,7 +259,7 @@ def test_a_spark_without_host_or_trace_records_them_as_not_recorded(
     receipt(home_of(clone), clone / "dags.py", "airflow-75025")
     cli.main(["argue", RESTATES_REJECTED])
     [ruling] = load_rulings(rulings_file(clone))
-    unknown = ModelCall(model="muse-spark-1.3", host=NOT_RECORDED)
+    unknown = ModelCall(model=NOT_RECORDED, host=NOT_RECORDED)
     assert ruling.models == [unknown]
 
 
@@ -333,6 +335,42 @@ def test_live_spark_holds_a_restated_alternative(
     assert cli.main(["argue", RESTATES_REJECTED]) == 0
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "HOLD", out
+
+
+class OtherModelSpark(TracedSpark):
+    # Spark behind the same port, answered by a model other than the default.
+    model = "muse-spark-1.4-preview"
+
+
+def test_the_ruling_names_the_model_that_actually_answered(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answer = {
+        "decision": "hold",
+        "reply": "No.",
+        "cited_quotes": ["rather than aliasing them"],
+    }
+    monkeypatch.setattr(cli, "ask_spark", OtherModelSpark(json.dumps(answer)))
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.model == "muse-spark-1.4-preview"
+    assert [call.model for call in ruling.models] == ["muse-spark-1.4-preview"]
+
+
+def test_a_fake_that_names_no_model_is_never_logged_as_spark(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "hold", "No.", ["rather than aliasing them"])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    cli.main(["argue", RESTATES_REJECTED])
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.model == NOT_RECORDED
+    assert [call.model for call in ruling.models] == [NOT_RECORDED]
+
+
+def test_the_live_spark_client_names_the_model_it_posts_to() -> None:
+    assert SparkRuling().model == "muse-spark-1.3"
 
 
 class TracedSparkInTurn(TracedSpark):

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from knack import cli
-from knack.dispute.rulings import load_rulings, ModelCall, RulingRecord
+from knack.dispute.rulings import load_rulings, ModelCall, NOT_RECORDED, RulingRecord
 from knack.dispute.second import Second
 from knack.miss.cases import cases_dir, EditCase, load_cases
 from knack.miss.provisional import load_provisional
@@ -15,6 +15,7 @@ from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
 from test_cli_argue import (
     clone,
     home_of,
+    OtherModelSpark,
     QUOTE_75025,
     RESTATES_REJECTED,
     SPARK_CALL,
@@ -99,7 +100,7 @@ def test_both_escalate_record_a_provisional_case_and_never_run_the_loop(
     )
     assert (case.before, case.after) == (BEFORE, AFTER)
     assert denied.hash in case.source and "auto" in case.source
-    assert [a.model for a in case.answers] == ["muse-spark-1.3", OPEN_MODEL]
+    assert [a.model for a in case.answers] == [NOT_RECORDED, OPEN_MODEL]
     out = capsys.readouterr().out
     assert "provisional" in out and f"knack resolve {denied.hash} allow" in out
     assert "recompil" not in out and "kept airflow-75025" not in out
@@ -253,3 +254,16 @@ def test_spark_open_never_asked_is_never_recorded(
     receipt(home_of(clone), clone / "dags.py", "airflow-75025")
     cli.main(["argue", OBJECTION])
     assert the_ruling(clone).models == [SPARK_CALL]
+
+
+def test_the_self_check_names_the_spark_model_that_answered(
+    clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answer = ruling("escalate", NOT_COVERED, [])
+    monkeypatch.setattr(cli, "ask_spark", OtherModelSpark(answer))
+    ports = Ports(tmp_path, monkeypatch, ruling("escalate", "Not covered.", []))
+    denied = snapshot_receipt(clone)
+    assert cli.main(["argue", OBJECTION]) == 0
+    case = load_provisional(ports.registry, denied.hash)
+    assert case is not None
+    assert [a.model for a in case.answers] == ["muse-spark-1.4-preview", OPEN_MODEL]

@@ -1,7 +1,9 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from knack.git import git_root, head_commit, origin_repo, repo_slug
+from knack.pipeline.clients import EXTRACTORS
 from knack.pipeline.merged import run_merged
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.stages import Log
@@ -13,8 +15,18 @@ from knack.watch.state import read_seen, watch_lock, write_seen
 # A third client, when given, is the partner extractor that corroborates.
 Clients = Callable[[], tuple[GitHub, Spark] | tuple[GitHub, Spark, Spark]]
 Clone = tuple[Path, str]
-# Builds the second model that judges merges when no partner corroborates; None if unset.
+# Builds Spark Open, which writes variants and judges merges, when no partner corroborates; None if unset.
 Judge = Callable[[], Spark | None]
+NO_KEY = f"Spark Open did not run: {EXTRACTORS['spark-open'][0]} is not set"
+OFF = "Spark Open did not run: no second model (--no-corroborate)"
+SPARK_ALONE = "knack watch: {why}; Spark writes and grades its own held-out variants"
+
+
+@dataclass(frozen=True)
+class SparkOpen:
+    # The second model that judges and writes variants, or why there is none.
+    client: Spark | None
+    why: str = ""
 
 
 def run_pending(
@@ -81,15 +93,18 @@ def _run_numbers(
     github, spark, *second = models[0]()
     log(merged_line(clone[1], numbers))
     trio = (github, spark, second[0] if second else None)
-    checker = _checker(trio[2], models[1])
-    return _merged_then_checked(clone, registry_path, numbers, trio, checker, log)
+    spark_open = _spark_open(trio[2], models[1], log)
+    return _merged_then_checked(clone, registry_path, numbers, trio, spark_open, log)
 
 
-def _checker(partner: Spark | None, judge: Judge | None) -> Spark | None:
-    # A corroborating partner judges too, so no second copy of it is built.
-    if partner is not None or judge is None:
-        return partner
-    return judge()
+def _spark_open(partner: Spark | None, judge: Judge | None, log: Log) -> SparkOpen:
+    # A corroborating partner judges and writes variants too, so no second copy is built.
+    if partner is not None:
+        return SparkOpen(partner)
+    client, why = (judge() if judge else None), (NO_KEY if judge else OFF)
+    if client is None:
+        log(SPARK_ALONE.format(why=why))
+    return SparkOpen(client, why)
 
 
 def _merged_then_checked(
@@ -97,12 +112,13 @@ def _merged_then_checked(
     registry_path: Path,
     numbers: list[int],
     models: tuple[GitHub, Spark, Spark | None],
-    checker: Spark | None,
+    spark_open: SparkOpen,
     log: Log,
 ) -> Path:
     # The rules in place before the run are the ones these merges could have slipped past.
     before = load_registry(registry_path)
-    done = run_merged(registry_path, numbers, clone[0], *models[:2], log, models[2])
-    judged = (*models[:2], checker)
+    second = (models[2], spark_open.client, spark_open.why)
+    done = run_merged(registry_path, numbers, clone[0], *models[:2], log, *second)
+    judged = (*models[:2], spark_open.client)
     selfcheck.self_check_quietly(registry_path, before, numbers, judged, log)
     return done
