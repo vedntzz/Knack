@@ -1,12 +1,15 @@
+import json
 import re
 import subprocess
 from pathlib import Path
 
 from knack.dispute.argue import SPARK_MODEL
 from knack.dispute.rulings import ModelCall, RulingRecord
+from knack.hooks.pretool_guard import OPEN_CONSOLE, rerun_deny
 from knack.miss.cases import ModelAnswer
 from knack.miss.selfcheck import agreed
 from knack.pipeline.spark_open import MODEL as OPEN_MODEL
+from knack.walk.registry import load_registry
 
 REPO_ROOT = Path(__file__).parents[1]
 README = REPO_ROOT / "README.md"
@@ -159,6 +162,13 @@ def test_rejectbench_fresh_is_named_as_not_run() -> None:
 
 # Group A: the top, for a stranger.
 PROBLEM_STATEMENT = "Problem statement: Build for Your World"
+CARD = REPO_ROOT / "docs" / "card.md"
+ONE_STORY_RECEIPTS = REPO_ROOT / "mockups" / "fixtures" / "one_story" / "receipts.jsonl"
+BLOCK_RECEIPT = "0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9"
+REGISTRY = REPO_ROOT / "data" / "registry" / "airflow.json"
+ROOT_75025 = REPO_ROOT / "data" / "roots" / "airflow" / "75025.json"
+# The quote cut to its first sentence, as README showed it before KN-109.
+OLD_QUOTE = 'Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."'
 # The measured reproduce.sh wall time replaces the old "60 seconds" promise.
 MEASURED_VERIFY = re.compile(
     r"^## Verify any claim: reproduce\.sh runs in \d+ s$", re.M
@@ -183,10 +193,54 @@ def test_the_verify_heading_is_the_measured_runtime() -> None:
     assert MEASURED_VERIFY.search(text) and "60 seconds" not in text
 
 
-def test_a_real_deny_follows_the_one_liner_verbatim_from_the_demo_log() -> None:
+def frozen_block_reason(log: Path) -> str:
+    # Today's guard, rerun on the frozen one-story block receipt's saved edit.
+    found = rerun_deny(ONE_STORY_RECEIPTS, BLOCK_RECEIPT, load_registry(REGISTRY), log)
+    assert found is not None
+    return found["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def readme_deny_block() -> str:
+    # The first text block, under the one-liner, before any heading.
     text = README.read_text(encoding="utf-8")
-    deny = text.index(demo_reason())
-    assert deny < text.index("## ") and "Knack blocks AI coding agents" in text[:deny]
+    start = text.index("```text\n") + len("```text\n")
+    return text[start : text.index("\n```", start)]
+
+
+def test_the_readme_deny_is_the_guards_output_for_the_frozen_block(
+    tmp_path: Path,
+) -> None:
+    text = README.read_text(encoding="utf-8")
+    block = readme_deny_block()
+    assert block == frozen_block_reason(tmp_path / "errors.log")
+    assert text.index(block) < text.index("## ")
+    assert "Knack blocks AI coding agents" in text[: text.index(block)]
+
+
+def test_the_readme_deny_carries_the_full_quote_and_the_console_hint() -> None:
+    lines = readme_deny_block().splitlines()
+    quote = json.loads(ROOT_75025.read_text(encoding="utf-8"))["quote"]
+    assert f'Quote: "{quote}"' in lines
+    assert f"/verdict/{BLOCK_RECEIPT} {OPEN_CONSOLE}" in lines[-2]
+
+
+def test_no_old_one_sentence_quote_remains_in_readme_or_card() -> None:
+    texts = [p.read_text(encoding="utf-8") for p in (README, CARD)]
+    assert [t for t in texts if OLD_QUOTE in " ".join(t.split())] == []
+
+
+def test_the_demo_log_shows_todays_deny_but_for_its_own_receipt(
+    tmp_path: Path,
+) -> None:
+    hashed = re.compile(r"(?<=/verdict/)[0-9a-f]{64}")
+    today = hashed.sub("<hash>", frozen_block_reason(tmp_path / "errors.log"))
+    assert hashed.sub("<hash>", demo_reason()) == today
+
+
+def test_the_demo_logs_latencies_are_labelled_as_this_machines() -> None:
+    lines = DEMO_LOG.read_text(encoding="utf-8").splitlines()
+    timed = [line for line in lines if re.search(r": \d+(\.\d+)? ms ", line)]
+    assert len(timed) == 2 and all("this machine" in line for line in timed)
 
 
 # Group B: prize-facing sections.

@@ -106,8 +106,8 @@ for path, find, replace in hunks:
     print("\n== reason, as the agent reads it ==")
     print(envelope["hookSpecificOutput"]["permissionDecisionReason"])
     print("\n== latency ==")
-    print(f"guard verdict: {deny['latency_ms']:.1f} ms (ast-grep scan, from the deny receipt)")
-    print(f"hook round trip: {elapsed:.0f} ms (sh -c, Python start to deny envelope, as Muse runs it)")
+    print(f"guard verdict: {deny['latency_ms']:.1f} ms (this machine, this run; ast-grep scan, from the deny receipt)")
+    print(f"hook round trip: {elapsed:.0f} ms (this machine, this run; sh -c, Python start to deny envelope, as Muse runs it)")
     sys.exit(0)
 sys.exit("no hunk of run 3 reached the hook")
 EOF

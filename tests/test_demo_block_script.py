@@ -109,3 +109,11 @@ def test_demo_keeps_the_denied_edit_beside_its_receipts(tmp_path: Path) -> None:
 def test_demo_keeps_its_receipts_in_bench_by_default() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
     assert "KNACK_DEMO_RECEIPTS:-$ROOT/bench/demo_block.receipts.jsonl" in text
+
+
+def test_demo_labels_its_latencies_as_this_machines(tmp_path: Path) -> None:
+    out = run_demo(tmp_path).stdout
+    timed = [
+        line for line in out.splitlines() if any(p.match(line) for p in LATENCY_LINES)
+    ]
+    assert len(timed) == 2 and all("this machine" in line for line in timed)
