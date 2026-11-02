@@ -21,3 +21,5 @@ bench/runs-*.jsonl
 spikes/heldout_cross*
 .DS_Store
 mockups/shots/**/frames/
+.agents/
+skills-lock.json
