@@ -1,7 +1,9 @@
+from datetime import datetime, timezone, tzinfo
 from pathlib import Path
 
 import pytest
 from knack.contracts.models import Verdict
+from knack.day.when import moment
 from knack.miss.cases import case_path, cases_dir, EditCase, load_cases
 from knack.miss.provisional import load_provisional, save_provisional
 from knack.receipts.chain import (
@@ -12,6 +14,7 @@ from knack.receipts.chain import (
     Receipt,
     verify_chain,
 )
+from knack.roots import resolve
 from knack.roots.corrections import append_correction, Correction, recent_corrections
 from knack.roots.resolve import resolve_deny, ResolveError
 from registry_fixture import make_registry, raw_entries, root, status_on_disk
@@ -283,3 +286,53 @@ def test_another_denys_provisional_case_is_left_alone(
     resolve_deny(receipts, deny.hash, "allow", "ok", "maria", log, registry)
     assert load_cases(cases_dir(registry), "widgets-3") == []
     assert load_provisional(registry, other.hash) is not None
+
+
+# The audit's case: the guard stamped the block in microseconds, resolve ran later that second.
+BLOCKED_AT = "2026-11-02T04:26:13.551487+00:00"
+RESOLVED_AT = datetime(2026, 11, 2, 4, 26, 13, 900000, tzinfo=timezone.utc)
+
+
+class ResolveClock(datetime):
+    # Freezes resolve's clock just after the block, in the same whole second.
+    @classmethod
+    def now(cls, tz: tzinfo | None = None) -> "ResolveClock":
+        at = RESOLVED_AT.astimezone(tz)
+        return cls.fromtimestamp(at.timestamp(), tz)
+
+
+def blocked_in_microseconds(receipts: Path) -> Receipt:
+    named = (
+        "acme/widgets",
+        "/w/widgets/a.py",
+        "widgets-3",
+        root("widgets-3-1", "Confirmed"),
+    )
+    fields = guard_receipt(*named, verdict(False), BLOCKED_AT, "main", "s1", EDIT)
+    return append_receipt(receipts, fields)
+
+
+def test_a_learn_receipt_sorts_after_the_block_it_resolves(
+    registry: Path, log: Path, receipts: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(resolve, "datetime", ResolveClock)
+    deny = blocked_in_microseconds(receipts)
+    resolve_deny(receipts, deny.hash, "allow", "ok here", "maria", log, registry)
+    block, learn = load_receipts(receipts)
+    learned, blocked = moment(learn.time), moment(block.time)
+    assert learned is not None and blocked is not None and learned > blocked
+    assert sorted([learn, block], key=lambda r: moment(r.time) or RESOLVED_AT) == [
+        block,
+        learn,
+    ]
+
+
+def test_resolve_stamps_with_the_guards_microsecond_precision(
+    registry: Path, log: Path, receipts: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(resolve, "datetime", ResolveClock)
+    deny = blocked_in_microseconds(receipts)
+    resolve_deny(receipts, deny.hash, "allow", "ok here", "maria", log, registry)
+    [record] = logged(log)
+    assert record.at == "2026-11-02T04:26:13.900000+00:00"
+    assert load_receipts(receipts)[-1].time == record.at
