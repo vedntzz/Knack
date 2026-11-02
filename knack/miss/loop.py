@@ -12,6 +12,12 @@ from knack.contracts.models import Root
 from knack.home import knack_home
 from knack.hooks.pretool_guard import rule_name
 from knack.miss.cases import cases_dir, EditCase, load_cases, save_case
+from knack.miss.coverage import (
+    coverage_inputs,
+    coverage_losses,
+    CoverageInputs,
+    HELDOUT_SETS,
+)
 from knack.pipeline.compile import (
     Attempt,
     compile_prompt,
@@ -41,11 +47,11 @@ from knack.walk.registry import load_registry, Registry, RegistryEntry, repo_dat
 
 Log = Callable[[str], None]
 PR_NUMBER = re.compile(r"/pull/(\d+)")
-HELDOUT_SETS = ("same", "cross")
 FRESH = "fresh cross-model"
 # Case field on ProofCase -> the kind of case it holds.
 EDIT_FIELDS = {"guard_edits": "must-fail", "guard_allows": "must-pass"}
 CASES_HOLD = "every must-fail edit denied, every must-pass edit allowed"
+NO_LOSS = "every input v1 denied is still denied"
 ALREADY = "the current rule already denies every must-fail edit and allows every must-pass edit"
 
 
@@ -257,19 +263,27 @@ def _recompiled(loop: Loop, target: Target, built: Built, old: Attempt) -> LoopO
     prompt = retry_prompt(built.compile_prompt, old, built.case)
     attempt = compile_rule(loop.compiler, built.case, prompt)
     rules = Rules(new=attempt.rule, old=old.rule)
-    gates = _gates(loop, target, attempt, rules, built.variant_prompt)
+    gates = _gates(loop, target, attempt, rules, built)
     return _settled(target, attempt, gates, _saved_candidate(loop, target, attempt))
 
 
 def _gates(
-    loop: Loop, target: Target, attempt: Attempt, rules: Rules, prompt: str
+    loop: Loop, target: Target, attempt: Attempt, rules: Rules, built: Built
 ) -> list[GateResult]:
     # Every gate runs, so a kept rule reports each reason, not only the first.
     folder = loop.heldout / str(target.pr.number)
     held = [_heldout_gate(folder / which, rules, which) for which in HELDOUT_SETS]
-    fresh = _fresh_gate(loop, target.pr.number, rules, prompt)
+    fresh = _fresh_gate(loop, target.pr.number, rules, built.variant_prompt)
+    coverage = _coverage_gate(rules, coverage_inputs(built.case, folder))
     proof = attempt.proof
-    return [_cases_gate(proof), _proof_gate(proof), *held, fresh]
+    return [_cases_gate(proof), _proof_gate(proof), coverage, *held, fresh]
+
+
+def _coverage_gate(rules: Rules, inputs: CoverageInputs) -> GateResult:
+    # Absolute: the candidate denies every input the installed rule denied.
+    lost = coverage_losses(rules.old, rules.new, inputs)
+    detail = "; ".join(lost) or NO_LOSS
+    return GateResult(name="no coverage loss", passed=not lost, detail=detail)
 
 
 def _proof_gate(proof: Proof) -> GateResult:

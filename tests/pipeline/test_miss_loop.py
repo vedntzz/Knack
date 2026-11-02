@@ -108,12 +108,21 @@ def test_a_miss_recompiles_and_installs_a_rule_that_passes_every_gate(
     assert [g.name for g in outcome.gates] == [
         "cases",
         "proof",
+        "no coverage loss",
         "held-out same",
         "held-out cross",
         "fresh cross-model",
     ]
     assert rule_text(ports).startswith(f"id: {RULE_ID}\n")
     assert "asyncio.gather($$$)" in rule_text(ports)
+
+
+def test_no_coverage_loss_is_reported_like_the_other_gates(tmp_path: Path) -> None:
+    ports, _ = loop(tmp_path, MEMORIZED_ON_BASE, STRUCTURAL)
+    outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
+    assert outcome_lines(outcome)[2] == (
+        "PASS no coverage loss: every input v1 denied is still denied"
+    )
 
 
 def test_the_recompile_starts_from_the_old_rule_and_its_missed_edit(
@@ -147,6 +156,7 @@ def test_recall_no_worse_than_the_old_rule_installs(tmp_path: Path) -> None:
 
 def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
     # The old rule catches every bare return; the recompiled one catches none.
+    # The coverage gate also names every other bare return only the old rule denied.
     bare = [BARE.format(n=n) for n in range(3)]
     held = heldout(tmp_path, bare)
     ports, _ = loop(tmp_path, RETURNS_ONLY, STRUCTURAL, heldout=held)
@@ -154,7 +164,12 @@ def test_recall_below_the_old_rule_is_not_installed(tmp_path: Path) -> None:
     outcome = record_and_recompile(ports, [edit("must-fail", EDIT_ADDS)])
     assert not outcome.installed and rule_text(ports) == old
     assert outcome.reasons == [
-        "held-out cross: 0/3 violations caught (old rule 3), 3/3 compliant allowed"
+        "no coverage loss: no longer denies held-out cross violation_1.py; "
+        "no longer denies held-out cross violation_2.py; "
+        "no longer denies held-out cross violation_3.py; "
+        "no longer denies held-out same violation_2.py; "
+        "no longer denies variant-violation violation_2.py",
+        "held-out cross: 0/3 violations caught (old rule 3), 3/3 compliant allowed",
     ]
 
 
