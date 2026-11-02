@@ -97,3 +97,50 @@ Not changed, with reasons:
 - `static/tokens.css` holds every colour, face, size and spacing value; `console.css` reads only tokens. `live.js` is the `/events` listener, `motion.js` the arrival beats, and `console.js` the thread and Copy. `console.js` measures the thread before `motion.js` moves anything, so it still lands on the underline.
 - Four spacing values are off the 8-point scale and kept as named tokens so no pixel moves: `--space-separator` (6 px), `--space-paper` (20 px), `--space-figure-column` (20 px) and `--space-quiet` (128 px). The seal's 6 px padding and the bar's 18 px top are now on the scale, with line height carrying the difference.
 - Guarded by `tests/console/test_screenshot.py`: the full 75025 page at 1920×1080 and 1280×720 under reduced motion, against baselines shot before the refactor, with at most 0.1% of pixels changed. `KNACK_SAVE_BASELINE=1` re-shoots them.
+
+## KN-91: the argue and held pages
+`GET /verdict/<hash>/argue` and `GET /verdict/<hash>/held`, each its own router (`pages/argue.py`, `pages/held.py`) over `base.html` and the partials. The facts are pure, in `facts.py`: `argue_page` and `held_page`. An unknown hash is the 404 page; a receipt with no ruling of the page's kind is the same page, reading "No ruling on that receipt."
+
+Live, from the frozen one-story run:
+```
+KNACK_CONSOLE_RECEIPTS=$PWD/mockups/fixtures/one_story/receipts.jsonl KNACK_REGISTRY=$PWD/data/registry/airflow.json knack console
+open http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/argue
+```
+
+### Where each value comes from
+| Shown | Source |
+|---|---|
+| The blocked lines (135–136, gold) | the deny receipt's `matched` and its edit snapshot, as on the block page |
+| The note: the full quote and Pushkal Gupta · merged by bbovenzi · Oct 19 2026 · #75025 | the cited root, as on the block page, without "Offered, not taken" (the quote says it in his words) |
+| "The agent, muse-spark-1.3-contributor, objected" and the objection | the ruling's `agent` and `objection`; a missing agent reads "Agent not recorded" |
+| Argue: "muse-spark-1.3 ruled hold, citing #75025" and the cited slip | the latest `hold` ruling's `model`, `decision` and `cited_quotes`. Its `reply` equals the cited quote word for word, so it is read once, on the slip. |
+| Argue: Hold, then "Lines 135–136 stay blocked." | the ruling's decision and the matched lines |
+| "Answered by" | exactly the ruling's `models[]`, with each `host`, in the order asked: Spark alone on the hold, Spark then Spark Open on the escalate |
+| "The block itself ran no model: 17.3 ms to decide." | the deny receipt's `latency_ms` |
+| Argue: the fix card | the block page's fix, without the argue command |
+| Held: the escalation | the latest `escalate` ruling |
+| Held: Spark Open's answer | its verbatim `reply` in the latest argue self-check that names the receipt. The registry's `self_checks.jsonl`; kept receipts keep it at `traces/self_checks.jsonl`, as `one_story.py` froze it. A missing check reads "<model>'s answer not recorded". |
+| Held: "A person upheld the decision." and "Upheld by Vedant Srivastava", the reason, the time, receipt ff61cef7 | the uphold receipt's `resolution` and time (`ResolutionView`) |
+| Held, unresolved: the command and Copy allow / retire / uphold | `RESOLVE_HINT` as `knack argue` prints it; each button copies one runnable line |
+
+Kept receipts now bring their rulings: with `KNACK_CONSOLE_RECEIPTS` set, the console reads `rulings.jsonl` beside it, as it already read `edits/`. The block page's "argue it" becomes a link to the argue page once a ruling exists, so an unargued deny's page is unchanged; the screenshot baselines still pass.
+
+### Motion (`static/turns.js`)
+One card rises per beat (0.75 rem, opacity, `cubic-bezier(0.23,1,0.32,1)`, 420 ms, as the block page's note), then the page is still: the objection at 160 ms, the ruling at 760, the answer (argue's outcome, held's Spark Open card) at 1360, and the person's card (argue's fix, held's resolution or decision card) at 1960. The blocked lines and the note do not move, because the reader has just seen them on the block page. Under reduced motion nothing moves and the final frame shows; without the script every card is simply there. At 2500 ms `getAnimations()` is empty, so nothing loops.
+
+### Impeccable critique (dual-agent: A design review, B detector)
+- **B:** live-URL detect: 0 findings on both pages. The overlay reported "No anti-patterns found." The static scan raised one `cramped-padding` on the code board. That is a false positive: the line-number column is the inset. All text passes AA; the lowest pair is `--muted` on `--raised`, 6.21:1. No colour off the palette, 0 console errors, 0 non-loopback requests.
+- **Fixed after A and B:**
+  1. **P1:** held's h1 said "Held for a person." on a case already upheld. It now says what the person did ("A person upheld the decision."), and argue's link adds ", who upheld it".
+  2. **P1:** argue had no action. It now ends on the fix card.
+  3. **P1:** the unresolved card had three 4-line wells repeating the hash. It is now one well, the command as knack prints it, and three Copy buttons. `console.js` keeps each button's own label after "Copied".
+  4. **P2:** "Back to the argument" linked to a different objection. It now reads "What the record answered" and sits on the h1's baseline.
+  5. **P2:** the agent and the judge looked alike. It now reads "The agent, muse-spark-1.3-contributor, objected".
+  6. The note and replies were indented on argue but not on held. Both are now full width.
+  7. On phones, the Copy buttons are now 44 px and the verify row wraps (these pages only).
+- **Not changed, with reasons:**
+  - **The cited slip repeats two sentences of the note.** The brief asks for the cited quotes verbatim.
+  - **"Answered by" stays on held.** The brief asks for every model with its host, and the rail has the room.
+  - **The block page's verify-row overflow at 390** is the block page's look, which this ticket doesn't change.
+- **Fit:** argue is 746 px at 720p, of which the verify row wraps 26 px because the fixture's receipts path is long. Held is 802 px at 720p (resolved) and 858 px (unresolved). Both scroll, as the block page does (898 px).
+- **Shots:** `mockups/shots/kn91/`: argue and held at 1080p and 720p, both at 390 full page, and the unresolved held state at 1080p and 720p (served from a copy of the run without the uphold receipt).
