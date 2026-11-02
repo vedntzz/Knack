@@ -22,7 +22,7 @@ TAIL_BYTES = 64 * 1024
 PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
 # Fields added after the first receipts: left off the line, and the hash, when unset.
-LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256", "resolution")
+LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256", "resolution", "agent")
 # What a person decided about a deny after ESCALATE: let that edit through, or retire the decision.
 ResolutionAction = Literal["allow", "retire"]
 
@@ -60,6 +60,8 @@ class Receipt(BaseModel):
     edit_sha256: str | None = None
     # Set only on the receipt knack resolve appends.
     resolution: Resolution | None = None
+    # The coding agent the PreToolUse payload named, when it named one.
+    agent: str | None = None
 
 
 class ChainReport(BaseModel):
@@ -85,13 +87,14 @@ def guard_receipt(
     branch: str | None = None,
     session_id: str | None = None,
     edit_sha256: str | None = None,
+    agent: str | None = None,
 ) -> JsonDict:
     # The receipt's fields before chaining: the consulted root, hashed quote, outcome.
     roots = [root.id] if root else []
     quote = _sha256(root.quote) if root else None
     named = {"time": time, "repo": repo, "file": file, "rule_id": rule_id}
     decided = {"decision": decision_of(verdict), "latency_ms": verdict.latency_ms}
-    kept = _set_later_fields(verdict, branch, session_id, edit_sha256)
+    kept = _set_later_fields(verdict, branch, session_id, edit_sha256, agent)
     return named | decided | {"root_ids": roots, "quote_sha256": quote} | kept
 
 
@@ -103,8 +106,9 @@ def decision_of(verdict: Verdict) -> Decision:
 
 
 def resolution_receipt(deny: Receipt, resolution: Resolution, time: str) -> JsonDict:
-    # The deny's fields, now an allow by a person; the session was the agent's, not theirs.
-    kept = deny.model_dump(mode="json", exclude={"prev", "hash", "session_id"})
+    # The deny's fields, now an allow by a person; session and agent were the agent's.
+    dropped = {"prev", "hash", "session_id", "agent"}
+    kept = deny.model_dump(mode="json", exclude=dropped)
     decided = {"decision": "allow", "latency_ms": 0.0, "time": time}
     return kept | decided | {"resolution": resolution.model_dump()}
 
@@ -223,9 +227,10 @@ def _set_later_fields(
     branch: str | None,
     session_id: str | None,
     edit_sha256: str | None,
+    agent: str | None,
 ) -> JsonDict:
     # Unset later fields stay off the line, so older receipts hash as they did.
     matched = [m.model_dump() for m in verdict.matched] or None
     later = {"branch": branch, "session_id": session_id, "matched": matched}
-    later |= {"edit_sha256": edit_sha256}
+    later |= {"edit_sha256": edit_sha256, "agent": agent}
     return {key: value for key, value in later.items() if value is not None}

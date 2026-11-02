@@ -1,10 +1,29 @@
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from knack.home import knack_home
+
+# Said when a model, host, trace or agent was not on record; never guessed.
+NOT_RECORDED = "not recorded"
+
+
+class ModelCall(BaseModel):
+    # One model that answered for this ruling: its name, where it ran, its response id.
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model: str
+    host: str
+    trace_id: str = NOT_RECORDED
+
+
+@runtime_checkable
+class Traced(Protocol):
+    # A live client that names its host and its last response id.
+    host: str
+    last_trace_id: str | None
 
 
 class RulingRecord(BaseModel):
@@ -19,6 +38,18 @@ class RulingRecord(BaseModel):
     cited_quotes: list[str]
     # The model asked for the ruling; None when it was decided without one.
     model: str | None
+    # Every model that answered, in the order asked; old rulings recorded none.
+    models: list[ModelCall] = []
+    # The coding agent the deny's PreToolUse payload named.
+    agent: str = NOT_RECORDED
+
+
+def model_call(model: str, client: object) -> ModelCall:
+    # Host and trace come only from a client that reports them.
+    traced = client if isinstance(client, Traced) else None
+    host = traced.host if traced else NOT_RECORDED
+    trace = (traced.last_trace_id if traced else None) or NOT_RECORDED
+    return ModelCall(model=model, host=host, trace_id=trace)
 
 
 def rulings_path() -> Path:

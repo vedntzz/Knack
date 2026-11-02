@@ -3,12 +3,15 @@ import os
 import urllib.request
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import urlsplit
 
 from knack.contracts.models import Root, Ruling
+from knack.pipeline.http import response_id
 
 Ask = Callable[[str], str]
 SPARK_URL = "https://api.meta.ai/v1/responses"
 SPARK_MODEL = "muse-spark-1.3"
+SPARK_HOST = urlsplit(SPARK_URL).netloc
 SPARK_TIMEOUT_S = 120
 NO_CONFIRMED_ROOTS = "No Confirmed decision covers this, so a person has to decide."
 SPARK_FAILED = "Spark could not give a ruling, so a person has to decide"
@@ -38,11 +41,28 @@ def argue(objection: str, roots: list[Root], ask: Ask | None = None) -> Ruling:
     return _checked(ruling, [root.quote for root in confirmed])
 
 
-def ask_spark(prompt: str) -> str:
+class SparkRuling:
+    # Spark behind argue's Ask; it keeps the last response id as the ruling's trace.
+    host = SPARK_HOST
+
+    def __init__(self) -> None:
+        self.last_trace_id: str | None = None
+
+    def __call__(self, prompt: str) -> str:
+        self.last_trace_id = None
+        response = _post_spark(prompt)
+        self.last_trace_id = response_id(response)
+        return _message_text(response)
+
+
+def _post_spark(prompt: str) -> dict[str, Any]:
     body = json.dumps(_spark_body(prompt)).encode()
     request = urllib.request.Request(SPARK_URL, data=body, headers=_spark_headers())
     with urllib.request.urlopen(request, timeout=SPARK_TIMEOUT_S) as response:
-        return _message_text(json.load(response))
+        return json.load(response)
+
+
+ask_spark = SparkRuling()
 
 
 def ruling_prompt(objection: str, confirmed: list[Root]) -> str:

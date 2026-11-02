@@ -26,6 +26,12 @@ def request_json(
     return json.loads(request_bytes(url, headers, body, timeout))
 
 
+def response_id(response: dict[str, Any]) -> str | None:
+    # The id the API gave this response, kept as its trace; None when it gave none.
+    found = response.get("id")
+    return str(found) if found else None
+
+
 def _send(url: str, headers: dict[str, str], body: Any, timeout: float) -> bytes:
     data = None if body is None else json.dumps(body).encode()
     sent = {**headers, "Content-Type": "application/json"} if data else headers

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from knack import cli
-from knack.dispute.rulings import load_rulings
+from knack.dispute.rulings import load_rulings, ModelCall, NOT_RECORDED
 from knack.receipts.chain import append_receipt, Receipt
 
 REGISTRY = Path(__file__).parents[2] / "data" / "registry" / "airflow.json"
@@ -37,11 +37,18 @@ def clone(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     return path.resolve()
 
 
-def receipt(home: Path, file: Path, rule_id: str, decision: str = "deny") -> Receipt:
+def receipt(
+    home: Path,
+    file: Path,
+    rule_id: str,
+    decision: str = "deny",
+    agent: str | None = None,
+) -> Receipt:
     fields = {"time": datetime.now(timezone.utc).isoformat(), "repo": "apache/airflow"}
     fields |= {"file": str(file), "rule_id": rule_id, "root_ids": []}
     fields |= {"decision": decision, "quote_sha256": None, "latency_ms": 1.0}
-    return append_receipt(home / ".knack" / "verdicts.jsonl", fields)
+    named = {"agent": agent} if agent else {}
+    return append_receipt(home / ".knack" / "verdicts.jsonl", fields | named)
 
 
 def spark_says(
@@ -57,6 +64,32 @@ def spark_says(
 
     monkeypatch.setattr(cli, "ask_spark", ask)
     return prompts
+
+
+class TracedSpark:
+    # Fake Spark that, like the live one, names its host and last response id.
+    host = "api.meta.ai"
+
+    def __init__(self, answer: str) -> None:
+        self.answer, self.last_trace_id = answer, None
+
+    def __call__(self, prompt: str) -> str:
+        self.last_trace_id = "resp_spark_1"
+        return self.answer
+
+
+def traced_spark_says(
+    monkeypatch: pytest.MonkeyPatch, decision: str, reply: str, quotes: list[str]
+) -> TracedSpark:
+    answer = json.dumps({"decision": decision, "reply": reply, "cited_quotes": quotes})
+    spark = TracedSpark(answer)
+    monkeypatch.setattr(cli, "ask_spark", spark)
+    return spark
+
+
+SPARK_CALL = ModelCall(
+    model="muse-spark-1.3", host="api.meta.ai", trace_id="resp_spark_1"
+)
 
 
 def home_of(clone: Path) -> Path:
@@ -194,6 +227,69 @@ def test_a_rejected_fabrication_is_recorded_as_the_escalation(
     [ruling] = load_rulings(rulings_file(clone))
     assert (ruling.decision, ruling.cited_quotes) == ("escalate", [])
     assert ruling.model == "muse-spark-1.3"
+
+
+def test_a_single_model_argue_records_exactly_spark(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "hold", "No.", ["rather than aliasing them"])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.models == [SPARK_CALL]
+
+
+def test_a_spark_escalation_without_spark_open_does_not_imply_it_ran(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # conftest leaves Spark Open without a key, so only Spark answered.
+    traced_spark_says(monkeypatch, "escalate", "Not covered.", [])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", "A pinned client needs it."]) == 0
+    [ruling] = load_rulings(rulings_file(clone))
+    assert [call.model for call in ruling.models] == ["muse-spark-1.3"]
+
+
+def test_a_spark_without_host_or_trace_records_them_as_not_recorded(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spark_says(monkeypatch, "hold", "No.", ["rather than aliasing them"])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    cli.main(["argue", RESTATES_REJECTED])
+    [ruling] = load_rulings(rulings_file(clone))
+    unknown = ModelCall(model="muse-spark-1.3", host=NOT_RECORDED)
+    assert ruling.models == [unknown]
+
+
+def test_a_ruling_no_model_answered_lists_no_models(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
+    receipt(home_of(clone), clone / "pool.py", "airflow-75271")
+    cli.main(["argue", "Any is fine here."])
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.models == []
+
+
+def test_a_ruling_names_the_agent_its_deny_receipt_names(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "hold", "No.", ["rather than aliasing them"])
+    agent = "muse-spark-1.3-contributor"
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025", agent=agent)
+    cli.main(["argue", RESTATES_REJECTED])
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.agent == agent
+
+
+def test_a_deny_that_never_named_its_agent_says_not_recorded(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "hold", "No.", ["rather than aliasing them"])
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    cli.main(["argue", RESTATES_REJECTED])
+    [ruling] = load_rulings(rulings_file(clone))
+    assert ruling.agent == "not recorded"
 
 
 def test_each_argue_appends_one_ruling(

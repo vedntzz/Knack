@@ -1,10 +1,12 @@
 import os
 from typing import Any
+from urllib.parse import urlsplit
 
-from knack.pipeline.http import request_json
+from knack.pipeline.http import request_json, response_id
 
 URL = "https://inference.baseten.co/v1/chat/completions"
 MODEL = "meta-models/muse-spark-open-1026"
+HOST = urlsplit(URL).netloc
 TIMEOUT_SECONDS = 300
 # Exactly "1" keeps Spark Open's reasoning trace; anything else changes nothing.
 OPEN_WEIGHTS_ENV = "KNACK_OPEN_WEIGHTS"
@@ -33,14 +35,19 @@ def reasoning_trace(response: dict[str, Any]) -> str | None:
 
 class SparkOpenApi:
     model = MODEL
+    host = HOST
 
     def __init__(self, api_key: str) -> None:
         self.headers = {"Authorization": f"Bearer {api_key}"}
         # The last answer's reasoning, kept only when KNACK_OPEN_WEIGHTS=1.
         self.last_trace: str | None = None
+        # The last response's id, which a ruling cites as Spark Open's trace id.
+        self.last_trace_id: str | None = None
 
     def ask(self, prompt: str) -> str:
         body = {"model": MODEL, "messages": [{"role": "user", "content": prompt}]}
+        self.last_trace_id = None
         response = request_json(URL, self.headers, body, TIMEOUT_SECONDS)
         self.last_trace = reasoning_trace(response) if open_weights_on() else None
+        self.last_trace_id = response_id(response)
         return chat_answer_text(response)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from knack.contracts.models import Root, Ruling
 from knack.dispute.argue import argue, Ask, SPARK_MODEL
-from knack.dispute.rulings import RulingRecord
+from knack.dispute.rulings import model_call, ModelCall, NOT_RECORDED, RulingRecord
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import hook_registry_path, scoped_registry
 from knack.receipts.chain import load_receipts, Receipt
@@ -42,8 +42,13 @@ def disputed(objection: str, cwd: Path, receipts: Path, ask: Ask) -> Disputed:
     asked: list[tuple[str, str | None]] = []
     roots = rule_roots(registry, denied.rule_id)
     ruling = argue(objection, roots, ask=_noting_asks(ask, asked))
-    record = _record(denied.hash, objection, ruling, SPARK_MODEL if asked else None)
+    record = _record(denied, objection, ruling, _spark_calls(ask, asked))
     return Disputed(record, path, roots, _answered(asked))
+
+
+def with_models(record: RulingRecord, heard: list[ModelCall]) -> RulingRecord:
+    # Models asked after the ruling, e.g. Spark Open, join the ones that made it.
+    return record.model_copy(update={"models": [*record.models, *heard]})
 
 
 def ruling_text(ruling: RulingRecord) -> str:
@@ -91,11 +96,18 @@ def _denied_here(receipt: Receipt, repo: str, root: Path) -> bool:
 
 
 def _record(
-    receipt_hash: str, objection: str, ruling: Ruling, model: str | None
+    denied: Receipt, objection: str, ruling: Ruling, models: list[ModelCall]
 ) -> RulingRecord:
     time = datetime.now(timezone.utc).isoformat()
-    linked = {"time": time, "receipt_hash": receipt_hash, "objection": objection}
-    return RulingRecord(**linked, model=model, **ruling.model_dump())
+    linked = {"time": time, "receipt_hash": denied.hash, "objection": objection}
+    model = models[0].model if models else None
+    who = {"model": model, "models": models, "agent": denied.agent or NOT_RECORDED}
+    return RulingRecord.model_validate(linked | who | ruling.model_dump())
+
+
+def _spark_calls(ask: Ask, asked: list[tuple[str, str | None]]) -> list[ModelCall]:
+    # Spark is on record once it was asked, even if it then failed.
+    return [model_call(SPARK_MODEL, ask)] if asked else []
 
 
 def _noting_asks(ask: Ask, asked: list[tuple[str, str | None]]) -> Ask:

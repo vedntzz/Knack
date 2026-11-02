@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from knack import cli
-from knack.dispute.rulings import load_rulings
+from knack.dispute.rulings import load_rulings, ModelCall, RulingRecord
 from knack.dispute.second import Second
 from knack.miss.cases import cases_dir, EditCase, load_cases
 from knack.miss.provisional import load_provisional
@@ -12,7 +12,15 @@ from knack.miss.selfcheck import load_checks
 from knack.miss.sources import Places
 from knack.receipts.chain import append_receipt, Receipt
 from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
-from test_cli_argue import clone, home_of, QUOTE_75025, RESTATES_REJECTED, spark_says
+from test_cli_argue import (
+    clone,
+    home_of,
+    QUOTE_75025,
+    RESTATES_REJECTED,
+    SPARK_CALL,
+    spark_says,
+    traced_spark_says,
+)
 
 __all__ = ["clone"]
 # Taken before conftest's autouse fixture swaps it for a credential error.
@@ -25,11 +33,15 @@ BEFORE, AFTER = "x = 1\n", "x = 1\nalias = 2\n"
 
 class FakeJudge:
     # Spark Open with one fixed answer; records every prompt it was asked.
+    host = "inference.baseten.co"
+
     def __init__(self, model: str, answer: str) -> None:
         self.model, self.answer, self.prompts = model, answer, list[str]()
+        self.last_trace_id: str | None = None
 
     def ask(self, prompt: str) -> str:
         self.prompts.append(prompt)
+        self.last_trace_id = f"chatcmpl-{len(self.prompts)}"
         return self.answer
 
 
@@ -197,3 +209,47 @@ def test_missing_keys_skip_the_second_opinion_but_keep_the_ruling(
     assert "BASETEN_API_KEY is not set" in capsys.readouterr().err
     [recorded] = load_rulings(home_of(clone) / ".knack" / "rulings.jsonl")
     assert recorded.decision == "escalate"
+
+
+OPEN_CALL = ModelCall(
+    model=OPEN_MODEL, host="inference.baseten.co", trace_id="chatcmpl-1"
+)
+
+
+def the_ruling(clone: Path) -> RulingRecord:
+    [recorded] = load_rulings(home_of(clone) / ".knack" / "rulings.jsonl")
+    return recorded
+
+
+def test_a_two_model_argue_records_both_models(
+    clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "escalate", NOT_COVERED, [])
+    Ports(tmp_path, monkeypatch, ruling("escalate", "Not covered.", []))
+    snapshot_receipt(clone)
+    assert cli.main(["argue", OBJECTION]) == 0
+    assert the_ruling(clone).models == [SPARK_CALL, OPEN_CALL]
+
+
+def test_spark_open_is_recorded_when_it_ran_even_if_it_held(
+    clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    traced_spark_says(monkeypatch, "escalate", NOT_COVERED, [])
+    held = ruling("hold", "Covered.", ["rather than aliasing them"])
+    Ports(tmp_path, monkeypatch, held)
+    snapshot_receipt(clone)
+    cli.main(["argue", OBJECTION])
+    ruled = the_ruling(clone)
+    assert ruled.models == [SPARK_CALL, OPEN_CALL] and ruled.decision == "escalate"
+
+
+def test_spark_open_never_asked_is_never_recorded(
+    clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_cli_argue import receipt
+
+    traced_spark_says(monkeypatch, "escalate", NOT_COVERED, [])
+    Ports(tmp_path, monkeypatch, ruling("escalate", "x", []))
+    receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    cli.main(["argue", OBJECTION])
+    assert the_ruling(clone).models == [SPARK_CALL]
