@@ -9,6 +9,7 @@ from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.stages import Log
 from knack.walk.registry import load_registry, Registry
 from knack.watch import selfcheck
+from knack.watch.credentials import KEY_FILES
 from knack.watch.merged import pending_prs
 from knack.watch.state import read_seen, watch_lock, write_seen
 
@@ -17,7 +18,10 @@ Clients = Callable[[], tuple[GitHub, Spark] | tuple[GitHub, Spark, Spark]]
 Clone = tuple[Path, str]
 # Builds Spark Open, which writes variants and judges merges, when no partner corroborates; None if unset.
 Judge = Callable[[], Spark | None]
-NO_KEY = f"Spark Open did not run: {EXTRACTORS['spark-open'][0]} is not set"
+NO_KEY = (
+    f"Spark Open did not run: {EXTRACTORS['spark-open'][0]} is not set "
+    f"and $KNACK_HOME/{KEY_FILES['BASETEN_API_KEY']} does not exist"
+)
 OFF = "Spark Open did not run: no second model (--no-corroborate)"
 SPARK_ALONE = "knack watch: {why}; Spark writes and grades its own held-out variants"
 

@@ -379,8 +379,8 @@ def test_without_the_spark_open_key_watch_says_so_plainly(setup: Setup) -> None:
     merge_pr(setup.repo)
     setup.run(judge=lambda: None)
     assert setup.lines[1] == (
-        "knack watch: Spark Open did not run: BASETEN_API_KEY is not set; "
-        "Spark writes and grades its own held-out variants"
+        "knack watch: Spark Open did not run: BASETEN_API_KEY is not set "
+        "and $KNACK_HOME/baseten_api_key does not exist; Spark writes and grades its own held-out variants"
     )
 
 
@@ -393,7 +393,10 @@ def test_without_the_spark_open_key_the_trace_records_it_did_not_run(
         "compiler": "fake-spark",
         "variants": "fake-spark",
         "heldout": "fake-spark",
-        "adversary": "Spark Open did not run: BASETEN_API_KEY is not set",
+        "adversary": (
+            "Spark Open did not run: BASETEN_API_KEY is not set "
+            "and $KNACK_HOME/baseten_api_key does not exist"
+        ),
     }
 
 
