@@ -28,6 +28,8 @@ RuleAndRoot = tuple[Path, Root | None]
 WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
 DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
+# Muse Code's PreToolUse payload names the agent's model here (tests/hooks/fixtures).
+AGENT_KEY = "model"
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,8 @@ class Trail:
     session_id: str | None = None
     # The saved snapshot of this proposal, when receipts are kept.
     edit_sha256: str | None = None
+    # The coding agent the payload names, when it names one.
+    agent: str | None = None
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
@@ -99,8 +103,13 @@ def _trail(
     target = _target(event, base)
     if receipts is None:
         return Trail(log, receipts, repo, target)
-    session = str(event["session_id"]) if event.get("session_id") else None
-    return Trail(log, receipts, repo, target, current_branch(base), session)
+    session, agent = _named(event, "session_id"), _named(event, AGENT_KEY)
+    branch = current_branch(base)
+    return Trail(log, receipts, repo, target, branch, session, agent=agent)
+
+
+def _named(event: JsonDict, key: str) -> str | None:
+    return str(event[key]) if event.get(key) else None
 
 
 def _in_root(event: JsonDict, base: Path, root: Path | None) -> bool:
@@ -249,7 +258,8 @@ def _append_receipt(
         return None
     now = datetime.now(timezone.utc).isoformat()
     named = (trail.repo, trail.file, rule_name(rule_path), root, verdict, now)
-    fields = guard_receipt(*named, trail.branch, trail.session_id, trail.edit_sha256)
+    later = (trail.branch, trail.session_id, trail.edit_sha256, trail.agent)
+    fields = guard_receipt(*named, *later)
     return append_receipt(trail.receipts, fields)
 
 

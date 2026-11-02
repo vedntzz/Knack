@@ -18,8 +18,14 @@ from knack.bench.sandbox import default_cache
 from knack.contracts.models import Root, Verdict
 from knack.day.feed import day_json, local_day
 from knack.dispute.argue import ask_spark
-from knack.dispute.latest import disputed, Disputed, NothingToDispute, ruling_text
-from knack.dispute.rulings import append_ruling, RulingRecord, rulings_path
+from knack.dispute.latest import (
+    disputed,
+    Disputed,
+    NothingToDispute,
+    ruling_text,
+    with_models,
+)
+from knack.dispute.rulings import append_ruling, ModelCall, RulingRecord, rulings_path
 from knack.dispute.second import Second, second_opinion, spark_escalated
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
@@ -593,20 +599,34 @@ def _argue_command(args: argparse.Namespace) -> int:
 
 
 def _recorded_then_second(objection: str, done: Disputed) -> int:
-    # The ruling is recorded first; the second opinion never changes the exit.
-    code = _record_ruling(done.record)
-    _second_opinion_quietly(objection, done)
-    return code
+    # The ruling is written after Spark Open answers, so it names every model asked.
+    heard = _second_opinion_quietly(objection, done)
+    return _record_ruling(with_models(done.record, heard))
 
 
-def _second_opinion_quietly(objection: str, done: Disputed) -> None:
-    # Never changes argue's exit: the ruling stands whatever Spark Open says.
+def _second_opinion_quietly(objection: str, done: Disputed) -> list[ModelCall]:
+    # Never changes argue's exit or decision; returns the models it asked.
     if not spark_escalated(done):
-        return
+        return []
     try:
-        second_opinion(objection, done, _second_ports(done.registry))
+        second = _second_ports(done.registry)
     except Exception as error:
-        print(f"knack argue: no second opinion: {error}", file=sys.stderr)
+        return _no_second_opinion(error)
+    return _heard_quietly(objection, done, second)
+
+
+def _heard_quietly(objection: str, done: Disputed, second: Second) -> list[ModelCall]:
+    # A failure after Spark Open answered still names it: it ran.
+    try:
+        second_opinion(objection, done, second)
+    except Exception as error:
+        _no_second_opinion(error)
+    return second.heard
+
+
+def _no_second_opinion(error: Exception) -> list[ModelCall]:
+    print(f"knack argue: no second opinion: {error}", file=sys.stderr)
+    return []
 
 
 def _second_ports(registry: Path) -> Second:

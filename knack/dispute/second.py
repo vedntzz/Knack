@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from knack.contracts.models import Ruling
 from knack.dispute.argue import ruling_prompt, SPARK_MODEL
 from knack.dispute.latest import Disputed
+from knack.dispute.rulings import model_call, ModelCall
 from knack.miss.cases import EditCase, ModelAnswer
 from knack.miss.provisional import save_provisional
 from knack.miss.selfcheck import (
@@ -34,6 +35,8 @@ class Second:
     places: Places
     registry: Path
     log: Log
+    # Each model this second opinion asked, for the ruling to name.
+    heard: list[ModelCall] = field(default_factory=list[ModelCall])
 
 
 def spark_escalated(done: Disputed) -> bool:
@@ -50,18 +53,19 @@ def escalates(text: str) -> bool:
 def second_opinion(objection: str, done: Disputed, second: Second) -> Path | None:
     # Agreement only holds a provisional case; the miss loop never runs from an objection.
     case = _auto_case(done, second.places)
-    asked = _asked(objection, done, second.judge)
+    asked = _asked(objection, done, second)
     checks = self_checks_path(second.registry)
     agreed = log_check(checks, second.log, case, asked)
     return _held(second, done.record.receipt_hash, agreed) if agreed else None
 
 
-def _asked(objection: str, done: Disputed, judge: Spark) -> Asked:
+def _asked(objection: str, done: Disputed, second: Second) -> Asked:
     # The case comes first in second_opinion, so a deny with no edit snapshot asks no one.
     confirmed = [root for root in done.roots if root.status == "Confirmed"]
     prompt = ruling_prompt(objection, confirmed) + JSON_REPLY
-    answers = [_spark_answer(done), ask_judge(judge, prompt, escalates)]
-    return Asked("argue", QUESTION, answers)
+    judged = ask_judge(second.judge, prompt, escalates)
+    second.heard.append(model_call(second.judge.model, second.judge))
+    return Asked("argue", QUESTION, [_spark_answer(done), judged])
 
 
 def _held(second: Second, receipt_hash: str, case: EditCase) -> Path:
