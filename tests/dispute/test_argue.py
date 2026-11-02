@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from knack.contracts.models import Root
 from knack.dispute import argue as argue_module
-from knack.dispute.argue import argue, Ruling, SparkRuling
+from knack.dispute.argue import argue, Ruling, ruling_prompt, SparkRuling
 from knack.roots.store import load_roots
 from pydantic import ValidationError
 
@@ -162,3 +162,115 @@ def test_a_response_without_an_id_has_no_trace(monkeypatch: pytest.MonkeyPatch) 
     spark = SparkRuling()
     spark("prompt")
     assert spark.last_trace_id is None
+
+
+# KN-102: a restated rejected alternative holds on a verbatim quote of the record.
+KN99 = json.loads(
+    (
+        ROOTS.parents[2] / "tests" / "fixtures" / "argue_kn99" / "live_escalate.json"
+    ).read_text()
+)
+ROOT_75025 = next(r for r in load_roots(ROOTS) if r.id == "airflow-75025-1")
+ALIAS_OBJECTION = (
+    "Let me alias state and start_date onto DagRun.state and DagRun.start_date "
+    "so the advertised names keep working."
+)
+DEPRECATION_OBJECTION = "The public API docs promise order_by=state until its deprecation window ends in 3.2."
+HELD_ON = "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
+
+
+def record_reading_spark(prompt: str) -> str:
+    # Holds only when the prompt marks the alternative as rejected; else the KN-99 live reply.
+    rejected = f"Rejected alternative: {ROOT_75025.rejected_alternative}"
+    if rejected not in prompt or DEPRECATION_OBJECTION in prompt:
+        return json.dumps(KN99["ruling"])
+    return json.dumps(
+        {"decision": "hold", "reply": "Not aliased.", "cited_quotes": [HELD_ON]}
+    )
+
+
+def spark_answers(*answers: dict[str, object]):
+    # Fake Spark giving each answer in turn, recording every prompt.
+    prompts: list[str] = []
+    queue = [json.dumps(answer) for answer in answers]
+
+    def ask(prompt: str) -> str:
+        prompts.append(prompt)
+        return queue.pop(0)
+
+    return ask, prompts
+
+
+def hold_citing(*quotes: str) -> dict[str, object]:
+    return {
+        "decision": "hold",
+        "reply": "We chose not to alias.",
+        "cited_quotes": list(quotes),
+    }
+
+
+@pytest.mark.parametrize("objection", [ALIAS_OBJECTION, KN99["objection"]])
+def test_a_restated_rejected_alternative_holds_on_a_verbatim_quote(
+    objection: str,
+) -> None:
+    ruling = argue(objection, [ROOT_75025], ask=record_reading_spark)
+    assert ruling.decision == "hold", ruling.reply
+    assert ruling.cited_quotes
+    assert all(cited in ROOT_75025.quote for cited in ruling.cited_quotes)
+
+
+def test_the_prompt_marks_the_rejected_alternative_apart_from_the_quote() -> None:
+    prompt = ruling_prompt(ALIAS_OBJECTION, [ROOT_75025])
+    assert f"Rejected alternative: {ROOT_75025.rejected_alternative}" in prompt
+    assert f'"{ROOT_75025.quote}"' in prompt
+
+
+def test_a_root_without_a_rejected_alternative_names_none() -> None:
+    assert "Rejected alternative" not in ruling_prompt(ALIAS_OBJECTION, [CONFIRMED])
+
+
+def test_an_objection_the_record_does_not_cover_escalates() -> None:
+    ruling = argue(DEPRECATION_OBJECTION, [ROOT_75025], ask=record_reading_spark)
+    assert ruling.decision == "escalate"
+    assert ruling.reply == KN99["ruling"]["reply"]
+
+
+def test_a_hold_citing_words_not_in_the_record_is_asked_once_more() -> None:
+    ask, prompts = spark_answers(
+        hold_citing("Aliasing is forbidden."), hold_citing(HELD_ON)
+    )
+    ruling = argue(ALIAS_OBJECTION, [ROOT_75025], ask=ask)
+    assert (ruling.decision, ruling.cited_quotes) == ("hold", [HELD_ON])
+    assert len(prompts) == 2 and "Aliasing is forbidden." in prompts[1]
+
+
+def test_a_hold_still_not_verbatim_after_the_reask_escalates() -> None:
+    bad = hold_citing("Aliasing is forbidden.")
+    ask, prompts = spark_answers(bad, bad, bad)
+    ruling = argue(ALIAS_OBJECTION, [ROOT_75025], ask=ask)
+    assert (ruling.decision, ruling.cited_quotes, len(prompts)) == ("escalate", [], 2)
+    assert "verbatim" in ruling.reply
+
+
+def test_a_hold_with_one_verbatim_and_one_invented_quote_is_reasked() -> None:
+    ask, prompts = spark_answers(
+        hold_citing(HELD_ON, "never alias"), hold_citing(HELD_ON)
+    )
+    assert argue(ALIAS_OBJECTION, [ROOT_75025], ask=ask).cited_quotes == [HELD_ON]
+    assert len(prompts) == 2
+
+
+ESCALATE_CITING_INVENTED: dict[str, object] = {
+    "decision": "escalate",
+    "reply": "Not covered.",
+    "cited_quotes": ["x y"],
+}
+
+
+@pytest.mark.parametrize("answer", [hold_citing(HELD_ON), ESCALATE_CITING_INVENTED])
+def test_a_verbatim_hold_and_an_escalate_are_asked_once(
+    answer: dict[str, object],
+) -> None:
+    ask, prompts = spark_answers(answer, answer)
+    argue(ALIAS_OBJECTION, [ROOT_75025], ask=ask)
+    assert len(prompts) == 1

@@ -1,0 +1,9 @@
+{
+  "source": "spikes/loop_audit.md section 4, live run on 2026-11-02, deny 19f0c5ce1aed, model muse-spark-1.3",
+  "objection": "The frontend still sends order_by=state. Let me alias state and start_date onto DagRun.state and DagRun.start_date.",
+  "ruling": {
+    "decision": "escalate",
+    "reply": "My decision does not address the case where the frontend still sends order_by=state. A person will decide whether to alias.",
+    "cited_quotes": []
+  }
+}
