@@ -15,12 +15,12 @@
 <body>
 <header class="bar">
   <span class="wordmark">knack</span>
-  <nav aria-label="Sections"><a href="#how">How it works</a><a href="#models">Models</a><a href="#numbers">Numbers</a><a href="#run">Run it</a><a href="#demo">Demo</a></nav>
+  <nav aria-label="Sections"><a href="#promises">Promises</a><a href="#models">Models</a><a href="#numbers">Numbers</a><a href="#run">Run it</a></nav>
   <a class="repo" href="https://github.com/vedntzz/Knack">github.com/vedntzz/Knack</a>
 </header>
 <main class="frame">
   <section class="hero" id="hero" aria-labelledby="title">
-    <h1 id="title">Your AI agent never read the PR where you said no. Knack did.</h1>
+    <h1 id="title">Your AI agent never read the PR where you said no.<br> Knack did.</h1>
     <figure class="shot" id="shot">
       <picture>
         <source media="(max-width: 47.5rem)" srcset="block-0e7ab6083866-390.png" width="780" height="1688">
@@ -30,25 +30,78 @@
     </figure>
   </section>
 
-  <section class="how" id="how" aria-labelledby="how-title">
+  <section class="promises" id="promises" aria-labelledby="promises-title">
     <div class="lead">
-      <h2 id="how-title">From a pull request to a stopped edit</h2>
-      <p>Knack blocks AI coding agents from edits that contradict a team’s recorded decisions, and cites who decided, why, and the verbatim source.</p>
+      <h2 id="promises-title">Three promises, and the run behind each</h2>
+      <p>Spark and Spark Open are Meta’s Muse Spark models; their jobs are further down. Each record below is committed in the repo, from a run with the real models, and each says what it does not prove.</p>
     </div>
-    <ol class="steps">
-      <li>
-        <h3>Spark reads the pull requests.</h3>
-        <p>Muse Spark reads a repository’s merged PRs. It extracts each decision, the alternative the team rejected, who decided, and the verbatim quote, then compiles the decision into an ast-grep rule.</p>
-      </li>
-      <li>
-        <h3>Spark Open tries to break the rule.</h3>
-        <p>Muse Spark Open writes code that breaks the decision and code that follows it, which Spark never sees. A rule is installed only if it catches at least 2 of 3 violating variants and allows all 3 compliant ones.</p>
-      </li>
-      <li>
-        <h3>Plain code stops the edit.</h3>
-        <p>At edit time a PreToolUse hook runs ast-grep, with no model and no network. Only a decision a person confirmed can block, and the deny cites who decided, why, and the verbatim quote.</p>
-      </li>
-    </ol>
+
+    <article class="promise" id="stops" aria-labelledby="stops-title">
+      <h3 id="stops-title">It stops the edit, and cites who said no.</h3>
+      <ol class="board story" data-arrive>
+        <li><time datetime="2026-11-02T14:44:38Z">14:44:38</time><p><b class="stop">Blocked</b> An agent’s edit to apache/airflow’s Dag routes put back two sort keys that #75025 removed. Receipt <code>0e7ab6083866</code>.</p></li>
+        <li><time datetime="2026-11-02T14:44:47Z">14:44:47</time><p>The agent argued: “Let me alias state and start_date onto DagRun.state and DagRun.start_date so the advertised names keep working.” Spark held, citing #75025’s two sentences verbatim.</p></li>
+        <li><time datetime="2026-11-02T14:44:56Z">14:44:56</time><p>The agent argued again: the REST API is public, so removing sort values may need a deprecation cycle. Spark escalated, and Spark Open, asked separately, agreed. Held for a person.</p></li>
+        <li><time datetime="2026-11-02T14:45:07Z">14:45:07</time><div><p>Upheld by Vedant Srivastava:</p><blockquote class="paper said">
+          <p>The decision stands: these two sort options never worked (they returned an error), so there was nothing to deprecate. Sort by last_run_state and last_run_start_date.</p>
+        </blockquote></div></li>
+        <li><time datetime="2026-11-02T14:45:07Z">14:45:07</time><p>The corrected edit, lines 135–136 deleted, was allowed.</p></li>
+      </ol>
+      <div class="rail">
+        <p>The guard denied the edit in 17.3 ms, with no model and no network, and cited Pushkal Gupta’s words from #75025. When the agent argued, Spark could hold only by quoting a confirmed decision verbatim; when it could not, both models escalated and a person decided.</p>
+        <p class="limit">One run on one laptop. The edits were replayed inside a captured Muse Code hook payload; the rulings were live. The person who upheld the decision is Knack’s author.</p>
+        <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/one_story_live.md">The run: <code>spikes/one_story_live.md</code></a></p>
+      </div>
+    </article>
+
+    <article class="promise" id="learns" aria-labelledby="learns-title">
+      <h3 id="learns-title">It learns each new decision from the merge.</h3>
+      <div class="board" data-arrive>
+        <blockquote class="paper" data-root="data/roots/airflow/75271-1.json">
+          <p>“<code>bool | Any</code> or <code>Any</code> would also be honest, but a union with <code>Any</code> switches type checking off for the argument, so <code>durable="yes"</code> would pass.”</p>
+          <footer><b>dabla</b> · apache/airflow #75271</footer>
+        </blockquote>
+        <p class="decided" data-root="data/roots/airflow/75271-1.json">Decision, Inferred: Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None</p>
+        <pre class="log" data-source="spikes/self_improving.md"><code>$ git merge --ff-only pr-75271
+knack watch apache/airflow: 1 merged PR: #75271
+[1/5] select   1 PRs read, 1 kept
+[2/5] extract  reading 1 PRs
+  #75271: 1 decision, 2 rejected alternatives
+[3/5] roots    2 Inferred roots written (0 Confirmed, 0 Unknown kept)
+[4/5] compile  1 PRs with a verbatim rejected alternative
+  adversary: meta-models/muse-spark-open-1026 writes variants, muse-spark-1.3 compiles
+  #75271 proven on attempt 2
+  #75271 held-out by meta-models/muse-spark-open-1026: 2/3 violations caught, 3/3 compliant allowed (pass)
+[5/5] install  1 rules proven, 0 discarded, 5 in registry -> $W/data/registry/airflow.json</code></pre>
+      </div>
+      <div class="rail">
+        <p>A merge of #75271 into a watched clone ran the post-merge hook that <code>knack watch</code> installed. Spark extracted the decision, Spark Open wrote code to break it and code to follow it, and the rule was proven and installed. No one typed anything between the merge and the install.</p>
+        <p class="limit">Its two roots are Inferred, so the new rule advises and does not block until a person confirms it.</p>
+        <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/self_improving.md">The run: <code>spikes/self_improving.md</code></a></p>
+      </div>
+    </article>
+
+    <article class="promise" id="repairs" aria-labelledby="repairs-title">
+      <h3 id="repairs-title">When it misses, it repairs the rule and proves the repair.</h3>
+      <div class="board" data-arrive>
+        <blockquote class="paper" data-root="data/roots/fastapi/16062-1.json">
+          <p>“I'll wait to see if anyone requests an even larger bump, for now this should work.”</p>
+          <footer><b>tiangolo</b> · fastapi/fastapi #16062</footer>
+        </blockquote>
+        <p class="decided" data-root="data/roots/fastapi/16062-1.json">Decision, Inferred: Update the lru_cache limit for dependencies to account for large apps</p>
+        <pre class="log" data-source="bench/misses/16062-none-2.bar2.log"><code>fastapi-16062 fails: guard edit fastapi/dependencies/models.py [77322b4d226e] adds no new match; recompiling with muse-spark-1.3
+PASS cases: every must-fail edit denied, every must-pass edit allowed
+PASS proof: base, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 0.140.0
+PASS held-out same: 2/3 violations caught (old rule 2), 3/3 compliant allowed
+PASS held-out cross: 3/3 violations caught (old rule 3), 3/3 compliant allowed
+installed fastapi-16062 -> data/registry/../rules/fastapi/16062.yml (2 attempt(s))</code></pre>
+      </div>
+      <div class="rail">
+        <p>An agent raised fastapi’s cache size to 8192 through a name, and the #16062 rule, which saw only literals, let it pass. Recorded as a case, the edit sent the rule back to Spark. The repair went in only after it denied that edit, allowed every must-pass edit, caught as much held-out code as the old rule and matched nothing on fastapi’s default branch or release 0.140.0.</p>
+        <p class="limit">Started by hand with <code>knack miss</code>, on a case rebuilt from the audit. The unattended path, from a self-check case to an install, has run only with fake models, in the end-to-end test. Its root is Inferred, so the repaired rule advises and does not block until a person confirms it.</p>
+        <p><a href="https://github.com/vedntzz/Knack/blob/main/bench/misses/16062-none-2.bar2.log">The run: <code>bench/<wbr>misses/<wbr>16062-none-2.bar2.log</code></a></p>
+      </div>
+    </article>
   </section>
 
   <section class="models" id="models" aria-labelledby="models-title">
@@ -57,23 +110,20 @@
       <p>The models are in the proof loop: they extract, compile and attack rules before install. They are not in the verdict path.</p>
     </div>
     <table>
-      <thead><tr><th scope="col">Model</th><th scope="col">Runs at</th><th scope="col">Its job</th><th scope="col">In the live run</th></tr></thead>
+      <thead><tr><th scope="col">Model</th><th scope="col">Its job</th><th scope="col">In the live run</th></tr></thead>
       <tbody>
         <tr>
-          <th scope="row">Muse Spark</th>
-          <td><code>muse-spark-1.3</code><br>api.meta.ai</td>
+          <th scope="row">Muse Spark<span><code>muse-spark-1.3</code> at api.meta.ai</span></th>
           <td>Extracts decisions from merged PRs and compiles each into a rule. When an agent objects to a block, it may hold the decision only by citing words that are verbatim in a confirmed decision.</td>
           <td>Held the agent’s first objection, citing #75025’s two sentences verbatim. Escalated the second.</td>
         </tr>
         <tr>
-          <th scope="row">Muse Spark Open</th>
-          <td><code>meta-models/<wbr>muse-spark-open-1026</code><br>inference.baseten.co</td>
+          <th scope="row">Muse Spark Open<span><code>meta-models/<wbr>muse-spark-open-1026</code> at inference.baseten.co</span></th>
           <td>Reads the same PRs: a decision both models find is Corroborated. Writes the held-out code that attacks each rule. Is asked about an objection only after Spark escalates.</td>
           <td>Asked after Spark escalated the second objection, and escalated too. A person upheld the decision.</td>
         </tr>
         <tr>
-          <th scope="row">Muse Code</th>
-          <td>Your machine<br>hooks in <code>~/.config/<wbr>muse/settings.json</code></td>
+          <th scope="row">Muse Code<span>on your machine, hooks in <code>~/.config/<wbr>muse/settings.json</code></span></th>
           <td>The coding agent. Its PreToolUse hook hands each <code>write_file</code> and <code>edit_file</code> to Knack’s guard before the edit lands.</td>
           <td>Recorded as <code>muse-spark-1.3-contributor</code>, from the hook payload’s <code>model</code> field.</td>
         </tr>
@@ -88,7 +138,7 @@
     </div>
     <div class="figures">
       <figure class="figure">
-        <p class="big"><span class="value">17.3</span> <span class="unit">ms</span></p>
+        <p class="big"><span class="value" data-count>17.3</span> <span class="unit">ms</span></p>
         <figcaption>
           <p>for the guard to decide the block: the ast-grep scan. No model, no network.</p>
           <p class="well"><code>jq .block.guard_ms mockups/<wbr>fixtures/<wbr>one_story/<wbr>latency.json</code><button type="button" class="copy" hidden data-copy-text="jq .block.guard_ms mockups/fixtures/one_story/latency.json" aria-label="Copy the guard time command">Copy</button></p>
@@ -96,7 +146,7 @@
         </figcaption>
       </figure>
       <figure class="figure">
-        <p class="big"><span class="value">171</span> <span class="unit">ms</span></p>
+        <p class="big"><span class="value" data-count>171</span> <span class="unit">ms</span></p>
         <figcaption>
           <p>for the hook’s round trip, as Muse Code runs it: <code>sh -c</code>, Python start and the deny.</p>
           <p class="well"><code>jq .wall_ms.block mockups/<wbr>fixtures/<wbr>one_story/<wbr>latency.json</code><button type="button" class="copy" hidden data-copy-text="jq .wall_ms.block mockups/fixtures/one_story/latency.json" aria-label="Copy the round trip command">Copy</button></p>
@@ -104,7 +154,7 @@
         </figcaption>
       </figure>
       <figure class="figure">
-        <p class="big"><span class="value">8</span> <span class="unit">receipts</span></p>
+        <p class="big"><span class="value" data-count>8</span> <span class="unit">receipts</span></p>
         <figcaption>
           <p>chain intact: the guard’s verdicts on the blocked edit and the corrected one, and the uphold, each linked to the one before.</p>
           <p class="well"><code>knack receipts verify --path mockups/<wbr>fixtures/<wbr>one_story/<wbr>receipts.jsonl</code><button type="button" class="copy" hidden data-copy-text="knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl" aria-label="Copy the receipts verify command">Copy</button></p>
@@ -112,6 +162,11 @@
         </figcaption>
       </figure>
     </div>
+  </section>
+
+  <section class="demo" id="demo" aria-labelledby="demo-title">
+    <h2 id="demo-title">The demo</h2>
+    <p>Demo video, 16:9: <span class="gap">not recorded yet</span></p>
   </section>
 
   <section class="run" id="run" aria-labelledby="run-title">
@@ -132,13 +187,8 @@ bash scripts/reproduce.sh" aria-label="Copy the install and reproduce commands">
         <p>From the clone. It reads no <code>~/.knack</code>, needs no API keys and binds to loopback only. Then open <a href="http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9">the block</a>, <a href="http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/argue">the argument Spark held</a>, <a href="http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9/held">the one a person upheld</a> and <a href="http://127.0.0.1:7655/">the repo’s memory</a>.</p>
       </div>
     </div>
-    <p class="source">The code, the fixtures and every check: <a href="https://github.com/vedntzz/Knack">github.com/vedntzz/Knack</a></p>
   </section>
 
-  <section class="demo" id="demo" aria-labelledby="demo-title">
-    <h2 id="demo-title">The demo</h2>
-    <div class="slot" role="img" aria-label="Demo video, not recorded yet"><p>Demo video, 16:9 <span class="gap">not recorded yet</span></p></div>
-  </section>
 </main>
 <footer class="foot frame">
   <p class="close"><span class="wordmark">knack</span> <a href="https://github.com/vedntzz/Knack">github.com/vedntzz/Knack</a></p>

@@ -12,15 +12,29 @@
 | The picture on a phone, `block-0e7ab6083866-390.png` | The same page from the same command, in the console's own phone layout: 390×844 at 2x, reduced motion | `test_a_phone_gets_the_block_page_as_served_at_390` |
 | Caption: its 8/8 checks and 0 false alarms (0 matches on Airflow’s default branch and on release 3.3.2) are the #75025 row of `bench/PROOF-GRID.md`; `bash scripts/reproduce.sh` regenerates it byte for byte | `bench/PROOF-GRID.md` line 14 (8 gates PASS, including “0 FP tree” and “0 FP release”); `data/registry/airflow.json` #75025 `.proof.false_positives` = 0 (default branch, outside the PR's files) and `.proof.old_release` = 3.3.2 with 0; README 168 (“regenerates the grid… fails if it differs from the committed file by a byte”) | `test_the_caption_sources_the_captures_own_figures` |
 | Alt text | What the capture shows, read off it | `test_the_capture_has_alt_text` |
-| “Knack blocks AI coding agents from edits that contradict…” | README 3, verbatim | |
-| Step 1, Spark reads the pull requests | README 69 | |
-| Step 2, Spark Open tries to break the rule; “at least 2 of 3 violating variants and allows all 3 compliant ones” | README 71 (variants, Spark never sees them); README 73 (the bar, verbatim) | |
-| Step 3, plain code stops the edit; “no model and no network”; only a confirmed decision blocks; who decided, why, and the verbatim quote | README 73; README 89; README 3 | |
+| `<title>` and meta description: “Knack blocks AI coding agents from edits that contradict…” | README 3, verbatim | |
+| Section: “Three promises, and the run behind each”; each record is committed, from a run with the real Meta models, and says what it does not prove | The three records below: SPIKE 3 (Spark and Spark Open, live); `spikes/self_improving.md` 121 (real Spark and Spark Open); `bench/misses/16062-none-2.bar2.log` (recompiling with `muse-spark-1.3`) | `test_each_promise_links_the_run_that_shows_it`, `test_each_proof_says_what_it_does_not_prove` |
+| **Promise 1**, “It stops the edit, and cites who said no.” Its times 14:44:38, 14:44:47, 14:44:56, 14:45:07, 14:45:07 (UTC, Nov 2 2026) | `ONE/receipts.jsonl` `.time` (the block 14:44:38.375, the uphold 14:45:07.067, the corrected edit's allows from 14:45:07.254) and `ONE/rulings.jsonl` `.time` (hold 14:44:47.121, escalate 14:44:56.725), to the second | `test_every_time_in_the_story_is_a_time_the_run_recorded` |
+| “Blocked”, the edit put back two sort keys #75025 removed, receipt `0e7ab6083866` | SPIKE 9; the block page; `ONE/latency.json` `.block.receipt` | |
+| The first objection, verbatim, and “Spark held, citing #75025’s two sentences verbatim” | `ONE/rulings.jsonl` `.objection` on the hold; SPIKE 10 | |
+| The second objection, paraphrased (“the REST API is public, so removing sort values may need a deprecation cycle”); Spark escalated, Spark Open asked separately agreed, held for a person | `ONE/rulings.jsonl` `.objection` on the escalate, shortened; SPIKE 11 | |
+| “Upheld by Vedant Srivastava” and the reason on paper, verbatim | SPIKE 12; `ONE/story.json` step `resolve` | `test_the_uphold_on_paper_is_the_persons_reason_verbatim` |
+| “The corrected edit, lines 135–136 deleted, was allowed.” | SPIKE 13 | |
+| Rail: 17.3 ms, no model and no network, Pushkal Gupta’s words; Spark holds only by quoting a confirmed decision verbatim; both models escalated and a person decided | SPIKE 20; README 73; README 75; SPIKE 11–12 | |
+| “One run on one laptop. The edits were replayed inside a captured Muse Code hook payload; the rulings were live.” | SPIKE 3, 5, 37 | |
+| **Promise 2**, “It learns each new decision from the merge.” dabla’s quote on paper, apache/airflow #75271 | `data/roots/airflow/75271-1.json` `.quote` and `.decided_by`, verbatim (backticks set as code) | `test_every_quote_on_paper_is_its_roots_quote_verbatim` |
+| The log, from `$ git merge --ff-only pr-75271` to `[5/5] install` | `spikes/self_improving.md` 142–159, each line verbatim; the fast-forward diffstat lines and the `exit 0`/hook lines around them are left out | `test_every_log_line_shown_is_verbatim_in_its_run` |
+| Rail: post-merge hook installed by `knack watch`; Spark extracted, Spark Open wrote code to break and follow it; proven and installed; “No one typed anything between the merge and the install.” | `spikes/self_improving.md` 167, 245–254 (`writers.json`: compiler Spark, variants and held-out Spark Open) | |
+| “Its two roots are Inferred, so the new rule advises and does not block until a person confirms it.” | `spikes/self_improving.md` 297; CLAUDE.md (only Confirmed roots block) | `test_each_proof_says_what_it_does_not_prove` |
+| **Promise 3**, “When it misses, it repairs the rule and proves the repair.” tiangolo’s quote on paper, fastapi/fastapi #16062 | `data/roots/fastapi/16062-1.json` `.quote` and `.decided_by`, verbatim | `test_every_quote_on_paper_is_its_roots_quote_verbatim` |
+| The log | `bench/misses/16062-none-2.bar2.log`, lines 2–6 and 9, verbatim; the first line (the case's path), the fresh cross-model line and the candidate line (both name a path under one person's home), and `exit=0` are left out | `test_every_log_line_shown_is_verbatim_in_its_run` |
+| Rail: the cache size raised to 8192 through a name; the rule saw only literals; the gates the repair passed | README 257, 242; README 236 (the gates); the log's PASS lines | |
+| “Started by hand with `knack miss`, on a case rebuilt from the audit. The unattended path … has run only with fake models, in the end-to-end test.” | README 143 (“started by hand with `knack miss`”; “runs only with fake Spark and Spark Open, in the e2e steps”); README 245 (“Both edits are reconstructions”) | `test_each_proof_says_what_it_does_not_prove` |
 | “The models are in the proof loop… They are not in the verdict path.” | README 73, verbatim | |
-| Muse Spark: `muse-spark-1.3`, api.meta.ai | `ONE/rulings.jsonl` `.models[]` on both rulings; SPIKE 3 | `test_every_model_that_ruled_is_named_with_its_host` |
+| Muse Spark: `muse-spark-1.3` at api.meta.ai | `ONE/rulings.jsonl` `.models[]` on both rulings; SPIKE 3 | `test_every_model_that_ruled_is_named_with_its_host` |
 | Muse Spark's job | README 69 (extract, compile); README 75 (may hold only by citing words verbatim in a Confirmed root) | |
 | Held the first objection, citing #75025's two sentences verbatim; escalated the second | SPIKE 10–11; `ONE/rulings.jsonl` `.decision`, `.cited_quotes` | |
-| Muse Spark Open: `meta-models/muse-spark-open-1026`, inference.baseten.co | `ONE/rulings.jsonl` `.models[]` on the escalate ruling; SPIKE 3 | `test_every_model_that_ruled_is_named_with_its_host` |
+| Muse Spark Open: `meta-models/muse-spark-open-1026` at inference.baseten.co | `ONE/rulings.jsonl` `.models[]` on the escalate ruling; SPIKE 3 | `test_every_model_that_ruled_is_named_with_its_host` |
 | Muse Spark Open's job | README 71 (same PRs, Corroborated, held-out variants); README 75 (asked only after Spark escalates) | |
 | Asked after Spark escalated, escalated too; a person upheld the decision | SPIKE 11–12; the uphold receipt in `ONE/receipts.jsonl` (`.resolution.action` = `uphold`) | |
 | Muse Code: the coding agent; your machine, hooks in `~/.config/muse/settings.json`; `write_file` and `edit_file` | README 206 (“a real coding agent (Muse Code 1.4.14…)”); README 99; README 107 (the matcher) | |
@@ -51,4 +65,5 @@
 ## Left out, and why
 
 - **Today's ranges (16.3–18.4 ms, 163–256 ms):** SPIKE 22–23 quotes them, but the two earlier runs' outputs are not in the repo, so no command prints them.
+- **A self-repair that ran unattended with real models:** none is in the repo (README 143), so the third promise shows the hand-started repair and says so.
 - **The corrected edit's 17.0 ms and 198 ms:** true and checkable, left out so the block is the one story the numbers tell.

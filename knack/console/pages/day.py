@@ -17,7 +17,15 @@ from knack.console.facts import (
     resolution_label,
     TodayLine,
 )
-from knack.console.pages.verdict import copy_button, gap, shown_path, stamp, STATUS
+from knack.console.pages.verdict import (
+    COMMAND,
+    copy_button,
+    gap,
+    RECEIPT,
+    shown_path,
+    stamp,
+    STATUS,
+)
 from knack.console.render import EVENTS, LIVE, page, partial, waiting_html
 from knack.console.verdict import ReadRegistry, registry_at
 from knack.contracts.models import Root
@@ -277,14 +285,14 @@ def verify(found: DayPage, receipts: Path) -> str:
     last = found.last
     if last is None:
         return unreceipted(command)
-    said = {"short": last.hash[:8], "copy_receipt": copy_button(last.hash)}
-    said |= {"command": escape(command), "copy_command": copy_button(command)}
+    said = {"short": last.hash[:8], "copy_receipt": copy_button(last.hash, RECEIPT)}
+    said |= {"command": escape(command), "copy_command": copy_button(command, COMMAND)}
     return partial("verify.html", **said, rule=escape(last.rule_id), label=label(last))
 
 
 def unreceipted(command: str) -> str:
     # No receipt yet: the gap, and the command still checks the empty chain.
-    said = f"<p>{gap('Last receipt')}</p><p><code>{escape(command)}</code>{copy_button(command)}</p>"
+    said = f"<p>{gap('Last receipt')}</p><p><code>{escape(command)}</code>{copy_button(command, COMMAND)}</p>"
     return f'<section class="verify" aria-labelledby="verify"><h2 id="verify">Verify it</h2>{said}</section>'
 
 

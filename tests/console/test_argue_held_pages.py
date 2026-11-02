@@ -237,3 +237,13 @@ def test_kept_receipts_bring_their_rulings(
 ) -> None:
     monkeypatch.setenv(RECEIPTS_ENV, str(tmp_path / "receipts.jsonl"))
     assert getattr(app, "console_rulings")() == tmp_path / "rulings.jsonl"
+
+
+@pytest.mark.parametrize("page", ["argue", "held"])
+def test_the_verify_rows_copies_are_named_apart_and_the_command_shows_whole(
+    story: Story, page: str
+) -> None:
+    html = story.get(f"/verdict/{BLOCK}/{page}")
+    assert 'aria-label="Copy the receipt hash"' in html
+    assert 'aria-label="Copy the verify command"' in html
+    assert '<code title="knack receipts verify --path ' in html

@@ -1,4 +1,4 @@
-/* The landing page: the console's tokens and faces; a page that scrolls. The tool is dark; the human is paper. */
+/* The landing page, set in the console's own grammar: the bar, boards on the panel, paper for the human, a rail. Tokens only. */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -6,56 +6,89 @@ html, body { overflow-x: clip; }
 body { background: var(--ground); color: var(--text); font: var(--weight-regular) var(--type-16)/var(--leading-body) var(--sans); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 code { font-family: var(--mono); font-size: var(--type-code); }
 a { color: inherit; text-decoration: underline var(--underline); text-underline-offset: var(--underline-offset); }
-@media (hover: hover) and (pointer: fine) { a:hover { color: var(--text); text-decoration-thickness: var(--stroke); } }
+@media (hover: hover) and (pointer: fine) { a:hover { text-decoration-thickness: var(--stroke); } }
 ::selection { background: var(--gold); color: var(--ink); }
-:focus-visible { outline: var(--stroke) solid currentColor; outline-offset: var(--stroke); }
+/* The ring never rounds below 2 px, which 0.125rem does at exactly 1280×720. */
+:focus-visible { outline: max(var(--stroke), 2px) solid currentColor; outline-offset: max(var(--stroke), 2px); }
 p { text-wrap: pretty; }
 .gap { color: var(--muted); }
 
-/* One frame: the bar, every section and the close share the same two edges. */
+/* The bar: the console's, with the page's four places and the repo. */
 .frame, .bar { max-width: 80rem; margin: 0 auto; padding-inline: var(--space-32); }
-.bar { display: flex; align-items: baseline; gap: var(--space-32); padding-block: var(--space-24) 0; color: var(--muted); }
-.wordmark { color: var(--text); font-size: var(--type-20); font-weight: var(--weight-bold); letter-spacing: var(--tracking-wordmark); line-height: var(--leading-solid); }
+.bar { display: flex; align-items: baseline; gap: var(--space-32); height: var(--bar-height); padding-top: var(--space-16); font-size: var(--type-14); color: var(--muted); }
+.wordmark { color: var(--text); font-size: var(--type-20); font-weight: var(--weight-bold); letter-spacing: var(--tracking-wordmark); line-height: var(--leading-24); }
 .bar nav { display: flex; gap: var(--space-24); }
 .bar a { color: var(--muted); text-decoration: none; }
-.bar .repo { margin-left: auto; }
+/* The one action in the bar: where to get it. */
+.bar .repo { margin-left: auto; color: var(--text); }
 @media (hover: hover) and (pointer: fine) { .bar a:hover { color: var(--text); } }
 .bar a:focus-visible { color: var(--text); }
 
+/* Sections: the quiet between them is larger than anything inside one. */
 .frame > section { padding-top: var(--space-quiet); }
 h2 { font-size: var(--type-28); line-height: var(--leading-36); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tighter); text-wrap: balance; }
 h3 { font-size: var(--type-20); line-height: var(--leading-28); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tight); text-wrap: balance; }
-.lead { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-48); align-items: baseline; margin-bottom: var(--space-48); }
-.lead p { max-width: 40rem; color: var(--text); }
+.lead { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); gap: var(--space-32); align-items: baseline; margin-bottom: var(--space-48); }
+.lead p { max-width: 40rem; }
 
-/* Hero: the claim alone, then the real page, full width. */
-.frame > .hero { padding-top: var(--space-48); }
-.hero h1 { max-width: 60rem; font-size: var(--type-40); line-height: var(--leading-48); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tighter); text-wrap: balance; }
-.shot { margin-top: var(--space-32); background: var(--panel); padding: var(--space-12); border-radius: var(--radius-board); }
+/* Hero: the claim alone at the console's headline size, then the real page. */
+.frame > .hero { padding-top: var(--space-64); }
+.hero h1 { font-size: var(--type-40); line-height: var(--leading-48); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tighter); text-wrap: balance; }
+.shot { margin-top: var(--space-48); background: var(--panel); padding: var(--space-12); border-radius: var(--radius-board); }
 .shot picture { display: block; }
 .shot img { display: block; width: 100%; height: auto; border-radius: var(--radius-paper); }
-.shot figcaption { margin-top: var(--space-12); color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); }
+.shot figcaption { margin-top: var(--space-12); max-width: 64rem; color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); }
 .shot figcaption code { color: var(--text); }
-.shot.waiting { opacity: 0; }
 
-/* How it works: three plain steps, in order, set by position alone. */
-.steps { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-48); }
-.steps li { display: flex; flex-direction: column; gap: var(--space-12); }
+/* A promise: the verdict page's composition. The claim across, the record on a board, the reading in the rail. */
+.promise { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); grid-template-areas: "head head" "board rail"; gap: var(--space-24) var(--space-32); }
+.promise + .promise { margin-top: var(--space-64); }
+.promise h3 { grid-area: head; font-size: var(--type-28); line-height: var(--leading-36); letter-spacing: var(--tracking-tighter); }
+.promise .board { grid-area: board; align-self: start; min-width: 0; }
+.promise .rail { grid-area: rail; display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
+.limit { color: var(--muted); }
+.rail p, .lead p, .pair p, .story p { max-width: 65ch; }
+.rail code { font-size: var(--type-14); overflow-wrap: anywhere; }
+
+/* The board: the tool's record, one step up from the ground. */
+.board { list-style: none; background: var(--panel); border-radius: var(--radius-board); padding: var(--space-12) 0; }
+.log { padding: var(--space-8) var(--space-24); font: var(--type-14)/var(--leading-24) var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.log code { font-size: var(--type-same); }
+
+/* The story: each beat at the second it was recorded. */
+.story li { display: grid; grid-template-columns: var(--time-width) minmax(0, 1fr); gap: var(--space-16); padding: var(--space-8) var(--space-24); }
+.story time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.story code { color: var(--text); }
+/* The one red on the page outside the picture: the stop, as the console seals it. */
+.stop { background: var(--red); color: var(--ink); font-weight: var(--weight-bold); padding: 0 var(--space-8); margin-right: var(--space-4); border-radius: var(--radius-paper); }
+
+/* Paper: only a person's words. Serif, verbatim, with who wrote them. */
+.paper { background: var(--paper); color: var(--ink); border-radius: var(--radius-paper); padding: var(--space-paper) var(--space-24); }
+.board > .paper { margin: var(--space-4) var(--space-12) var(--space-8); }
+/* What the tool read from those words, and its honest label: the tool's voice, so not paper. */
+.decided { padding: 0 var(--space-24) var(--space-8); color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); }
+.paper p { font-family: var(--serif); font-size: var(--type-20); line-height: var(--leading-28); letter-spacing: var(--tracking-tight); }
+.paper code { font-size: var(--type-code-in-quote); letter-spacing: var(--tracking-none); }
+.paper footer { margin-top: var(--space-12); font-size: var(--type-14); line-height: var(--leading-20); color: var(--ink-muted); }
+.paper footer b { color: var(--ink); font-weight: var(--weight-bold); }
+.story .said { margin-top: var(--space-8); padding: var(--space-12) var(--space-16); }
+.story .said p { font-size: var(--type-16); line-height: var(--leading-24); letter-spacing: var(--tracking-none); }
 
 /* Models: a real table, rows parted by space, not lines. */
 .models table { width: 100%; border-collapse: collapse; }
-.models th, .models td { text-align: left; vertical-align: top; padding: var(--space-16) var(--space-24) var(--space-16) 0; line-height: var(--leading-24); }
+.models th, .models td { text-align: left; vertical-align: top; padding: var(--space-16) var(--space-32) var(--space-16) 0; line-height: var(--leading-24); }
 .models thead th { color: var(--muted); font-weight: var(--weight-medium); padding-top: 0; }
-.models tbody th { font-weight: var(--weight-bold); white-space: nowrap; }
-.models td:nth-of-type(1) { color: var(--muted); }
-.models td code { color: var(--text); }
+.models tbody th { width: var(--rail-width); font-weight: var(--weight-bold); }
+.models code { overflow-wrap: anywhere; }
+.models tbody th span { display: block; margin-top: var(--space-4); color: var(--muted); font-weight: var(--weight-regular); }
+.models code { color: var(--text); }
 .models tbody tr + tr th, .models tbody tr + tr td { padding-top: var(--space-24); }
 
-/* Numbers: three figures in a column, each beside its command. */
-.figures { display: flex; flex-direction: column; gap: var(--space-48); }
-.figure { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-48); align-items: baseline; }
-.big { font-variant-numeric: tabular-nums; }
-.big .value { font-size: var(--type-40); line-height: var(--leading-48); font-weight: var(--weight-bold); letter-spacing: var(--tracking-figures); }
+/* Numbers: three measured figures side by side, each over the command that prints it. */
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-32); }
+.figure { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
+.big { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.big .value { font-size: var(--type-40); line-height: var(--leading-48); font-weight: var(--weight-medium); letter-spacing: var(--tracking-figures); }
 .big .unit { font-size: var(--type-20); color: var(--muted); font-weight: var(--weight-medium); }
 .figure figcaption { display: flex; flex-direction: column; gap: var(--space-12); }
 .prints { color: var(--muted); }
@@ -70,52 +103,62 @@ h3 { font-size: var(--type-20); line-height: var(--leading-28); font-weight: var
 .copy:active { transform: scale(var(--pressed)); }
 @media (hover: hover) and (pointer: fine) { .copy:hover { background: var(--text); color: var(--ground); } }
 
-/* Run it: two columns, then the repo. */
+/* Run it: two columns. */
 .run h2 { margin-bottom: var(--space-48); }
-.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-48); }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-32); }
 .pair > div { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
-.source { margin-top: var(--space-48); font-size: var(--type-20); line-height: var(--leading-28); }
 
-/* The demo: the heading holds the left, the slot the right; a field one step up, waiting. */
-.demo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-48); align-items: start; }
-.slot { aspect-ratio: 16 / 9; display: grid; place-items: center; padding: var(--space-24); background: var(--panel); border-radius: var(--radius-board); text-align: center; }
-.slot p { display: flex; flex-direction: column; gap: var(--space-4); }
+/* The demo: one quiet line until it exists; the page ends on how to run it. */
+.demo { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); gap: var(--space-32); align-items: baseline; }
+.demo p { grid-column: 2; }
 
-/* The close. */
-.foot { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--space-16); margin-top: var(--space-quiet); padding-bottom: var(--space-32); color: var(--muted); }
-/* The page ends on where to get it, not on the demo's gap. */
+/* The close: where to get it. */
+.foot { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--space-16); margin-top: var(--space-quiet); padding-bottom: var(--space-32); color: var(--muted); font-size: var(--type-14); }
 .foot .close { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-8) var(--space-24); color: var(--text); font-size: var(--type-20); line-height: var(--leading-28); }
 .foot .wordmark { font-size: var(--type-28); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Waiting for its one move: script adds this, so without script nothing is ever hidden. */
+.waiting { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .copy { transition: background-color var(--fade) ease, color var(--fade) ease; }
   .copy:active { transform: none; }
-  .shot.waiting { opacity: 1; }
+  .waiting { opacity: 1; }
 }
 
-/* A phone, or a window too tall for the 16:9 frame: one column at a fixed 16 px. */
-@media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
+/* A phone: one column. A 4:3 window keeps the desktop layout; tokens.css already sets it at 16 px. */
+@media (max-width: 47.5rem) {
   .frame, .bar { padding-inline: var(--space-16); }
-  .bar { flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
+  .bar { flex-wrap: wrap; gap: var(--space-8) var(--space-16); height: auto; }
   .bar nav { display: none; }
   .frame > section { padding-top: var(--space-64); }
-  .frame > .hero { padding-top: var(--space-48); }
+  .frame > .hero { padding-top: var(--space-32); }
   .hero h1 { font-size: var(--type-28); line-height: var(--leading-36); }
-  h2 { font-size: var(--type-20); line-height: var(--leading-28); }
+  .shot { margin-top: var(--space-32); padding: var(--space-8); }
+  h2, .promise h3 { font-size: var(--type-20); line-height: var(--leading-28); }
   h3 { font-size: var(--type-16); line-height: var(--leading-24); }
   /* Standalone links get a thumb-sized target; links inside sentences are exempt. */
-  .bar .repo, .foot a, .source a { display: inline-block; padding-block: 0.625rem; }
-  .shot { margin-top: var(--space-32); padding: var(--space-8); }
-  .lead, .steps, .figure, .pair, .demo { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
+  .bar .repo, .foot a, .rail > p:last-child a { display: inline-block; padding-block: 0.625rem; }
+  .lead, .promise, .figures, .pair, .demo { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
+  .promise { grid-template-areas: "head" "board" "rail"; }
   .lead { margin-bottom: var(--space-32); }
-  .steps, .pair { gap: var(--space-32); }
-  .figures { gap: var(--space-32); }
+  .pair { gap: var(--space-32); }
+  /* Stacked figures part by more than a figure's own gaps, so each "prints" line stays with its number. */
+  .figures { gap: var(--space-48); }
+  .demo p { grid-column: auto; }
+  .story li { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding-inline: var(--space-16); }
+  .log { padding-inline: var(--space-16); }
+  .board > .paper { margin-inline: var(--space-8); }
+  .decided { padding-inline: var(--space-16); }
+  .paper { padding: var(--space-16); }
+  .paper p { font-size: var(--type-16); line-height: var(--leading-24); }
   .models thead { display: none; }
-  .models tr { display: grid; gap: var(--space-4); padding-block: var(--space-16); }
-  .models tbody tr + tr th, .models tbody tr + tr td, .models th, .models td { padding: 0; }
-  .models tbody th { white-space: normal; }
+  .models tr { display: grid; gap: var(--space-8); padding-block: var(--space-16); }
+  .models tbody tr + tr th, .models tbody tr + tr td, .models th, .models td, .models tbody th { padding: 0; width: auto; }
+  /* The column labels are gone on a phone, so the last cell names itself. */
+  .models td:last-child::before { content: "In the live run: "; color: var(--muted); }
   .copy { height: var(--control-touch); }
   .foot { margin-top: var(--space-64); }
 }
