@@ -15,6 +15,7 @@ from conftest import (
     REVIEW,
     STRUCTURAL,
 )
+from knack.contracts.models import FoundBy, ModelCall
 from knack.hooks.pretool_guard import decide
 from knack.pipeline.corroborate import corroborated_roots, same_alternative
 from knack.pipeline.extract import mark_verbatim
@@ -25,7 +26,8 @@ from knack.roots.store import load_roots
 from knack.walk.registry import load_registry
 from test_init import write_event
 
-MODELS = ("fake-spark", "fake-spark-open")
+SPARK = ModelCall(model="fake-spark", host="h1", trace_id="r1")
+OPEN = ModelCall(model="fake-spark-open", host="h2", trace_id="r2")
 
 
 def alternative(text: str, quote: str) -> dict[str, str]:
@@ -37,42 +39,49 @@ def decision_with(*alternatives: dict[str, str]) -> dict[str, object]:
 
 
 def extraction(*decisions: Mapping[str, object]) -> Extraction:
+    # The second reading, as Spark Open read it.
     parsed = mark_verbatim([Decision.model_validate(d) for d in decisions], REVIEW)
-    return Extraction(number=9, title="Read blobs", decisions=parsed)
+    return Extraction(number=9, title="Read blobs", decisions=parsed, call=OPEN)
 
 
-PRIMARY = extraction(GATHER_DECISION)
+PRIMARY = extraction(GATHER_DECISION).model_copy(update={"call": SPARK})
 SAME_TEXT = alternative("Asyncio.gather -- over EVERY read!", "we hit the fd limit")
 SAME_QUOTE = alternative("fan out reads", f"Please don't: {QUOTE}")
 OTHER = alternative("one thread per blob", "we hit the fd limit")
+BOTH = ["fake-spark:r1:extracted", "fake-spark-open:r2:corroborated"]
 
 
 def statuses(other: Extraction | None) -> list[tuple[str, str, list[str]]]:
-    roots = corroborated_roots(REPO, PRIMARY, other, MODELS)
-    return [(r.id, r.status, r.models) for r in roots]
+    roots = corroborated_roots(REPO, PRIMARY, other)
+    return [(r.id, r.status, [found_by(m) for m in r.models]) for r in roots]
+
+
+def found_by(entry: FoundBy | str) -> str:
+    assert isinstance(entry, FoundBy)
+    return f"{entry.model}:{entry.trace_id}:{entry.role}"
 
 
 def test_same_alternative_text_after_normalizing_is_corroborated() -> None:
     assert statuses(extraction(decision_with(SAME_TEXT))) == [
-        ("widgets-9-1", "Corroborated", ["fake-spark", "fake-spark-open"])
+        ("widgets-9-1", "Corroborated", BOTH)
     ]
 
 
 def test_overlapping_verbatim_quotes_are_corroborated() -> None:
     assert statuses(extraction(decision_with(SAME_QUOTE))) == [
-        ("widgets-9-1", "Corroborated", ["fake-spark", "fake-spark-open"])
+        ("widgets-9-1", "Corroborated", BOTH)
     ]
 
 
 def test_an_alternative_found_by_one_extractor_only_is_uncorroborated() -> None:
     assert statuses(extraction(decision_with(OTHER))) == [
-        ("widgets-9-1", "Uncorroborated", ["fake-spark"]),
-        ("widgets-9-2", "Uncorroborated", ["fake-spark-open"]),
+        ("widgets-9-1", "Uncorroborated", [BOTH[0]]),
+        ("widgets-9-2", "Uncorroborated", [BOTH[1]]),
     ]
 
 
 def test_a_second_reading_that_failed_leaves_roots_inferred() -> None:
-    assert statuses(None) == [("widgets-9-1", "Inferred", ["fake-spark"])]
+    assert statuses(None) == [("widgets-9-1", "Inferred", [BOTH[0]])]
 
 
 def test_a_quote_shorter_than_four_words_never_corroborates() -> None:

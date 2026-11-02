@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, Root
 from knack.pipeline.clients import EXTRACTORS, live_clients
 from knack.pipeline.extract import extract_pr
 from knack.pipeline.github import API, GitHubApi, summary_from_item
@@ -68,7 +68,7 @@ def test_live_rejected_root_is_not_extracted_again() -> None:
     github, spark = live_clients()
     pr = pinned_pr(github)
     first = extract_pr(github, spark, REJECTION_REPO, pr)
-    root = roots_for(REJECTION_REPO, first, spark.model)[0]
+    root = roots_for(REJECTION_REPO, first)[0]
     again = extract_pr(
         github, spark, REJECTION_REPO, pr, few_shot=few_shot_block([rejected(root)])
     )
@@ -118,10 +118,16 @@ def test_live_spark_and_spark_open_extract_the_same_pr() -> None:
     print(agreement_report(by_model))
     assert list(by_model) == ["muse-spark-1.3", "meta-models/muse-spark-open-1026"]
     assert all(
-        root.models == [model] for model, roots in by_model.items() for root in roots
+        [found_model(m) for m in root.models] == [model]
+        for model, roots in by_model.items()
+        for root in roots
     )
+
+
+def found_model(entry: FoundBy | str) -> str:
+    return entry if isinstance(entry, str) else entry.model
 
 
 def extracted_roots(github: GitHubApi, spark: Spark, pr: PullRequest) -> list[Root]:
     extraction = extract_pr(github, spark, REJECTION_REPO, pr)
-    return roots_for(REJECTION_REPO, extraction, spark.model)
+    return roots_for(REJECTION_REPO, extraction)

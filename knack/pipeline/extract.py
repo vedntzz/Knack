@@ -5,6 +5,7 @@ from functools import partial
 from pydantic import TypeAdapter
 
 from knack.pipeline.attribution import attribute
+from knack.pipeline.calls import reported_call
 from knack.pipeline.models import Decision, Extraction, ExtractStage, Post, PullRequest
 from knack.pipeline.ports import GitHub, Spark
 
@@ -55,7 +56,8 @@ def extract_pr(
     decisions = mark_verbatim(parse_decisions(answer), text)
     approvers = partial(github.approvers, repo, pr.number)
     decisions = attribute(decisions, pr.author, approvers)
-    return Extraction(number=pr.number, title=pr.title, decisions=decisions)
+    found = {"number": pr.number, "title": pr.title, "decisions": decisions}
+    return Extraction.model_validate({**found, "call": reported_call(spark)})
 
 
 def thread_text(pr: PullRequest, posts: list[Post]) -> str:

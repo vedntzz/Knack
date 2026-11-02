@@ -180,10 +180,9 @@ def _roots_of(
     run: Run, extraction: Extraction, second: SecondReading | None
 ) -> list[Root]:
     if second is None:
-        return roots_for(run.repo, extraction, run.spark.model)
+        return roots_for(run.repo, extraction)
     other = second.by_number.get(extraction.number)
-    models = (run.spark.model, second.model)
-    return corroborated_roots(run.repo, extraction, other, models)
+    return corroborated_roots(run.repo, extraction, other)
 
 
 def _compile_stage(

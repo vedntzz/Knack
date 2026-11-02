@@ -4,19 +4,8 @@ from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from knack.contracts.models import ModelCall, NOT_RECORDED
 from knack.home import knack_home
-
-# Said when a model, host, trace or agent was not on record; never guessed.
-NOT_RECORDED = "not recorded"
-
-
-class ModelCall(BaseModel):
-    # One model that answered for this ruling: its name, where it ran, its response id.
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    model: str
-    host: str
-    trace_id: str = NOT_RECORDED
 
 
 @runtime_checkable

@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from knack.contracts.models import RuleProof
+from knack.contracts.models import ModelCall, NOT_RECORDED, RuleProof
 from knack.pipeline.heldout import HeldOut
 
 # Spark answers may carry extra keys; we keep only the fields we cite.
@@ -57,6 +57,10 @@ class Extraction(BaseModel):
     number: int
     title: str
     decisions: list[Decision]
+    # The call that read the PR, as its response reported it; kept off readings.json.
+    call: ModelCall = Field(
+        default=ModelCall(model=NOT_RECORDED, host=NOT_RECORDED), exclude=True
+    )
 
 
 class Selection(BaseModel):

@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, Root
 from pydantic import ValidationError
 
 
@@ -54,9 +54,39 @@ def test_corroboration_statuses_parse(status: str) -> None:
     assert Root.model_validate({**valid_root_data(), "status": status}).status == status
 
 
-def test_models_lists_every_extractor_that_found_the_root() -> None:
+def test_bare_model_names_from_before_kn_105_still_load() -> None:
     data = {**valid_root_data(), "models": ["muse-spark-1.3", "spark-open"]}
     assert Root.model_validate(data).models == ["muse-spark-1.3", "spark-open"]
+
+
+SPARK_FOUND = {
+    "model": "muse-spark-1.3",
+    "host": "api.meta.ai",
+    "trace_id": "resp_1",
+    "role": "extracted",
+}
+
+
+def test_models_record_model_host_trace_id_and_role() -> None:
+    root = Root.model_validate({**valid_root_data(), "models": [SPARK_FOUND]})
+    assert root.models == [FoundBy.model_validate(SPARK_FOUND)]
+    assert root.model_dump()["models"] == [SPARK_FOUND]
+
+
+def test_bare_names_and_recorded_entries_round_trip_unchanged() -> None:
+    data = {**valid_root_data(), "models": ["muse-spark-1.3", SPARK_FOUND]}
+    dumped = Root.model_validate(data).model_dump(mode="json")
+    assert dumped["models"] == ["muse-spark-1.3", SPARK_FOUND]
+
+
+def test_a_found_by_role_is_extracted_or_corroborated() -> None:
+    with pytest.raises(ValidationError):
+        FoundBy.model_validate({**SPARK_FOUND, "role": "guessed"})
+
+
+def test_a_found_by_without_a_trace_says_not_recorded() -> None:
+    bare = {k: v for k, v in SPARK_FOUND.items() if k != "trace_id"}
+    assert FoundBy.model_validate(bare).trace_id == "not recorded"
 
 
 def test_old_model_field_is_read_into_models() -> None:

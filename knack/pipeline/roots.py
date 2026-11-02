@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from knack.contracts.models import Root
+from knack.contracts.models import FoundBy, Root
+from knack.pipeline.calls import found_by
 from knack.pipeline.models import Alternative, Decision, Extraction
 from knack.roots.store import load_roots, write_root
 
@@ -11,9 +12,9 @@ Labels = dict[str, object]
 REVIEWED = ("Confirmed", "Unknown")
 
 
-def roots_for(repo: str, extraction: Extraction, model: str) -> list[Root]:
+def roots_for(repo: str, extraction: Extraction) -> list[Root]:
     # One Inferred root per verbatim rejected alternative, numbered across the PR.
-    labels: Labels = {"status": "Inferred", "models": [model]}
+    labels: Labels = {"status": "Inferred", "models": [extracted_by(extraction)]}
     pairs = verbatim_pairs(extraction)
     return labelled_roots(repo, extraction, [(pair, labels) for pair in pairs])
 
@@ -42,6 +43,10 @@ def install_roots(roots: list[Root], out_dir: Path) -> list[Root]:
     for root in written:
         write_root(root, out_dir / f"{root.id}.json")
     return written
+
+
+def extracted_by(extraction: Extraction) -> FoundBy:
+    return found_by(extraction.call, "extracted")
 
 
 def root_prefix(repo: str) -> str:
