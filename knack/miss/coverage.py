@@ -43,6 +43,13 @@ def coverage_losses(old: str, new: str, inputs: CoverageInputs) -> list[str]:
     return named + [_dropped(b) for b in _unexercised_dropped(old, new, inputs)]
 
 
+def contradicted_branches(rule_yaml: str, allows: dict[str, GuardEdit]) -> list[Any]:
+    # The rule's branches that add a new match to an edit the guard must allow.
+    inputs = CoverageInputs(edits=allows)
+    found = rule_branches(rule_yaml)
+    return [b for b in found if denied(_branch_rule(rule_yaml, b), inputs)]
+
+
 def denied(rule_yaml: str, inputs: CoverageInputs) -> set[str]:
     with _rule_file(rule_yaml) as rule:
         files = {name for name, path in inputs.files.items() if _flags(rule, path)}
