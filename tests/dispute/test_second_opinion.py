@@ -128,10 +128,10 @@ def test_an_objection_never_builds_a_compiler_or_a_loop(
     monkeypatch.setattr(cli, "live_clients", refuse)
     monkeypatch.setattr(cli, "record_and_recompile", refuse)
 
-    def partner(name: str) -> FakeJudge:
+    def open_client() -> FakeJudge:
         return FakeJudge(OPEN_MODEL, "")
 
-    monkeypatch.setattr(cli, "partner_client", partner)
+    monkeypatch.setattr(cli, "second_opinion_client", open_client)
     second: Second = LIVE_SECOND_PORTS(tmp_path / "reg" / "registry.json")
     assert second.judge.model == OPEN_MODEL
 

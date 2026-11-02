@@ -37,6 +37,8 @@ def reasoning_trace(response: dict[str, Any]) -> str | None:
 class SparkOpenApi:
     model = MODEL
     host = HOST
+    # Each call's limit; argue's second opinion sets a shorter one.
+    timeout_seconds: float = TIMEOUT_SECONDS
 
     def __init__(self, api_key: str) -> None:
         self.headers = {"Authorization": f"Bearer {api_key}"}
@@ -50,7 +52,7 @@ class SparkOpenApi:
     def ask(self, prompt: str) -> str:
         body = {"model": MODEL, "messages": [{"role": "user", "content": prompt}]}
         self.last_model = self.last_trace_id = None
-        response = request_json(URL, self.headers, body, TIMEOUT_SECONDS)
+        response = request_json(URL, self.headers, body, self.timeout_seconds)
         self.last_trace = reasoning_trace(response) if open_weights_on() else None
         self.last_model = reported_model(response)
         self.last_trace_id = response_id(response)

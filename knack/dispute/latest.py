@@ -52,9 +52,12 @@ def disputed(objection: str, cwd: Path, receipts: Path, ask: Ask) -> Disputed:
     return Disputed(record, path, roots, _answered(asked))
 
 
-def with_models(record: RulingRecord, heard: list[ModelCall]) -> RulingRecord:
+def with_models(
+    record: RulingRecord, heard: list[ModelCall], timed_out: list[str]
+) -> RulingRecord:
     # Models asked after the ruling, e.g. Spark Open, join the ones that made it.
-    return record.model_copy(update={"models": [*record.models, *heard]})
+    models, late = [*record.models, *heard], [*record.timed_out, *timed_out]
+    return record.model_copy(update={"models": models, "timed_out": late})
 
 
 def ruling_text(ruling: RulingRecord) -> str:

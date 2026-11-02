@@ -37,6 +37,8 @@ class RulingRecord(BaseModel):
     models: list[ModelCall] = []
     # The coding agent the deny's PreToolUse payload named.
     agent: str = NOT_RECORDED
+    # Models in models that gave no answer before their timeout; old rulings recorded none.
+    timed_out: list[str] = []
 
 
 def model_call(model: str, client: object) -> ModelCall:

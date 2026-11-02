@@ -50,6 +50,7 @@ from knack.pipeline.clients import (
     live_clients,
     MissingCredentials,
     partner_client,
+    second_opinion_client,
 )
 from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import OtherRepoRegistry, run_init
@@ -87,6 +88,8 @@ from knack.watch.install import WatchInstallError
 from knack.watch.setup import install_watch
 
 GUARD_LOG = Path(".knack/guard_errors.log")
+# The models a second opinion asked, and those of them that timed out.
+Heard = tuple[list[ModelCall], list[str]]
 REPO_PATTERN = re.compile(r"[\w.-]+/[\w.-]+")
 DEFAULT_PRS = 50
 OLD_REF_HELP = "release tag rules must not flag; defaults to the previous minor release"
@@ -614,15 +617,15 @@ def _argue_command(args: argparse.Namespace) -> int:
 
 
 def _recorded_then_second(objection: str, done: Disputed) -> int:
-    # The ruling is written after Spark Open answers, so it names every model asked.
-    heard = _second_opinion_quietly(objection, done)
-    return _record_ruling(with_models(done.record, heard))
+    # The ruling is written after Spark Open answers or times out, naming every model asked.
+    heard, timed_out = _second_opinion_quietly(objection, done)
+    return _record_ruling(with_models(done.record, heard, timed_out))
 
 
-def _second_opinion_quietly(objection: str, done: Disputed) -> list[ModelCall]:
+def _second_opinion_quietly(objection: str, done: Disputed) -> Heard:
     # Never changes argue's exit or decision; returns the models it asked.
     if not spark_escalated(done):
-        return []
+        return [], []
     try:
         second = _second_ports(done.registry)
     except Exception as error:
@@ -630,23 +633,23 @@ def _second_opinion_quietly(objection: str, done: Disputed) -> list[ModelCall]:
     return _heard_quietly(objection, done, second)
 
 
-def _heard_quietly(objection: str, done: Disputed, second: Second) -> list[ModelCall]:
+def _heard_quietly(objection: str, done: Disputed, second: Second) -> Heard:
     # A failure after Spark Open answered still names it: it ran.
     try:
         second_opinion(objection, done, second)
     except Exception as error:
         _no_second_opinion(error)
-    return second.heard
+    return second.heard, second.timed_out
 
 
-def _no_second_opinion(error: Exception) -> list[ModelCall]:
+def _no_second_opinion(error: Exception) -> Heard:
     print(f"knack argue: no second opinion: {error}", file=sys.stderr)
-    return []
+    return [], []
 
 
 def _second_ports(registry: Path) -> Second:
     # Only Spark Open is asked: an objection never builds the compiler or the miss loop.
-    return Second(partner_client(DEFAULT_EXTRACTOR), _receipt_places(), registry, print)
+    return Second(second_opinion_client(), _receipt_places(), registry, print)
 
 
 def _receipt_places() -> Places:
