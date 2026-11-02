@@ -1,0 +1,40 @@
+{
+  "repo": "apache/airflow",
+  "branch": "main",
+  "date": "2026-11-01",
+  "events": [
+    {
+      "type": "commit",
+      "sha": "a2548563ebc5dcf888c738b9e3d2b12669e252a6",
+      "author": "knack demo",
+      "message": "base",
+      "time": "2026-11-01T16:34:51-05:00"
+    },
+    {
+      "type": "receipt",
+      "kind": "block",
+      "time": "2026-11-01T21:34:52.285310+00:00",
+      "root_id": "airflow-75025-1",
+      "decider": "Pushkal Gupta (author); approved and merged by bbovenzi",
+      "receipt_hash": "4be4607b22184423e2cf6c9506b5ed3a0b0a028f5390adfda3ae49747b11d066"
+    }
+  ],
+  "pulls_error": "GITHUB_TOKEN is not set",
+  "seats": [
+    {
+      "root_id": "airflow-75025-1",
+      "decided_by": "Pushkal Gupta (author); approved and merged by bbovenzi",
+      "confirmed_by": null,
+      "pr": 75025,
+      "merged_at": "2026-10-19T21:36:02Z"
+    },
+    {
+      "root_id": "airflow-75774-1",
+      "decided_by": "stegololz",
+      "confirmed_by": null,
+      "pr": 75774,
+      "merged_at": "2026-10-28T16:53:52Z"
+    }
+  ],
+  "registry_error": null
+}

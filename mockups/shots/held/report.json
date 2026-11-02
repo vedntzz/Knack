@@ -1,0 +1,139 @@
+{
+  "1080p": {
+    "nodes": 70,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 23.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 23.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 23.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c1",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "135",
+        "px": 23.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 23.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "720p": {
+    "nodes": 70,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 15.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 15.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 15.9998,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c1",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "135",
+        "px": 15.9998,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 15.9998,
+    "overflowY": 0,
+    "overflowX": 0,
+    "errors": []
+  },
+  "phone": {
+    "nodes": 70,
+    "failing": [],
+    "lowest": [
+      {
+        "text": "objected ·",
+        "px": 16,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Agent name not recorded",
+        "px": 16,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": ", citing sentence 1 of 3 in #75025:",
+        "px": 16,
+        "ratio": 6.21,
+        "pass": true
+      },
+      {
+        "text": "Blocked, receipt",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "80b311c1",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      },
+      {
+        "text": "135",
+        "px": 16,
+        "ratio": 6.85,
+        "pass": true
+      }
+    ],
+    "minPx": 16,
+    "overflowY": 971,
+    "overflowX": 0
+  }
+}
