@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 from knack import cli
 from knack.dispute.argue import SparkRuling
+from knack.dispute.latest import latest_deny
 from knack.dispute.rulings import load_rulings, ModelCall, NOT_RECORDED
-from knack.receipts.chain import append_receipt, Receipt
+from knack.receipts.chain import append_receipt, Receipt, Resolution, resolution_receipt
 
 REGISTRY = Path(__file__).parents[2] / "data" / "registry" / "airflow.json"
 AIRFLOW_URL = "https://github.com/apache/airflow.git"
@@ -155,7 +156,7 @@ def test_escalate_prints_held_for_a_person(
     assert out.splitlines()[0] == "ESCALATE: held for a person"
     assert "The quotes say nothing about clients." in out
     assert out.splitlines()[-1].startswith("To resolve: knack resolve ")
-    assert "allow|retire --reason" in out.splitlines()[-1]
+    assert "allow|retire|uphold --reason" in out.splitlines()[-1]
 
 
 def test_the_latest_deny_picks_the_rule(
@@ -405,3 +406,16 @@ def test_a_reasked_hold_records_spark_with_the_deciding_trace_and_the_agent(
     )
     assert ruling.models == [SPARK_CALL.model_copy(update={"trace_id": "resp_spark_2"})]
     assert (ruling.agent, len(spark.prompts)) == ("muse-code", 2)
+
+
+def test_an_uphold_is_never_the_latest_deny_to_argue(tmp_path: Path) -> None:
+    # The person's uphold records a deny, but the block it answers is the one to argue.
+    home, file = tmp_path / "home", tmp_path / "clone" / "dags.py"
+    blocked = receipt(home, file, "airflow-75025")
+    resolution = Resolution(of=blocked.hash, action="uphold", by="maria", reason="ok")
+    receipts = home / ".knack" / "verdicts.jsonl"
+    append_receipt(
+        receipts, resolution_receipt(blocked, resolution, "2026-11-02T00:00:00+00:00")
+    )
+    found = latest_deny(receipts, "apache/airflow", tmp_path / "clone")
+    assert found == blocked

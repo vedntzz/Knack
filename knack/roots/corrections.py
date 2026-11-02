@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from knack.contracts.models import Root
 from knack.home import knack_home
 
-# Only these judge an extraction; allow and retire resolve a deny after ESCALATE.
+# Only these judge an extraction; allow, retire and uphold resolve a deny after ESCALATE.
 EXTRACTION_ACTIONS = ("confirm", "reject")
 # How many past corrections the extract prompt learns from.
 RECENT_LIMIT = 5
@@ -19,13 +19,13 @@ class Correction(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     root_id: str
-    action: Literal["confirm", "reject", "allow", "retire"]
+    action: Literal["confirm", "reject", "allow", "retire", "uphold"]
     before: Root
     after: Root
     reason: str | None
     by: str
     at: str
-    # The deny receipt an allow or retire resolves; None for confirm and reject.
+    # The deny receipt a resolution settles; None for confirm and reject.
     receipt_hash: str | None = None
 
 

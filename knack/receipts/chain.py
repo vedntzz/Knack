@@ -23,8 +23,14 @@ PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
 # Fields added after the first receipts: left off the line, and the hash, when unset.
 LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256", "resolution", "agent")
-# What a person decided about a deny after ESCALATE: let that edit through, or retire the decision.
-ResolutionAction = Literal["allow", "retire"]
+# What a person decided about a deny after ESCALATE: allow that edit, retire, or uphold the decision.
+ResolutionAction = Literal["allow", "retire", "uphold"]
+# How a settled deny reads: "<hash>: <verb> by <person>".
+RESOLVED_VERBS: dict[ResolutionAction, str] = {
+    "allow": "allowed",
+    "retire": "retired",
+    "uphold": "upheld",
+}
 
 
 class Resolution(BaseModel):
@@ -106,10 +112,11 @@ def decision_of(verdict: Verdict) -> Decision:
 
 
 def resolution_receipt(deny: Receipt, resolution: Resolution, time: str) -> JsonDict:
-    # The deny's fields, now an allow by a person; session and agent were the agent's.
+    # The deny's fields, decided by a person; session and agent were the agent's.
     dropped = {"prev", "hash", "session_id", "agent"}
     kept = deny.model_dump(mode="json", exclude=dropped)
-    decided = {"decision": "allow", "latency_ms": 0.0, "time": time}
+    outcome = "deny" if resolution.action == "uphold" else "allow"
+    decided = {"decision": outcome, "latency_ms": 0.0, "time": time}
     return kept | decided | {"resolution": resolution.model_dump()}
 
 

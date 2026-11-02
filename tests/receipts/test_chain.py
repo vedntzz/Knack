@@ -9,6 +9,7 @@ from knack.cli import main as knack_main
 from knack.contracts.models import MatchedCode, Root, Verdict
 from knack.receipts.chain import (
     append_receipt,
+    ChainReport,
     GENESIS,
     guard_receipt,
     load_receipts,
@@ -305,3 +306,53 @@ def test_a_persons_resolution_does_not_carry_the_agents_name(tmp_path: Path) -> 
     denied = append_receipt(path, fields(deny()) | {"agent": "muse-x"})
     resolution = Resolution(of=denied.hash, action="allow", by="maria", reason="ok")
     assert "agent" not in resolution_receipt(denied, resolution, NOW)
+
+
+# An allow and a retire, written by knack before uphold existed.
+RESOLVED_BEFORE_UPHOLD = (
+    Path(__file__).parents[1] / "fixtures" / "resolved_before_uphold" / "verdicts.jsonl"
+)
+
+
+def test_an_uphold_receipt_is_chained_and_verifies(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    denied = append_receipt(path, fields(deny()))
+    resolution = Resolution(
+        of=denied.hash, action="uphold", by="maria", reason="stands"
+    )
+    upheld = append_receipt(path, resolution_receipt(denied, resolution, NOW))
+    assert (upheld.prev, upheld.decision, upheld.resolution) == (
+        denied.hash,
+        "deny",
+        resolution,
+    )
+    assert load_receipts(path) == [denied, upheld]
+    assert verify_chain(path) == ChainReport(receipts=2)
+
+
+def test_allow_and_retire_receipts_still_record_an_allow(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    denied = append_receipt(path, fields(deny()))
+    for action in ("allow", "retire"):
+        resolution = Resolution(of=denied.hash, action=action, by="m", reason="r")
+        assert resolution_receipt(denied, resolution, NOW)["decision"] == "allow"
+
+
+def test_an_uphold_rewritten_as_an_allow_breaks_its_line(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    denied = append_receipt(path, fields(deny()))
+    resolution = Resolution(
+        of=denied.hash, action="uphold", by="maria", reason="stands"
+    )
+    append_receipt(path, resolution_receipt(denied, resolution, NOW))
+    records = lines(path)
+    records[1]["resolution"]["action"] = "allow"
+    rewrite(path, records)
+    assert verify_chain(path).broken_line == 2
+
+
+def test_resolutions_written_before_uphold_still_load_and_verify() -> None:
+    old = load_receipts(RESOLVED_BEFORE_UPHOLD)
+    actions = [r.resolution.action for r in old if r.resolution]
+    assert (len(old), actions) == (4, ["allow", "retire"])
+    assert verify_chain(RESOLVED_BEFORE_UPHOLD) == ChainReport(receipts=4)

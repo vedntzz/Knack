@@ -55,7 +55,12 @@ from knack.pipeline.github import GitHubApi
 from knack.pipeline.init import OtherRepoRegistry, run_init
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.reprove import default_variants, Reprove, reprove_registry
-from knack.receipts.chain import ChainReport, receipts_path, verify_chain
+from knack.receipts.chain import (
+    ChainReport,
+    receipts_path,
+    RESOLVED_VERBS,
+    verify_chain,
+)
 from knack.receipts.edits import edits_dir
 from knack.roots.backfill import backfill_merged_at, missing_merged_at
 from knack.roots.correct import (
@@ -336,10 +341,11 @@ def _correction_report(outcome: Outcome) -> int:
 
 def _add_resolve_arguments(resolve: argparse.ArgumentParser) -> None:
     resolve.description = (
-        "settle a deny after ESCALATE: allow that edit, or retire the decision"
+        "settle a deny after ESCALATE: allow that edit, retire the decision,"
+        " or uphold it"
     )
     resolve.add_argument("receipt", help="the hash of the deny receipt")
-    resolve.add_argument("action", choices=["allow", "retire"])
+    resolve.add_argument("action", choices=["allow", "retire", "uphold"])
     resolve.add_argument("--reason", required=True)
     resolve.add_argument("--by", help="who resolved; defaults to git user.name")
     resolve.add_argument("--registry", type=Path, help=RESOLVE_REGISTRY_HELP)
@@ -352,7 +358,9 @@ def _resolve_command(args: argparse.Namespace) -> int:
         done = resolve_deny(*named, corrections_path(), args.registry)
     except (ResolveError, RootStoreError, ValidationError, OSError) as error:
         return _loop_refused("resolve", str(error), 2)
-    print("\n".join([_resolved_line(done), *_promoted_lines(done)]))
+    print(
+        "\n".join([_resolved_line(done), *_promoted_lines(done), *_closed_lines(done)])
+    )
     return 0
 
 
@@ -369,10 +377,19 @@ def _promoted_lines(done: Resolved) -> list[str]:
     ]
 
 
+def _closed_lines(done: Resolved) -> list[str]:
+    # An uphold drops the held case; the rule it would have changed is untouched.
+    if done.closed is None:
+        return []
+    return [
+        f"held case closed, no case added for {done.receipt.rule_id}: {done.closed}"
+    ]
+
+
 def _resolved_line(done: Resolved) -> str:
     resolution, receipt = done.receipt.resolution, done.receipt
     assert resolution is not None
-    verb = "allowed" if resolution.action == "allow" else "retired"
+    verb = RESOLVED_VERBS[resolution.action]
     cited = f"{receipt.rule_id}, {done.correction.root_id}"
     return f"{resolution.of[:12]}: {verb} by {resolution.by} ({cited}): {resolution.reason}"
 

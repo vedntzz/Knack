@@ -20,7 +20,7 @@ from knack.walk.registry import Registry
 NO_CLONE = "{cwd} is not a clone with a knack registry; nothing to dispute"
 NO_DENY = "no deny receipt for this clone in {path}; nothing to dispute"
 HELD = "ESCALATE: held for a person"
-RESOLVE_HINT = 'To resolve: knack resolve {hash} allow|retire --reason "<why>"'
+RESOLVE_HINT = 'To resolve: knack resolve {hash} allow|retire|uphold --reason "<why>"'
 
 
 class NothingToDispute(Exception):
@@ -96,8 +96,8 @@ def _clone_registry(cwd: Path) -> tuple[Path, tuple[Registry, Path]]:
 
 
 def _denied_here(receipt: Receipt, repo: str, root: Path) -> bool:
-    # Another clone of the same repo has its own denies.
-    inside = Path(receipt.file).is_relative_to(root)
+    # Another clone of the same repo has its own denies; a person's uphold blocks nothing new.
+    inside = Path(receipt.file).is_relative_to(root) and receipt.resolution is None
     return receipt.decision == "deny" and receipt.repo == repo and inside
 
 

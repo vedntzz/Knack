@@ -204,6 +204,12 @@ WHO_RULES = (
 BOTH_HOLD = (
     "If Spark and Spark Open both escalate, the edit is held as a provisional case."
 )
+THREE_CHOICES = (
+    "A person has three choices: `knack resolve <receipt> allow|retire|uphold"
+    ' --reason "<why>"`. Allow lets that exact edit through, retire drops the'
+    " decision's rule, and uphold confirms the decision stands: the edit stays"
+    " blocked, the held case closes, and no exception or case is added."
+)
 RULING_NAMES = (
     "Each ruling in `rulings.jsonl` names every model that answered (name, host, "
     "trace id) and the agent from the PreToolUse payload, or `not recorded`."
@@ -228,3 +234,9 @@ def test_the_code_holds_a_provisional_case_only_when_both_models_escalate() -> N
 def test_a_ruling_record_names_its_models_and_agent() -> None:
     assert {"models", "agent"} <= set(RulingRecord.model_fields)
     assert set(ModelCall.model_fields) == {"model", "host", "trace_id"}
+
+
+def test_readme_names_the_three_resolve_choices_under_argue() -> None:
+    lines = README.read_text(encoding="utf-8").splitlines()
+    argue = next(i for i, line in enumerate(lines) if "(`knack argue`)" in line)
+    assert THREE_CHOICES in lines[argue + 1 : argue + 3]

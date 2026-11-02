@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from knack.receipts.chain import load_receipts, Receipt, verify_chain
+from knack.receipts.chain import human_allow, load_receipts, Receipt, verify_chain
 
 REPO_ROOT = Path(__file__).parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "one_story.sh"
@@ -18,6 +18,10 @@ HOLD_OBJECTION = (
 ESCALATE_OBJECTION = (
     "A customer dashboard pins order_by=state in a contract that runs until March;"
     " removing it breaks them."
+)
+UPHOLD_REASON = (
+    "The decision stands; the customer can sort by last_run_state"
+    " and last_run_start_date."
 )
 STEPS = ["block", "argue_hold", "argue_escalate", "resolve", "corrected", "verify"]
 ALIAS_LINES = [
@@ -78,7 +82,8 @@ def latency(home: Path) -> Json:
 
 
 def deny(home: Path) -> Receipt:
-    denies = [r for r in chain(home) if r.decision == "deny"]
+    # The agent's block; the person's uphold also records a deny, but blocks nothing new.
+    denies = [r for r in chain(home) if r.decision == "deny" and r.resolution is None]
     assert len(denies) == 1
     return denies[0]
 
@@ -113,14 +118,27 @@ def test_argue_holds_then_escalates_on_the_two_objections(story: Path) -> None:
     assert found == [(HOLD_OBJECTION, "hold"), (ESCALATE_OBJECTION, "escalate")]
 
 
-def test_resolve_appends_a_learn_receipt_chained_after_the_block(story: Path) -> None:
+def test_resolve_upholds_the_block_in_a_receipt_chained_after_it(story: Path) -> None:
     receipts = guarded(story)
     block = deny(story)
-    learn = next(r for r in receipts if r.resolution)
-    assert receipts.index(learn) > receipts.index(block)
-    assert learn.resolution and learn.resolution.of == block.hash
-    assert (learn.decision, learn.resolution.action) == ("allow", "allow")
-    assert learn.resolution.reason.strip()
+    upheld = next(r for r in receipts if r.resolution)
+    assert receipts.index(upheld) > receipts.index(block)
+    assert upheld.resolution and upheld.resolution.of == block.hash
+    assert (upheld.decision, upheld.resolution.action) == ("deny", "uphold")
+    assert (upheld.resolution.reason, upheld.resolution.by) == (
+        UPHOLD_REASON,
+        "story test",
+    )
+
+
+def test_uphold_grants_no_exception_for_the_blocked_edit(story: Path) -> None:
+    block = deny(story)
+    assert block.edit_sha256 is not None
+    path = out(story) / "receipts.jsonl"
+    assert human_allow(path, RULE_ID, block.edit_sha256) is None
+    step = manifest(story)["steps"][STEPS.index("resolve")]
+    assert "upheld by story test" in step["stdout"]
+    assert "must-pass" not in step["stdout"]
 
 
 def test_corrected_edit_passes_the_hook_on_its_own_merits(story: Path) -> None:

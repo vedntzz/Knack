@@ -102,3 +102,46 @@ def test_resolve_allow_names_the_promoted_must_pass_case(
     assert cli.main([*args, "--registry", str(registry)]) == 0
     out = capsys.readouterr().out
     assert "provisional case is now must-pass" in out and "widgets-3" in out
+
+
+def test_resolve_uphold_logs_and_prints_upheld(
+    home: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    before = registry.read_text()
+    args = ["resolve", deny.hash, "uphold", "--reason", "it stands", "--by", "maria"]
+    assert cli.main([*args, "--registry", str(registry)]) == 0
+    assert [(c.action, c.receipt_hash) for c in logged(home)] == [("uphold", deny.hash)]
+    assert registry.read_text() == before
+    out = capsys.readouterr().out
+    assert (
+        f"{deny.hash[:12]}: upheld by maria (widgets-3, widgets-3-1): it stands" in out
+    )
+
+
+def test_resolve_uphold_names_git_user_when_no_by(
+    home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def git_user(cwd: Path) -> str:
+        return "git person"
+
+    monkeypatch.setattr(cli, "reviewer_name", git_user)
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    args = ["resolve", deny.hash, "uphold", "--reason", "it stands"]
+    assert cli.main([*args, "--registry", str(registry)]) == 0
+    resolution = load_receipts(home / ".knack" / "verdicts.jsonl")[-1].resolution
+    assert resolution is not None and resolution.by == "git person"
+
+
+def test_resolve_uphold_names_the_held_case_it_closed(
+    home: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    fields = {"kind": "must-pass", "rule_id": "widgets-3", "file": "a.py"}
+    fields |= {"before": None, "after": "x = 2\n", "source": f"receipt {deny.hash}"}
+    save_provisional(registry, deny.hash, EditCase.model_validate(fields))
+    args = ["resolve", deny.hash, "uphold", "--reason", "it stands", "--by", "maria"]
+    assert cli.main([*args, "--registry", str(registry)]) == 0
+    out = capsys.readouterr().out
+    assert "held case closed, no case added for widgets-3" in out
+    assert "must-pass" not in out

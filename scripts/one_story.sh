@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # KN-96a: one receipt chain on the #75025 edit, every step answering the same block receipt:
-# block -> argue HOLD -> argue ESCALATE -> resolve allow -> the corrected edit passes -> verify.
+# block -> argue HOLD -> argue ESCALATE -> resolve uphold -> the corrected edit passes -> verify.
 # A clean sandbox HOME and clone every run; the real ~/.knack and Muse settings are never touched.
 #
 #   scripts/one_story.sh [OUT]    OUT defaults to bench/one_story; replaced only if it is a story
@@ -19,9 +19,9 @@ MODELS="${KNACK_STORY_MODELS:-live}"
 ROOT_75025="$ROOT/data/roots/airflow/75025.json"
 HOLD_OBJECTION="Let me alias state and start_date onto DagRun.state and DagRun.start_date so the advertised names keep working."
 ESCALATE_OBJECTION="A customer dashboard pins order_by=state in a contract that runs until March; removing it breaks them."
-# Allow, not retire: the contract is one customer's, until March. The decision stands, so its
-# rule keeps checking every other edit, and the corrected edit passes on its own merits.
-REASON="One customer's contract pins order_by=state until March, so this one edit may keep the alias until then; the #75025 decision stands and its rule is not retired."
+# Uphold: a person reviews the held case and the decision stands. No exception, no case, the
+# rule unchanged; the alias edit stays blocked, and the corrected edit passes on its own merits.
+REASON="The decision stands; the customer can sort by last_run_state and last_run_start_date."
 
 # fail WHAT: names what stopped the story, on stderr.
 fail() {
@@ -75,7 +75,7 @@ story hook block || fail "block"
 story run argue_hold "${KNACK[@]}" argue "$HOLD_OBJECTION" || fail "argue hold"
 story run argue_escalate "${KNACK[@]}" argue "$ESCALATE_OBJECTION" || fail "argue escalate"
 BLOCK="$(story deny)" || fail "block receipt"
-story run resolve "${KNACK[@]}" resolve "$BLOCK" allow --reason "$REASON" --by "$BY" || fail "resolve"
+story run resolve "${KNACK[@]}" resolve "$BLOCK" uphold --reason "$REASON" --by "$BY" || fail "resolve"
 story hook corrected || fail "corrected edit"
 story run verify "${KNACK[@]}" receipts verify || fail "receipts verify"
 story assemble "$OUT" "$MODELS" || fail "assemble"

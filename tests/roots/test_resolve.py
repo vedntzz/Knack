@@ -12,6 +12,7 @@ from knack.receipts.chain import (
     human_allow,
     load_receipts,
     Receipt,
+    Resolution,
     verify_chain,
 )
 from knack.roots import resolve
@@ -336,3 +337,105 @@ def test_resolve_stamps_with_the_guards_microsecond_precision(
     [record] = logged(log)
     assert record.at == "2026-11-02T04:26:13.900000+00:00"
     assert load_receipts(receipts)[-1].time == record.at
+
+
+def upheld(registry: Path, log: Path, receipts: Path) -> tuple[Receipt, Receipt]:
+    # A person reviewed the held case and confirmed the decision stands.
+    deny = receipted(receipts)
+    named = (receipts, deny.hash, "uphold", "the decision stands", "maria", log)
+    return deny, resolve_deny(*named, registry).receipt
+
+
+def test_uphold_appends_a_resolution_receipt_chained_to_the_block(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, receipt = upheld(registry, log, receipts)
+    assert load_receipts(receipts) == [deny, receipt]
+    assert receipt.prev == deny.hash
+    assert receipt.resolution == Resolution(
+        of=deny.hash, action="uphold", by="maria", reason="the decision stands"
+    )
+    assert (receipt.rule_id, receipt.edit_sha256) == ("widgets-3", EDIT)
+    assert verify_chain(receipts).broken_line is None
+
+
+def test_an_uphold_receipt_records_the_edit_as_still_denied(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    _, receipt = upheld(registry, log, receipts)
+    assert receipt.decision == "deny"
+
+
+def test_uphold_logs_a_correction_and_leaves_the_rule_alone(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    before = registry.read_text()
+    deny, _ = upheld(registry, log, receipts)
+    [record] = logged(log)
+    assert (record.action, record.receipt_hash, record.by) == (
+        "uphold",
+        deny.hash,
+        "maria",
+    )
+    assert record.before == record.after
+    assert registry.read_text() == before
+    assert status_on_disk(registry, "widgets-3-1") == "Confirmed"
+
+
+def test_uphold_creates_no_exception_for_the_edit(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    upheld(registry, log, receipts)
+    assert human_allow(receipts, "widgets-3", EDIT) is None
+
+
+def test_uphold_closes_the_held_case_without_making_it_a_case(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    held = save_provisional(registry, deny.hash, provisional_case(deny))
+    named = (receipts, deny.hash, "uphold", "stands", "maria", log, registry)
+    done = resolve_deny(*named)
+    assert load_provisional(registry, deny.hash) is None
+    assert load_cases(cases_dir(registry), "widgets-3") == []
+    assert (done.promoted, done.closed) == (None, held)
+
+
+def test_uphold_without_a_held_case_closes_nothing(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    done = resolve_deny(receipts, deny.hash, "uphold", "stands", "maria", log, registry)
+    assert (done.promoted, done.closed) == (None, None)
+
+
+def test_allow_and_retire_close_no_held_case(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny = receipted(receipts)
+    done = resolve_deny(receipts, deny.hash, "retire", "old", "bo", log, registry)
+    assert done.closed is None
+
+
+def test_an_upheld_deny_is_resolved_and_cannot_be_resolved_again(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, _ = upheld(registry, log, receipts)
+    with pytest.raises(ResolveError, match="already resolved: uphold by maria"):
+        resolve_deny(receipts, deny.hash, "allow", "now ok", "bo", log, registry)
+    assert human_allow(receipts, "widgets-3", EDIT) is None
+
+
+def test_an_uphold_receipt_is_not_itself_a_deny_to_resolve(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    _, receipt = upheld(registry, log, receipts)
+    with pytest.raises(ResolveError, match="not a deny"):
+        resolve_deny(receipts, receipt.hash, "allow", "ok", "bo", log, registry)
+
+
+def test_uphold_never_feeds_the_extract_few_shot(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    upheld(registry, log, receipts)
+    assert recent_corrections(log) == []

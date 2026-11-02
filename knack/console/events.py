@@ -24,7 +24,9 @@ def _deny_hash(line: str) -> str | None:
     except ValueError:
         return None
     fields = cast(dict[str, object], record) if isinstance(record, dict) else {}
-    return str(fields.get("hash")) if fields.get("decision") == "deny" else None
+    # A person's uphold records a deny but blocks nothing new.
+    fresh = fields.get("decision") == "deny" and fields.get("resolution") is None
+    return str(fields.get("hash")) if fresh else None
 
 
 def fresh_denies(receipts: Path, seen: set[str]) -> list[str]:
