@@ -9,6 +9,7 @@ import urllib.request
 from collections.abc import Iterator
 from html import unescape
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -19,6 +20,9 @@ CONSOLE_HEADING = "## See it in the console"
 SETUP_HEADING = "## Get it running"
 CONSOLE = "http://127.0.0.1:7655"
 BLOCK_PAGE = f"{CONSOLE}/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9"
+ARGUE_PAGE = f"{BLOCK_PAGE}/argue"
+HELD_PAGE = f"{BLOCK_PAGE}/held"
+ONE_STORY = REPO_ROOT / "mockups" / "fixtures" / "one_story"
 ROOT_75025 = REPO_ROOT / "data" / "roots" / "airflow" / "75025.json"
 LINK = re.compile(r"http://127\.0\.0\.1:7655/\S*?(?=[)`>\s]|$)", re.M)
 # Inherited settings the README command must not lean on.
@@ -79,12 +83,25 @@ def wait_until_up(server: subprocess.Popen[bytes]) -> None:
     raise AssertionError("knack console did not start as the README says")
 
 
-def start_console(home: Path) -> subprocess.Popen[bytes]:
-    # Exactly the README's command, in its own process group.
+def fresh_clone(into: Path) -> Path:
+    # A clone of the committed HEAD: untracked fixtures are not in it.
+    head = git("rev-parse", "HEAD").strip()
+    git("clone", "--quiet", "--shared", "--no-checkout", str(REPO_ROOT), str(into))
+    git("-C", str(into), "checkout", "--quiet", "--detach", head)
+    return into
+
+
+def git(*args: str) -> str:
+    run = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
+    return run.stdout if run.returncode == 0 else pytest.fail(run.stderr)
+
+
+def start_console(clone: Path, home: Path) -> subprocess.Popen[bytes]:
+    # Exactly the README's command, in the clone, in its own process group.
     quiet = subprocess.DEVNULL
     return subprocess.Popen(
         ["sh", "-c", console_command()],
-        cwd=REPO_ROOT,
+        cwd=clone,
         env=fresh_env(home),
         stdout=quiet,
         stderr=quiet,
@@ -98,16 +115,22 @@ def stop(server: subprocess.Popen[bytes]) -> None:
     server.wait(timeout=10)
 
 
+def fresh_console(scratch: Path) -> subprocess.Popen[bytes]:
+    # The README's console in a fresh clone, with an empty HOME beside it.
+    (scratch / "home").mkdir()
+    return start_console(fresh_clone(scratch / "Knack"), scratch / "home")
+
+
 @pytest.fixture
 def readme_console(tmp_path: Path) -> Iterator[None]:
-    # tmp_path is an empty HOME: no ~/.knack, before or after.
-    server = start_console(tmp_path)
+    # A fresh clone and an empty HOME: no ~/.knack, before or after.
+    server = fresh_console(tmp_path)
     try:
         wait_until_up(server)
         yield
     finally:
         stop(server)
-    assert not (tmp_path / ".knack").exists()
+    assert not (tmp_path / "home" / ".knack").exists()
 
 
 def page_text(html: str) -> str:
@@ -127,8 +150,26 @@ def test_the_console_section_is_one_command_on_the_committed_receipts() -> None:
     assert command.endswith("knack console")
 
 
-def test_the_console_section_links_the_block_page_and_home() -> None:
-    assert sorted(set(console_links())) == sorted({BLOCK_PAGE, CONSOLE + "/"})
+def records(name: str) -> list[dict[str, Any]]:
+    lines = (ONE_STORY / name).read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines]
+
+
+def objection(decision: str) -> str:
+    # The one-story objection Spark ruled on with this decision, as the page shows it.
+    [found] = [r for r in records("rulings.jsonl") if r["decision"] == decision]
+    return " ".join(found["objection"].split())
+
+
+def upheld_by() -> str:
+    resolved = [r["resolution"] for r in records("receipts.jsonl") if "resolution" in r]
+    [uphold] = [r for r in resolved if r["action"] == "uphold"]
+    return uphold["by"]
+
+
+def test_the_console_section_links_the_block_argue_held_and_home() -> None:
+    pages = {BLOCK_PAGE, ARGUE_PAGE, HELD_PAGE, CONSOLE + "/"}
+    assert sorted(set(console_links())) == sorted(pages)
 
 
 def test_the_deny_examples_console_link_is_a_page_the_section_serves() -> None:
@@ -146,6 +187,20 @@ def test_every_console_link_is_served_from_a_fresh_home() -> None:
 def test_the_block_page_shows_the_full_75025_quote() -> None:
     status, html = get(BLOCK_PAGE)
     assert status == 200 and full_quote() in page_text(html)
+
+
+@pytest.mark.usefixtures("readme_console")
+def test_the_argue_page_shows_the_objection_spark_held() -> None:
+    status, html = get(ARGUE_PAGE)
+    assert status == 200 and objection("hold") in page_text(html)
+
+
+@pytest.mark.usefixtures("readme_console")
+def test_the_held_page_shows_the_escalated_objection_and_the_uphold() -> None:
+    status, html = get(HELD_PAGE)
+    text = page_text(html)
+    assert status == 200 and objection("escalate") in text
+    assert f"Upheld by {upheld_by()}" in text
 
 
 def test_the_setup_block_ends_with_reproduce() -> None:

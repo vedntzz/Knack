@@ -1,0 +1,107 @@
+/* Every colour, face, size and spacing value from DESIGN.md. console.css builds only from these. */
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-500-normal.woff2") format("woff2"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Plex Sans"; src: url("fonts/ibm-plex-sans-600-normal.woff2") format("woff2"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Plex Serif"; src: url("fonts/ibm-plex-serif-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/ibm-plex-mono-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+
+:root {
+  /* Palette: the tool is dark; the human is paper. */
+  --ground: #0B0C0E;
+  --panel: #131418;
+  --raised: #1C1E23;
+  --text: #E6E7EA;
+  --muted: #9A9EA6;
+  --paper: #F6F6F4;
+  --paper-raised: #E9E9E6;
+  --ink: #0A0A0B;
+  --ink-muted: #4D4F55;
+  --red: #FF5A47;
+  --gold: #D8C08A;
+  --gold-paper: #7A5E00;
+
+  /* Faces: Serif for the human, Sans for the tool, Mono for code, hashes and commands. */
+  --sans: "Plex Sans", system-ui, sans-serif;
+  --serif: "Plex Serif", Georgia, serif;
+  --mono: "Plex Mono", ui-monospace, monospace;
+
+  /* Type scale, named by px at 720p. */
+  --type-14: 0.875rem;
+  --type-16: 1rem;
+  --type-20: 1.25rem;
+  --type-28: 1.75rem;
+  --type-40: 2.5rem;
+  /* Code inside running text, relative to the text around it. */
+  --type-code: 0.875em;
+  --type-code-in-quote: 0.8em;
+  --type-same: 1em;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 600;
+  --leading-solid: 1;
+  --leading-body: 1.5;
+  --leading-20: 1.25rem;
+  --leading-24: 1.5rem;
+  --leading-28: 1.75rem;
+  --leading-32: 2rem;
+  --leading-36: 2.25rem;
+  --leading-48: 3rem;
+  --tracking-none: 0;
+  --tracking-tight: -0.01em;
+  --tracking-tighter: -0.015em;
+  --tracking-wordmark: -0.02em;
+  --tracking-figures: -0.03em;
+
+  /* Spacing: the 8-point scale, named by px at 720p. */
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+  --space-48: 3rem;
+  --space-64: 4rem;
+  /* Off the scale, kept as they were so the structure refactor moves no pixel. */
+  --space-separator: 0.375rem;
+  --space-paper: 1.25rem;
+  --space-figure-column: 1.25rem;
+  --space-quiet: 8rem;
+
+  /* Sizes. */
+  --bar-height: 3.5rem;
+  --rail-width: 24rem;
+  --control-height: 2rem;
+  /* A thumb's target on a phone. */
+  --control-touch: 2.75rem;
+  --col-number: 2.5rem;
+  --col-sign: 1.5rem;
+  --gutter: 0.1875rem;
+  --stroke: 0.125rem;
+  --underline: 0.0625rem;
+  --underline-offset: 0.1875rem;
+  --radius-paper: 0.125rem;
+  --radius-board: 0.25rem;
+  /* The note and the path start where the code does: number, sign and gutter. */
+  --code-indent: calc(var(--col-number) + var(--col-sign) + var(--gutter));
+  --pressed: 0.97;
+  /* The day page: the today column, a key swatch, a dot on a day, the time column. */
+  --today-width: 26rem;
+  --swatch: 0.75rem;
+  --mark: 0.375rem;
+  --time-width: 4.5rem;
+  /* The graph scrolls inside its box on a phone, at this width. */
+  --graph-width: 53rem;
+
+  /* Motion. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --press: 160ms;
+  --fade: 150ms;
+
+  /* A 16:9 composition: 16 px at 1280×720, 24 px at 1920×1080. */
+  font-size: min(1.25vw, 2.2222vh);
+}
+
+/* Below a laptop width the page is set at a fixed 16 px. */
+@media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
+  :root { font-size: 16px; }
+}
