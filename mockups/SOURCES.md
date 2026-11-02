@@ -81,3 +81,7 @@ Frozen unchanged from a single live run of `KNACK_STORY_MODELS=live scripts/one_
 | `traces/steps/*.txt` | Each step's exit, stdout and stderr, with the sandbox path shown as `<sandbox>` | The steps as they ran |
 | `edits/*.json` | Before and after snapshots of `public/dags.py` for the blocked and the corrected edit | The sandbox's `~/.knack/edits/` |
 | `story.json` | Models `live`, block receipt, rule, and every step's output | `scripts/one_story.py assemble` |
+
+## Self-repair, live (KN-97): `fixtures/self_repair/`
+
+Frozen unchanged from one live self-repair run of airflow-75025 on 2026-11-02, with real Spark and Spark Open. The first `knack confirm` was rolled back by the regression gate and the retry passed. Every file is listed in [`fixtures/self_repair/SOURCES.md`](fixtures/self_repair/SOURCES.md), and the run is written up in [`spikes/self_repair_live.md`](../spikes/self_repair_live.md). No console page reads this folder yet.

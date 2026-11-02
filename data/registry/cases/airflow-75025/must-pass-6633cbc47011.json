@@ -1,0 +1,10 @@
+{
+  "kind": "must-pass",
+  "rule_id": "airflow-75025",
+  "file": "airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py",
+  "before": null,
+  "after": "from airflow.api_fastapi.common.parameters import SortParam\nfrom airflow.models import DagModel\nfrom airflow.models.dagrun import DagRun\n\nallowed_keys = [k for k in [\"dag_id\", \"dag_display_name\"]]\nextra = {a: b for a, b in [(\"last_run_state\", DagRun.state), (\"last_run_start_date\", DagRun.start_date)]}\nsorter_cc = SortParam(allowed_keys, DagModel, extra)\ndep_fn = sorter_cc.dynamic_depends()\n",
+  "source": "receipt f679bf658d9f754750c54a518084987983aa0ac46fae79250c6d1f8f185bc78a",
+  "note": "",
+  "answers": []
+}

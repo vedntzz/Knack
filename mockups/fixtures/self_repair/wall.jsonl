@@ -1,0 +1,5 @@
+{"step": "01_evasion_allowed", "wall_ms": 210.5, "decision": "allow"}
+{"step": "02_compliant_denied", "wall_ms": 124.0, "decision": "deny"}
+{"step": "06_evasion_denied", "wall_ms": 200.3, "decision": "deny"}
+{"step": "07_compliant_allowed", "wall_ms": 162.6, "decision": "allow"}
+{"step": "08_corrected_allowed", "wall_ms": 164.7, "decision": "allow"}
