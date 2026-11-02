@@ -32,7 +32,7 @@ from knack.pipeline.progress import (
     select_line,
 )
 from knack.pipeline.prove import failed_checks, ProofCase, Sides, verifier_sides
-from knack.pipeline.readings import save_readings, save_trace
+from knack.pipeline.readings import save_readings, save_trace, save_writers
 from knack.pipeline.record import rule_proof, with_heldout, with_merged_at
 from knack.pipeline.releases import last_release_before
 from knack.pipeline.roots import install_roots, reviewed_roots, root_prefix, roots_for
@@ -42,6 +42,8 @@ from knack.roots.corrections import corrections_path, few_shot_block, recent_cor
 from knack.walk.registry import Registry, RegistryEntry
 
 Log = Callable[[str], None]
+# Recorded as the adversary when the caller named none and gave no reason.
+NO_ADVERSARY = "none given: the compiler wrote its own variants"
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,8 @@ class Run:
     adversary: Spark | None = None
     # The registry file to update; None writes out/registry.json.
     registry: Path | None = None
+    # Why there is no adversary, for the writers trace.
+    no_adversary: str = NO_ADVERSARY
 
 
 @dataclass(frozen=True)
@@ -204,6 +208,13 @@ def _writer(run: Run) -> Spark:
     return run.adversary or run.spark
 
 
+def _writers(run: Run) -> dict[str, str]:
+    writer = _writer(run).model
+    adversary = writer if run.adversary else run.no_adversary
+    fields = {"compiler": run.spark.model, "variants": writer, "heldout": writer}
+    return fields | {"adversary": adversary}
+
+
 def _targets(
     prs: list[PullRequest], extractions: list[Extraction], roots: list[Root]
 ) -> list[Target]:
@@ -236,6 +247,7 @@ def _old_release(run: Run, pr: PullRequest, tags: dict[str, str]) -> dict[str, A
 
 
 def _compile_logged(run: Run, target: Target, trees: Trees) -> Compiled:
+    save_writers(run.out / "work", target.pr.number, _writers(run))
     compiled = _compile_safely(run, target, trees)
     run.log(outcome_line(compiled))
     if compiled.heldout is not None:

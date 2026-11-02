@@ -3,7 +3,7 @@ from pathlib import Path
 
 from knack.pipeline.ports import GitHub, Spark
 from knack.pipeline.select import select_numbers
-from knack.pipeline.stages import finish, Log, Run
+from knack.pipeline.stages import finish, Log, NO_ADVERSARY, Run
 from knack.walk.registry import Registry
 
 
@@ -15,9 +15,12 @@ def run_merged(
     spark: Spark,
     log: Log,
     second: Spark | None = None,
+    adversary: Spark | None = None,
+    no_adversary: str = NO_ADVERSARY,
 ) -> Path:
     # The named PRs through the same stages; proven rules join the named registry file.
     kept = Registry.model_validate_json(registry_path.read_text(encoding="utf-8"))
     run = Run(github, spark, kept.repo, registry_path.parent, log, tree, second=second)
     run = replace(run, registry=registry_path)
+    run = replace(run, adversary=adversary, no_adversary=no_adversary)
     return finish(run, select_numbers(github, kept.repo, numbers), keep=kept.rules)

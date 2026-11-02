@@ -73,7 +73,7 @@ def _clients(corroborate: bool) -> Clients:
 
 
 def _judge(args: argparse.Namespace) -> Judge | None:
-    # By default Spark Open judges merges when its key is set; --corroborate brings its own.
+    # By default Spark Open writes variants and judges merges when its key is set; --corroborate brings its own.
     return None if args.corroborate or args.no_corroborate else optional_partner
 
 

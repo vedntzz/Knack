@@ -91,7 +91,8 @@ def test_the_run_prints_the_staged_progress_log(setup: Setup) -> None:
     merge_pr(setup.repo)
     setup.run()
     assert setup.lines[0] == "knack watch acme/widgets: 1 merged PR: #9"
-    assert setup.lines[1] == "[1/5] select   1 PRs read, 1 kept"
+    assert setup.lines[1].startswith("knack watch: Spark Open did not run: ")
+    assert setup.lines[2] == "[1/5] select   1 PRs read, 1 kept"
     assert "  #9: 1 decision, 1 rejected alternative" in setup.lines
     assert "  #9 proven on attempt 1" in setup.lines
     install = [line for line in setup.lines if line.startswith("[5/5] install")]
@@ -327,3 +328,79 @@ def test_a_named_registry_keeps_its_roots_dir_and_gets_the_root_there(
     found = load_roots(setup.out.parent / "data" / "roots" / "widgets")
     assert [r.id for r in found] == ["widgets-9-1"]
     assert not (setup.registry.parent / "roots").exists()
+
+
+class VariantSparkOpen(FakeSparkOpen):
+    # Spark Open with its key set: it reads PRs and writes variants.
+    def ask(self, prompt: str) -> str:
+        if not prompt.startswith("You write test cases"):
+            return super().ask(prompt)
+        self.prompts.append(prompt)
+        return VARIANTS
+
+
+def variant_asks(prompts: list[str]) -> int:
+    return sum(p.startswith("You write test cases") for p in prompts)
+
+
+def writers(setup: Setup) -> dict[str, str]:
+    return json.loads((setup.out / "work" / "9" / "writers.json").read_text())
+
+
+def test_with_the_spark_open_key_spark_open_writes_every_variant(
+    setup: Setup,
+) -> None:
+    spark_open = VariantSparkOpen({**EXTRACTIONS})
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: spark_open)
+    assert variant_asks(setup.spark.prompts) == 0
+    assert variant_asks(spark_open.prompts) == 2
+    adversary = "  adversary: fake-spark-open writes variants, fake-spark compiles"
+    assert adversary in setup.lines
+    held = [e.proof for e in load_registry(setup.registry).rules if e.proof]
+    assert held[-1].heldout is not None
+    assert held[-1].heldout.author == "fake-spark-open"
+
+
+def test_with_the_spark_open_key_the_trace_names_spark_open_as_writer(
+    setup: Setup,
+) -> None:
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: VariantSparkOpen({**EXTRACTIONS}))
+    assert writers(setup) == {
+        "compiler": "fake-spark",
+        "variants": "fake-spark-open",
+        "heldout": "fake-spark-open",
+        "adversary": "fake-spark-open",
+    }
+
+
+def test_without_the_spark_open_key_watch_says_so_plainly(setup: Setup) -> None:
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: None)
+    assert setup.lines[1] == (
+        "knack watch: Spark Open did not run: BASETEN_API_KEY is not set; "
+        "Spark writes and grades its own held-out variants"
+    )
+
+
+def test_without_the_spark_open_key_the_trace_records_it_did_not_run(
+    setup: Setup,
+) -> None:
+    merge_pr(setup.repo)
+    setup.run(judge=lambda: None)
+    assert writers(setup) == {
+        "compiler": "fake-spark",
+        "variants": "fake-spark",
+        "heldout": "fake-spark",
+        "adversary": "Spark Open did not run: BASETEN_API_KEY is not set",
+    }
+
+
+def test_with_no_second_model_the_trace_says_spark_open_was_off(
+    setup: Setup,
+) -> None:
+    merge_pr(setup.repo)
+    setup.run()
+    off = "Spark Open did not run: no second model (--no-corroborate)"
+    assert writers(setup)["adversary"] == off
