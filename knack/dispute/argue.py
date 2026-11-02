@@ -20,10 +20,13 @@ UNCITED_HOLD = "Spark held without citing the decision, so a person has to decid
 PROMPT = """An AI coding agent objects to a recorded team decision. Answer as the person who made it.
 Use ONLY the verbatim quotes below. Do not add reasons they do not state.
 Rule "hold" when the quotes already answer the objection, for example when it restates an
-alternative the quotes reject. Cite the exact words you rely on.
+alternative the quotes reject. An objection that proposes a rejected alternative below holds,
+even reworded or with a reason the quote already weighs. An offer in a quote to do it the other
+way is not a reversal: the decision is what was done. Cite the exact words you rely on.
 Rule "escalate" when the objection raises a condition, constraint or case the quotes do not
 address. Say plainly what they do not cover; a person will decide.
-Every cited_quotes entry must be copied character for character from a quote below.
+Every cited_quotes entry must be copied character for character from a quote below; the
+decision and rejected alternative lines are summaries, never cite them.
 
 QUOTES:
 {quotes}
@@ -31,14 +34,19 @@ QUOTES:
 OBJECTION:
 {objection}
 """
+REASK = """
+Your last ruling cited words that are not in any quote: {cited}
+Rule again. Copy every cited_quotes entry character for character from a quote above.
+"""
 
 
 def argue(objection: str, roots: list[Root], ask: Ask | None = None) -> Ruling:
     confirmed = [root for root in roots if root.status == "Confirmed"]
     if not confirmed:
         return _escalate(NO_CONFIRMED_ROOTS)
-    ruling = _ask_for_ruling(ruling_prompt(objection, confirmed), ask or ask_spark)
-    return _checked(ruling, [root.quote for root in confirmed])
+    prompt = ruling_prompt(objection, confirmed)
+    quotes = [root.quote for root in confirmed]
+    return _checked(_ruled_verbatim(prompt, quotes, ask or ask_spark), quotes)
 
 
 class SparkRuling:
@@ -72,9 +80,16 @@ def ruling_prompt(objection: str, confirmed: list[Root]) -> str:
 
 
 def _quote_block(root: Root) -> str:
-    return (
-        f'[{root.id}] decided by {root.decided_by} ({root.source_url}):\n"{root.quote}"'
+    head = f"[{root.id}] decided by {root.decided_by} ({root.source_url}):"
+    return "\n".join(
+        [head, f"Decision: {root.decision}", *_rejected(root), f'"{root.quote}"']
     )
+
+
+def _rejected(root: Root) -> list[str]:
+    # Named apart from the quote, so an offer in the quote never reads as the decision.
+    alternative = root.rejected_alternative
+    return [f"Rejected alternative: {alternative}"] if alternative else []
 
 
 def _ask_for_ruling(prompt: str, ask: Ask) -> Ruling:
@@ -83,6 +98,19 @@ def _ask_for_ruling(prompt: str, ask: Ask) -> Ruling:
     except Exception as error:
         # Spark down or off-schema: a person decides, never a crash.
         return _escalate(f"{SPARK_FAILED} ({type(error).__name__}).")
+
+
+def _ruled_verbatim(prompt: str, quotes: list[str], ask: Ask) -> Ruling:
+    # A hold citing words not in the record is asked once more, then checked as it stands.
+    ruling = _ask_for_ruling(prompt, ask)
+    invented = _invented(ruling, quotes)
+    if ruling.decision != "hold" or not invented:
+        return ruling
+    return _ask_for_ruling(prompt + REASK.format(cited=json.dumps(invented)), ask)
+
+
+def _invented(ruling: Ruling, quotes: list[str]) -> list[str]:
+    return [cited for cited in ruling.cited_quotes if not _is_verbatim(cited, quotes)]
 
 
 def _checked(ruling: Ruling, quotes: list[str]) -> Ruling:
