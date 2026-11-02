@@ -2,6 +2,12 @@ import re
 import subprocess
 from pathlib import Path
 
+from knack.dispute.argue import SPARK_MODEL
+from knack.dispute.rulings import ModelCall, RulingRecord
+from knack.miss.cases import ModelAnswer
+from knack.miss.selfcheck import agreed
+from knack.pipeline.spark_open import MODEL as OPEN_MODEL
+
 REPO_ROOT = Path(__file__).parents[1]
 README = REPO_ROOT / "README.md"
 REQUIRED_LINES = [
@@ -189,3 +195,36 @@ def test_readme_carries_the_prize_headings() -> None:
 def test_open_weights_names_the_baseten_model() -> None:
     text = README.read_text(encoding="utf-8")
     assert "meta-models/muse-spark-open-1026" in text and "Baseten" in text
+
+
+# Group C: who answers an objection, as argue and its second opinion do it.
+WHO_RULES = (
+    "The ruling is Spark's alone. Spark Open is asked only after Spark escalates."
+)
+BOTH_HOLD = (
+    "If Spark and Spark Open both escalate, the edit is held as a provisional case."
+)
+RULING_NAMES = (
+    "Each ruling in `rulings.jsonl` names every model that answered (name, host, "
+    "trace id) and the agent from the PreToolUse payload, or `not recorded`."
+)
+
+
+def answer(model: str) -> ModelAnswer:
+    return ModelAnswer(model=model, yes=True, answer="escalate", prompt_sha256="0")
+
+
+def test_readme_says_who_rules_on_an_objection() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert [s for s in (WHO_RULES, BOTH_HOLD, RULING_NAMES) if s not in text] == []
+
+
+def test_the_code_holds_a_provisional_case_only_when_both_models_escalate() -> None:
+    spark, spark_open = answer(SPARK_MODEL), answer(OPEN_MODEL)
+    assert not agreed([spark]) and not agreed([spark, spark])
+    assert agreed([spark, spark_open])
+
+
+def test_a_ruling_record_names_its_models_and_agent() -> None:
+    assert {"models", "agent"} <= set(RulingRecord.model_fields)
+    assert set(ModelCall.model_fields) == {"model", "host", "trace_id"}

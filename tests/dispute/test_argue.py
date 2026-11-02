@@ -1,10 +1,12 @@
+import io
 import json
 import os
 from pathlib import Path
 
 import pytest
 from knack.contracts.models import Root
-from knack.dispute.argue import argue, Ruling
+from knack.dispute import argue as argue_module
+from knack.dispute.argue import argue, Ruling, SparkRuling
 from knack.roots.store import load_roots
 from pydantic import ValidationError
 
@@ -131,3 +133,32 @@ def test_live_spark_holds_on_rejected_alternative() -> None:
 def test_live_spark_escalates_on_uncovered_condition() -> None:
     ruling = argue(UNCOVERED_CONDITION, load_roots(ROOTS))
     assert ruling.decision == "escalate", ruling.reply
+
+
+def spark_replies(monkeypatch: pytest.MonkeyPatch, response: dict[str, object]) -> None:
+    # Fake Meta Responses endpoint answering every POST with one body.
+    def urlopen(request: object, timeout: float) -> io.BytesIO:
+        return io.BytesIO(json.dumps(response).encode())
+
+    monkeypatch.setenv("MODEL_API_KEY", "key")
+    monkeypatch.setattr(argue_module.urllib.request, "urlopen", urlopen)
+
+
+def message(text: str) -> list[dict[str, object]]:
+    return [{"type": "message", "content": [{"type": "output_text", "text": text}]}]
+
+
+def test_spark_keeps_the_response_id_as_its_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spark_replies(monkeypatch, {"id": "resp_abc", "output": message("ruled")})
+    spark = SparkRuling()
+    assert (spark("prompt"), spark.last_trace_id) == ("ruled", "resp_abc")
+    assert spark.host == "api.meta.ai"
+
+
+def test_a_response_without_an_id_has_no_trace(monkeypatch: pytest.MonkeyPatch) -> None:
+    spark_replies(monkeypatch, {"output": message("ruled")})
+    spark = SparkRuling()
+    spark("prompt")
+    assert spark.last_trace_id is None

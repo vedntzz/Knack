@@ -52,3 +52,21 @@ def test_answer_text_is_the_first_choice_message() -> None:
 def test_answer_without_content_is_an_error(response: dict[str, Any]) -> None:
     with pytest.raises(ValueError):
         chat_answer_text(response)
+
+
+def test_spark_open_keeps_the_response_id_as_its_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake(url: str, headers: dict[str, str], body: Any, timeout: float) -> Any:
+        return chat_response("the answer") | {"id": "chatcmpl-1"}
+
+    monkeypatch.setattr(spark_open, "request_json", fake)
+    judge = SparkOpenApi("key")
+    assert (judge.ask("p"), judge.last_trace_id) == ("the answer", "chatcmpl-1")
+    assert judge.host == "inference.baseten.co"
+
+
+def test_spark_open_without_a_response_id_has_no_trace(sent: Sent) -> None:
+    judge = SparkOpenApi("key")
+    judge.ask("p")
+    assert judge.last_trace_id is None

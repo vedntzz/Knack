@@ -4,6 +4,8 @@ import pytest
 from knack.dispute.rulings import (
     append_ruling,
     load_rulings,
+    ModelCall,
+    NOT_RECORDED,
     RulingRecord,
     rulings_for,
     rulings_path,
@@ -68,3 +70,36 @@ def test_a_ruling_with_no_model_is_allowed(tmp_path: Path) -> None:
     unasked = record().model_copy(update={"decision": "escalate", "model": None})
     append_ruling(tmp_path / "r.jsonl", unasked)
     assert load_rulings(tmp_path / "r.jsonl")[0].model is None
+
+
+# A ruling line exactly as rulings.jsonl held it before models and agent existed.
+OLD_LINE = (
+    '{"time":"2026-10-31T12:00:00+00:00","receipt_hash":"' + DENY_A + '",'
+    '"objection":"Alias it.","decision":"hold","reply":"We chose not to alias.",'
+    '"cited_quotes":["rather than aliasing them"],"model":"muse-spark-1.3"}'
+)
+
+
+def test_an_old_ruling_still_loads_and_claims_no_models_or_agent(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "rulings.jsonl"
+    path.write_text(OLD_LINE + "\n")
+    [old] = load_rulings(path)
+    assert (old.model, old.decision) == ("muse-spark-1.3", "hold")
+    assert (old.models, old.agent) == ([], NOT_RECORDED)
+
+
+def test_a_ruling_keeps_every_model_that_answered_and_the_agent(
+    tmp_path: Path,
+) -> None:
+    spark = ModelCall(model="muse-spark-1.3", host="api.meta.ai", trace_id="resp_1")
+    both = record().model_copy(update={"models": [spark], "agent": "muse-code"})
+    append_ruling(tmp_path / "r.jsonl", both)
+    [loaded] = load_rulings(tmp_path / "r.jsonl")
+    assert (loaded.models, loaded.agent) == ([spark], "muse-code")
+
+
+def test_a_model_call_without_a_trace_says_not_recorded() -> None:
+    call = ModelCall(model="muse-spark-1.3", host="api.meta.ai")
+    assert call.trace_id == NOT_RECORDED == "not recorded"

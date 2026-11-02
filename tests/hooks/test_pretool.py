@@ -578,6 +578,24 @@ def test_a_deny_receipt_names_its_branch_session_and_matched_code(
     assert receipt["matched"] and all(m["text"] in content for m in receipt["matched"])
 
 
+def test_a_receipt_names_the_agent_the_hook_payload_names(tmp_path: Path) -> None:
+    # The captured Muse Code payload names its agent in "model".
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("dags.py", tmp_path)
+    deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log", receipts))
+    [receipt] = receipt_lines(receipts)
+    assert receipt["agent"] == event["model"] == "muse-spark-1.3-contributor"
+
+
+def test_a_payload_without_an_agent_leaves_it_off_the_receipt(tmp_path: Path) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event = violating_write_event("dags.py", tmp_path)
+    del event["model"]
+    deny_reason(decide(event, make_registry(tmp_path), tmp_path / "log", receipts))
+    [receipt] = receipt_lines(receipts)
+    assert "agent" not in receipt
+
+
 def test_an_allow_receipt_outside_git_has_no_branch(tmp_path: Path) -> None:
     receipts = tmp_path / "verdicts.jsonl"
     event = load_event("write_event.json")

@@ -11,7 +11,10 @@ from knack.receipts.chain import (
     append_receipt,
     GENESIS,
     guard_receipt,
+    load_receipts,
     receipts_path,
+    Resolution,
+    resolution_receipt,
     verify_chain,
 )
 
@@ -230,7 +233,7 @@ def test_cli_verify_on_an_unreadable_path_exits_2(
     assert "knack receipts" in capsys.readouterr().err
 
 
-LATER = {"branch", "session_id", "matched"}
+LATER = {"branch", "session_id", "matched", "agent"}
 
 
 def matched_deny() -> Verdict:
@@ -265,3 +268,40 @@ def test_an_edited_branch_breaks_its_line(tmp_path: Path) -> None:
     records[0]["branch"] = "main"
     rewrite(path, records)
     assert verify_chain(path).broken_line == 1
+
+
+# Receipts the console fixture holds, written before receipts named the agent.
+OLD_RECEIPTS = (
+    Path(__file__).parents[1] / "fixtures" / "console_75025" / "verdicts.jsonl"
+)
+
+
+def test_the_agent_is_kept_and_hashed_when_the_hook_named_it(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    named = ("apache/airflow", "/w/dags.py", "no-alias-sort-keys")
+    append_receipt(path, guard_receipt(*named, root(), deny(), NOW, agent="muse-x"))
+    [line] = lines(path)
+    assert line["agent"] == "muse-x" and line["hash"] == canonical_hash(line)
+    assert verify_chain(path).broken_line is None
+
+
+def test_an_edited_agent_breaks_its_line(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    append_receipt(path, fields(deny()) | {"agent": "muse-x"})
+    records = lines(path)
+    records[0]["agent"] = "someone-else"
+    rewrite(path, records)
+    assert verify_chain(path).broken_line == 1
+
+
+def test_receipts_written_before_the_agent_field_still_load_and_verify() -> None:
+    old = load_receipts(OLD_RECEIPTS)
+    assert old and all(receipt.agent is None for receipt in old)
+    assert verify_chain(OLD_RECEIPTS).broken_line is None
+
+
+def test_a_persons_resolution_does_not_carry_the_agents_name(tmp_path: Path) -> None:
+    path = tmp_path / "verdicts.jsonl"
+    denied = append_receipt(path, fields(deny()) | {"agent": "muse-x"})
+    resolution = Resolution(of=denied.hash, action="allow", by="maria", reason="ok")
+    assert "agent" not in resolution_receipt(denied, resolution, NOW)
