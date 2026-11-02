@@ -2,7 +2,7 @@
 
 Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
-This is what the agent reads when the hook denies its edit. It is copied verbatim from [`bench/demo_block.log`](bench/demo_block.log), a run of `bash scripts/demo_block.sh` that replays an agent's recorded edit to apache/airflow's Dag list routes:
+This is what the agent reads when the hook denies its edit to apache/airflow's Dag list routes. It is the block receipt `0e7ab6083866` from the live one-story run ([`mockups/fixtures/one_story/`](mockups/fixtures/one_story/)), printed by today's guard rerun on that receipt's saved edit; `tests/test_readme.py` checks it still matches:
 
 ```text
 Knack blocked this edit.
@@ -10,10 +10,10 @@ Decision: Dag list endpoints do not accept bare state or start_date as sort keys
 Decided by: Pushkal Gupta (author); approved and merged by bbovenzi
 Why: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.
 Rejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.
-Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
+Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`. The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one. Happy to alias instead if you would rather keep the advertised names working."
 Source: https://github.com/apache/airflow/pull/75025
 Matched: "state": DagRun.state (line 135), "state" (line 135), "start_date": DagRun.start_date (line 136), "start_date" (line 136)
-Console: http://127.0.0.1:7655/verdict/80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16
+Console: http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9 (open with: knack console)
 To dispute: knack argue "<your reason>"
 ```
 
