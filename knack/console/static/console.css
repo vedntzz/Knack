@@ -90,9 +90,55 @@ h1 { font-size: var(--type-40); line-height: var(--leading-48); font-weight: var
 .quiet h1 { font-weight: var(--weight-medium); }
 .quiet p { color: var(--muted); }
 
+/* Argue and held: the argument left in the order it happened, the answer right. The tool is dark; the human is paper. */
+.argued { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-width); grid-template-areas: "head head" "exchange rail" "verify verify"; grid-template-rows: auto auto 1fr; gap: var(--space-16) var(--space-32); padding: var(--space-16) var(--space-32) var(--space-24); min-height: calc(100vh - var(--bar-height)); }
+/* Not red: red means one thing, Blocked. The argument is the tool's, so the seal sits on the tool's raised step. */
+.argued .seal { background: var(--raised); color: var(--text); }
+.exchange { grid-area: exchange; display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+.exchange .board { align-self: stretch; padding: var(--space-8) 0; }
+.exchange .note { margin: 0; padding: var(--space-16) var(--space-24); }
+.exchange .note blockquote p { font-size: var(--type-20); line-height: var(--leading-28); }
+.exchange .note figcaption { margin-top: var(--space-8); }
+/* A reply, the tool speaking: dark, one step up, the column's full width. */
+.said { background: var(--raised); border-radius: var(--radius-paper); padding: var(--space-12) var(--space-24); }
+.who { font-size: var(--type-14); line-height: var(--leading-20); color: var(--muted); }
+.who b { color: var(--text); font-weight: var(--weight-bold); }
+.said blockquote p, .said > p { margin-top: var(--space-4); color: var(--text); text-wrap: pretty; }
+.said blockquote code, .resolved blockquote code { font-size: var(--type-code-in-quote); letter-spacing: var(--tracking-none); }
+/* Only the human sentence a ruling cites is paper. */
+.slip { margin-top: var(--space-8); padding: var(--space-8) var(--space-16); background: var(--paper); border-radius: var(--radius-paper); }
+.said .slip p { margin-top: 0; font-family: var(--serif); color: var(--ink); line-height: var(--leading-24); }
+.said .reply { margin-top: var(--space-8); }
+.answer { display: flex; flex-direction: column; gap: var(--space-24); }
+.word { font-size: var(--type-40); line-height: var(--leading-48); font-weight: var(--weight-bold); letter-spacing: var(--tracking-wordmark); }
+.outcome p { margin-top: var(--space-4); text-wrap: pretty; }
+.by h2 { font-size: var(--type-16); line-height: var(--leading-24); font-weight: var(--weight-medium); color: var(--muted); }
+.by li { list-style: none; margin-top: var(--space-4); line-height: var(--leading-24); }
+.by li b { font-weight: var(--weight-bold); }
+.by li span, .ran { color: var(--muted); }
+.ran { margin-top: var(--space-8); }
+
+/* Held: the way back sits on the headline's baseline; the person's card is the one action. */
+.held .head { align-items: baseline; flex-wrap: wrap; }
+.sub { color: var(--muted); }
+.resolved blockquote { margin-top: var(--space-8); }
+.resolved blockquote p { font-family: var(--serif); font-size: var(--type-20); line-height: var(--leading-28); text-wrap: pretty; }
+.resolved .at, .decide .runs { margin-top: var(--space-12); font-size: var(--type-14); line-height: var(--leading-20); color: var(--ink-muted); }
+.decide .well { padding: var(--space-8) var(--space-12); }
+.decide .well code { white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-20); }
+.actions { margin-top: var(--space-12); display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.decide .copy { background: var(--paper-raised); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .decide .copy:hover { background: var(--ink); color: var(--paper); } }
+/* Reduced motion: the press scale goes; the colour change on hover stays. */
+@media (prefers-reduced-motion: reduce) { .copy, .well button { transition: background-color var(--fade) ease, color var(--fade) ease; } .copy:active, .well button:active { transform: none; } }
+
 /* Below a laptop width the board and rail stack; tokens.css sets the fixed 16 px. */
 @media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
   .verdict { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "board" "rail" "verify"; padding: var(--space-16); }
+  .argued { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "exchange" "rail" "verify"; padding: var(--space-16); }
+  /* Thumb-sized controls, and the verify row wraps instead of running off the edge. */
+  .argued .copy { height: var(--control-touch); }
+  .argued .verify p { flex-wrap: wrap; }
   .bar { padding: var(--space-16) var(--space-16) 0; flex-wrap: wrap; gap: var(--space-4) var(--space-16); height: auto; }
   /* The stacked bar already starts 16 px down; its wordmark carries no extra space. */
   .wordmark { line-height: var(--leading-solid); }

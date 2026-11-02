@@ -12,6 +12,8 @@ from knack.console.verdict import RootView, VerdictView
 from knack.contracts.models import HeldOutScore, Root, RuleProof, SideProof
 from knack.day.models import CommitEvent, DayFeed, PullEvent, ReceiptEvent
 from knack.day.when import moment
+from knack.dispute.rulings import RulingRecord
+from knack.miss.selfcheck import answer_json, SelfCheck
 from knack.pipeline.prove import MIN_FLAGGED, MUST_FLAG
 from knack.receipts.chain import (
     Decision,
@@ -216,6 +218,85 @@ def false_alarms(proof: RuleProof) -> tuple[int | None, str | None]:
     if old is None or old.error or proof.tree_error:
         return None, old.ref if old else None
     return proof.false_positives + old.false_positives, old.ref
+
+
+class SecondAnswer(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # A model asked beside the ruling's own, and what it said, verbatim.
+    model: str
+    # None when no self-check recorded its answer or the answer did not read.
+    decision: str | None
+    reply: str | None
+
+
+class ArguePage(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    block: VerdictPage
+    ruling: RulingRecord
+    # True when the deny's latest ruling escalated, so a held page exists.
+    held: bool
+
+
+class HeldPage(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    block: VerdictPage
+    ruling: RulingRecord
+    second: list[SecondAnswer]
+    # True when an earlier objection was held by the record, so argue shows that answer.
+    answered: bool
+
+
+def argue_page(block: VerdictPage, rulings: list[RulingRecord]) -> ArguePage | None:
+    # Pure: the latest hold is the record answering; with none, the latest ruling.
+    if not rulings:
+        return None
+    holds = [r for r in rulings if r.decision == "hold"]
+    held = rulings[-1].decision == "escalate"
+    return ArguePage(block=block, ruling=(holds or rulings)[-1], held=held)
+
+
+def held_page(
+    block: VerdictPage, rulings: list[RulingRecord], checks: list[SelfCheck]
+) -> HeldPage | None:
+    # Pure: the latest escalation, and what each other model it asked answered.
+    escalated = [r for r in rulings if r.decision == "escalate"]
+    if not escalated:
+        return None
+    ruling, answered = escalated[-1], any(r.decision == "hold" for r in rulings)
+    second = second_answers(ruling, checks)
+    return HeldPage(block=block, ruling=ruling, second=second, answered=answered)
+
+
+def second_answers(ruling: RulingRecord, checks: list[SelfCheck]) -> list[SecondAnswer]:
+    # The latest argue self-check on this receipt holds each model's verbatim answer.
+    asked = [
+        c for c in checks if c.trigger == "argue" and ruling.receipt_hash in c.source
+    ]
+    answers = {a.model: a.answer for check in asked for a in check.answers}
+    others = [m.model for m in ruling.models if m.model != ruling.model]
+    return [second_answer(model, answers.get(model)) for model in others]
+
+
+def second_answer(model: str, text: str | None) -> SecondAnswer:
+    said = said_json(text)
+    words = {"decision": text_of(said, "decision"), "reply": text_of(said, "reply")}
+    return SecondAnswer(model=model, **words)
+
+
+def text_of(said: dict[str, Any], key: str) -> str | None:
+    value = said.get(key)
+    return value if isinstance(value, str) else None
+
+
+def said_json(text: str | None) -> dict[str, Any]:
+    # An answer that is not a JSON object reads as nothing said.
+    try:
+        return answer_json(text or "")
+    except ValueError:
+        return {}
 
 
 # The day page: weeks of decisions as squares, the confirmed ones, and today.

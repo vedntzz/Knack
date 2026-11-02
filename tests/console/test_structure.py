@@ -22,7 +22,16 @@ OFF_SCALE = {
 }
 # Not raw spacing: the code column widths added up, so the note lines up with the code.
 DERIVED = {"--code-indent"}
-PARTIALS = {"note.html", "code.html", "fix.html", "figures.html", "verify.html"} | {
+PARTIALS = {
+    "note.html",
+    "code.html",
+    "fix.html",
+    "figures.html",
+    "verify.html",
+    "said.html",
+    "answered.html",
+    "resolve.html",
+    "resolved.html",
     "graph.html",
     "decision.html",
 }
@@ -63,7 +72,9 @@ def imported(path: Path) -> set[str]:
 
 
 def test_no_raw_hex() -> None:
-    assert HEX.findall(text(STATIC / "console.css")) == []
+    # Every stylesheet but tokens.css reads colours only from tokens.
+    sheets = [p for p in STATIC.glob("*.css") if p.name != "tokens.css"]
+    assert sheets and [HEX.findall(text(p)) for p in sheets] == [[] for _ in sheets]
 
 
 def test_every_variable_a_stylesheet_reads_is_a_token() -> None:
@@ -93,7 +104,14 @@ def test_console_css_spaces_only_from_the_scale() -> None:
 
 def test_every_page_is_built_from_base_and_the_partials() -> None:
     assert {p.name for p in (TEMPLATES / "partials").iterdir()} == PARTIALS
-    for page in ("verdict.html", "waiting.html", "missing.html", "day.html"):
+    for page in (
+        "verdict.html",
+        "argue.html",
+        "held.html",
+        "waiting.html",
+        "missing.html",
+        "day.html",
+    ):
         assert "<html" not in text(TEMPLATES / page)
     assert '<header class="bar">' in text(TEMPLATES / "base.html")
 
@@ -102,6 +120,12 @@ def test_the_block_page_is_its_own_router() -> None:
     assert "knack.console.pages.verdict" in imported(CONSOLE / "app.py")
     assert "APIRouter" in text(CONSOLE / "pages" / "verdict.py")
     assert not (CONSOLE / "page.py").exists()
+
+
+def test_argue_and_held_are_their_own_routers() -> None:
+    for name in ("argue", "held"):
+        assert f"knack.console.pages.{name}" in imported(CONSOLE / "app.py")
+        assert "APIRouter" in text(CONSOLE / "pages" / f"{name}.py")
 
 
 def test_facts_read_no_files() -> None:
