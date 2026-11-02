@@ -1,5 +1,5 @@
-// The landing page, bound from scenes.js and block.js only; a missing value renders "<label> not recorded".
-const K = window.KNACK || {}, B = window.BLOCK || {};
+// The landing page, bound from scenes.js, block.js and readme.js only; a missing value renders "<label> not recorded".
+const K = window.KNACK || {}, B = window.BLOCK || {}, R = window.README || {};
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const T = new URLSearchParams(location.search).has("t") ? Number(new URLSearchParams(location.search).get("t")) : null;
 const TICKED = /`([^`]+)`/;
@@ -22,6 +22,15 @@ function copyButton(text, label) {
 
 function command(text, label) {
   return text ? `<p class="well"><code>${esc(text)}</code>${copyButton(text, label)}</p>` : `<p class="well">${gap(label || "Command")}</p>`;
+}
+
+function lines(text, label) {
+  // A multi-line command, one line per README line; Copy takes all of it.
+  return text ? `<p class="well"><code>${text.split("\n").map(esc).join("<br>")}</code>${copyButton(text, label)}</p>` : `<p class="well">${gap(label)}</p>`;
+}
+
+function repoLink() {
+  return has(R.repo) ? `<a href="${esc(R.repo)}">${esc(R.repo)}</a>` : gap("Repo link");
 }
 
 function hero() {
@@ -109,12 +118,12 @@ function check() {
   ].join("");
   $("run").innerHTML = `<div><h3>Regenerate the gates and false alarms</h3>${command(REPRODUCE, "Reproduce command")}</div>`
     + `<div><h3>Check the receipt chain</h3>${command(RECEIPTS)}</div>`
-    + `<div><h3>Install</h3><p class="well">${gap("Install command")}</p></div>`;
+    + `<div><h3>Install</h3>${lines(R.install, "Install command")}</div>`;
 }
 
 function foot() {
-  $("foot").innerHTML = `${gap("Repo link")} · fonts IBM Plex, SIL Open Font License`;
-  $("repo").innerHTML = gap("Repo link");
+  $("foot").innerHTML = `${repoLink()} · fonts IBM Plex, SIL Open Font License`;
+  $("repo").innerHTML = repoLink();
 }
 
 function copies() {
