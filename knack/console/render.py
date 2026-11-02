@@ -20,7 +20,14 @@ TURNS = "".join(
 )
 EVENTS = ' data-events="/events"'
 # Every base.html slot a page may leave out.
-UNSET = {"preload": "", "scripts": "", "events": "", "bar": "", "verify": ""}
+UNSET = {
+    "preload": "",
+    "styles": "",
+    "scripts": "",
+    "events": "",
+    "bar": "",
+    "verify": "",
+}
 
 
 def render(name: str, **slots: str) -> str:

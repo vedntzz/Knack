@@ -144,3 +144,33 @@ One card rises per beat (0.75 rem, opacity, `cubic-bezier(0.23,1,0.32,1)`, 420 m
   - **The block page's verify-row overflow at 390** is the block page's look, which this ticket doesn't change.
 - **Fit:** argue is 746 px at 720p, of which the verify row wraps 26 px because the fixture's receipts path is long. Held is 802 px at 720p (resolved) and 858 px (unresolved). Both scroll, as the block page does (898 px).
 - **Shots:** `mockups/shots/kn91/`: argue and held at 1080p and 720p, both at 390 full page, and the unresolved held state at 1080p and 720p (served from a copy of the run without the uphold receipt).
+
+# KN-93: the day page (GET /)
+When the console knows its clone (`knack console`), `/` is the repo's memory; without a clone it still waits. It listens on `/events` like before, so a new deny switches it to `/verdict/<hash>`. `GET /graph` serves the per-day counts the squares show. Facts come from `facts.day_page` and `facts.graph` (pure); reading the registry, roots and chain is in `pages/day.py`.
+
+## Data truth
+- **Headline:** every root in the registry; "confirmed to block" are the Confirmed ones, "advise only" the rest (they never block).
+- **Squares:** 53 Sunday-first weeks ending today, in the clock's zone. A root lands on the day its PR merged (`merged_at`); a root without one has no square and is counted as "N merge dates not recorded".
+- **Red dot:** a guard deny that day from the full chain. An uphold records a deny but is a resolution, not a block.
+- **Paper dot:** a `knack resolve` receipt that day; its kind (allowed, retired, upheld) is in the cell's line and in Today. Nothing on the page says "learn".
+- **Today:** commits and PRs from the day feed (`/day`); today's blocks and resolutions from the chain, labelled by kind; every time shown in the clock's zone, named once in the heading.
+
+## What changed from the mockup (`mockups/day/`), and why
+| Mockup | Shipped | Why |
+|---|---|---|
+| Confirmed decisions as dark rows | Short paper notes, in Plex Sans | The brief asks for paper notes: a person decided and a person confirmed. The text is Knack's restatement, not verbatim words, so it is Sans; Serif stays for verbatim words only. |
+| Shade 1, 2, 3+ by count | One meaning per step: advise only, one confirmed, confirmed among more | The critique (P1) found Oct 19 (1 confirmed) and Oct 27 (2 advise-only) shaded the same; now a confirmed day always reads a step above any other. The count is in each cell's line. |
+| "Earlier blocks not recorded" | Blocks and resolutions from the whole chain | The brief asks for the full verdict history. |
+| Cells built by script | Cells rendered by the server; script only fades, shows the line and moves focus | Without script the record is still there. |
+
+## Motion
+Each week's column fades in (opacity only), week n at n × 7 ms for 220 ms, ease-out `cubic-bezier(0.23,1,0.32,1)`: the last ends at 584 ms, measured. Once, on load; reduced motion shows the final frame. The tooltip never animates (it follows keyboard focus). On a phone the record opens scrolled to today.
+
+## Impeccable critique (dual-agent)
+- **A, design review:** 23/32 (two heuristics n/a, read-only page). Fixed: P1 shade ambiguity; P1 phone graph opened on the empty past; P2 the bar read "Blocked" on the quiet page (now "Last receipt: blocked"); P2 counts repeated the headline (now "In 53 weeks: 1 block, 0 resolved by a person."); ArrowUp/Down no longer wrap across weeks; "Nov" no longer pokes past the frame; narrower time column.
+- **Not changed:** P3 asked for Serif or no paper on the decisions (see the table). Copy buttons are 32 px on a phone: shared with the block page, out of scope. The advise-only step (`--ink-muted`) is 2.4:1 against the ground, under 3:1; it is the quietest real grey in the palette, and advise-only decisions are the quiet ones. Each cell's line carries the fact.
+- **B, detector:** URL scans time out on the open EventSource (as on KN-80); over CDP, 0 findings at 1280×720, 1920×1080 and 390×844; templates 0. Exactly one screen at 720p and 1080p, 0 overflow, 0 contrast failures, 0 console errors, 0 non-loopback requests.
+- **Hallmark lint:** the stamp FAIL is left by rule. Focus, overflow and `:active` FAILs are the served HTML read without `console.css`. The middle-dot FAIL on the counts line is fixed; the attribution line keeps " · " like the block page's note.
+
+## Captures
+`mockups/shots/kn93/`: `day-1080p.png`, `day-720p.png`, `-hover` of each (Oct 19), and `day-720p-fade-150ms.png` (mid-fade). Served from a clone with origin apache/airflow, `bench/demo_block.receipts.jsonl` and `data/registry/airflow.json`; no GitHub token, so PRs read as not recorded.

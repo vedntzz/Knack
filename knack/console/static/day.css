@@ -1,0 +1,67 @@
+/* The day page, built only from tokens.css: the repo's memory, quiet and ready. */
+.day { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--today-width); grid-template-areas: "head head" "record record" "decisions today" "verify verify"; grid-template-rows: auto auto auto 1fr; gap: var(--space-24) var(--space-48); padding: var(--space-16) var(--space-32) var(--space-24); min-height: calc(100vh - var(--bar-height)); }
+.day .head { grid-area: head; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-24); }
+.day .sub { font-size: var(--type-20); line-height: var(--leading-28); color: var(--muted); }
+.nowrap { white-space: nowrap; }
+
+/* The record: one line of counts and a key, then a column of seven days a week. */
+.record { grid-area: record; min-width: 0; }
+.above { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-8) var(--space-32); margin-bottom: var(--space-8); }
+.counts { font-size: var(--type-16); line-height: var(--leading-24); font-weight: var(--weight-regular); color: var(--muted); }
+.counts b { color: var(--text); font-weight: var(--weight-bold); }
+.legend { margin-left: auto; list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-24); font-size: var(--type-14); line-height: var(--leading-20); color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: var(--space-8); }
+.swatch { width: var(--swatch); height: var(--swatch); border-radius: var(--radius-paper); }
+
+.graph { position: relative; }
+.months, .cells { display: grid; grid-template-columns: repeat(53, minmax(0, 1fr)); column-gap: var(--space-4); }
+.months { font-size: var(--type-14); line-height: var(--leading-24); color: var(--muted); }
+.months span { white-space: nowrap; }
+/* The last month's name ends at the frame instead of past it. */
+.months span:last-child { justify-self: end; }
+.week { display: grid; grid-template-rows: repeat(7, auto); row-gap: var(--space-4); align-content: start; }
+.cell { aspect-ratio: 1; border-radius: var(--radius-paper); display: flex; align-items: center; justify-content: center; gap: var(--space-4); }
+.cell:focus-visible { outline: var(--stroke) solid var(--text); outline-offset: var(--underline); }
+@media (hover: hover) and (pointer: fine) { .cell:hover { outline: var(--stroke) solid var(--muted); outline-offset: var(--underline); } }
+
+/* Shade is the decisions merged that day, four steps of the grey ladder; never green. */
+.s0 { background: var(--panel); }
+.s1 { background: var(--ink-muted); }
+.s2 { background: var(--muted); }
+.s3 { background: var(--text); }
+
+/* Red only for a block; a person's act is paper, ringed so it reads on the lightest step. */
+.mark { flex: none; display: inline-block; width: var(--mark); height: var(--mark); border-radius: 50%; }
+.mark.block { background: var(--red); }
+.mark.person { background: var(--paper); border: var(--underline) solid var(--ink); }
+
+/* Floats over the squares, so it is the one surface a step up; no shadow. */
+.tip { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; white-space: nowrap; background: var(--raised); color: var(--text); font-size: var(--type-14); line-height: var(--leading-20); padding: var(--space-8) var(--space-12); border-radius: var(--radius-paper); }
+
+/* Confirmed decisions: a person decided and a person confirmed, so each is a short paper note. */
+.decisions { grid-area: decisions; min-width: 0; }
+.today .zone { font-size: var(--type-14); font-weight: var(--weight-regular); letter-spacing: var(--tracking-none); color: var(--muted); }
+.decisions h2, .today h2 { font-size: var(--type-20); line-height: var(--leading-28); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tight); text-wrap: balance; margin-bottom: var(--space-12); }
+.notes { list-style: none; display: flex; flex-direction: column; gap: var(--space-8); }
+.decision { background: var(--paper); color: var(--ink); border-radius: var(--radius-paper); padding: var(--space-12) var(--space-16); }
+.decision .said { text-wrap: pretty; }
+.decision .who { margin-top: var(--space-4); font-size: var(--type-14); line-height: var(--leading-20); color: var(--ink-muted); }
+.decision .who b { color: var(--ink); font-weight: var(--weight-bold); }
+.decision .who a { color: var(--ink); }
+
+/* Today, oldest first, each line with its time. */
+.today { grid-area: today; min-width: 0; }
+.events { list-style: none; display: flex; flex-direction: column; gap: var(--space-8); }
+.events li { display: grid; grid-template-columns: var(--time-width) minmax(0, 1fr); gap: var(--space-16); }
+.events time { font-size: var(--type-14); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.events p { text-wrap: pretty; overflow-wrap: anywhere; }
+.events p > span:not(.mark) { color: var(--muted); }
+.events .mark { margin-right: var(--space-8); vertical-align: var(--underline); }
+.day .verify { grid-area: verify; }
+
+@media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
+  .day { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "record" "decisions" "today" "verify"; padding: var(--space-16); }
+  .graph { overflow-x: auto; }
+  .months, .cells { width: var(--graph-width); }
+  .legend { margin-left: 0; }
+}

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from knack.console.events import deny_events
 from knack.console.links import CONSOLE_HOST, CONSOLE_PORT
 from knack.console.pages.argue import argue_router
+from knack.console.pages.day import day_router
 from knack.console.pages.held import held_router
 from knack.console.pages.verdict import verdict_router
 from knack.console.render import (
@@ -50,9 +51,22 @@ def create_app(
     for router in (verdict_router, argue_router, held_router):
         app.include_router(router(*places))
     _add_pages(app, receipts, poll_seconds)
-    if day is not None:
-        _add_day_route(app, day)
+    _add_home(app, receipts, day)
     return app
+
+
+def _add_home(app: FastAPI, receipts: Path, day: Day | None) -> None:
+    # The repo's memory when the console knows its clone; else it waits for a block.
+    if day is None:
+        app.get("/", response_class=HTMLResponse)(waiting_html)
+    else:
+        _add_day(app, receipts, day)
+
+
+def _add_day(app: FastAPI, receipts: Path, day: Day) -> None:
+    # The repo's memory is the home page; GET /day stays the feed's own bytes.
+    app.include_router(day_router(receipts, day))
+    _add_day_route(app, day)
 
 
 def _bare_app() -> FastAPI:
@@ -75,9 +89,8 @@ def _add_day_route(app: FastAPI, day: Day) -> None:
 
 
 def _add_pages(app: FastAPI, receipts: Path, poll_seconds: float) -> None:
-    # The waiting page, every page's static files, and the deny stream they listen on.
+    # Every page's static files, and the deny stream they listen on.
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
-    app.get("/", response_class=HTMLResponse)(waiting_html)
     _add_events(app, receipts, poll_seconds)
 
 

@@ -1,6 +1,7 @@
 import json
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,16 +16,18 @@ from knack.receipts.chain import (
     append_receipt,
     guard_receipt,
     human_allow,
+    load_receipts,
     Receipt,
     receipts_path,
     Resolution,
 )
-from knack.receipts.edits import edits_dir, EditSnapshot, save_edit
+from knack.receipts.edits import edits_dir, EditSnapshot, load_edit, save_edit
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
 JsonDict = dict[str, Any]
 RuleAndRoot = tuple[Path, Root | None]
+Scan = Callable[[Path, Path | None], Any]
 WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
 DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
@@ -181,14 +184,54 @@ def _resolve(base: Path, value: str) -> Path:
 def _scan_proposal(
     content: str, current: str | None, rules: list[RuleAndRoot], trail: Trail
 ) -> JsonDict | None:
+    return _on_temps(content, current, lambda t, b: _first_deny(t, b, rules, trail))
+
+
+def _on_temps(content: str, current: str | None, scan: Scan) -> Any:
     # ast-grep scans real files; the temp copies never touch the tree.
     temp = _write_temp(content)
     baseline = None if current is None else _write_temp(current)
     try:
-        return _first_deny(temp, baseline, rules, trail)
+        return scan(temp, baseline)
     finally:
         for path in (temp, baseline or temp):
             path.unlink(missing_ok=True)
+
+
+def rerun_deny(
+    receipts: Path, receipt_hash: str, registry: Registry, log: Path
+) -> JsonDict | None:
+    # Today's deny for a kept receipt: its saved edit rescanned, its own hash linked.
+    receipt = _kept_receipt(receipts, receipt_hash)
+    edit = _kept_edit(receipts, receipt)
+    rule = _rule_for(registry, receipt.rule_id) if receipt else None
+    if receipt is None or edit is None or rule is None:
+        return None
+    verdict = _rescan(edit, rule, log)
+    return None if verdict.allowed else _deny(verdict.reason, receipt)
+
+
+def _kept_receipt(receipts: Path, receipt_hash: str) -> Receipt | None:
+    # A hash prefix names a receipt, as knack resolve accepts one.
+    found = (r for r in load_receipts(receipts) if r.hash.startswith(receipt_hash))
+    return next(found, None)
+
+
+def _kept_edit(receipts: Path, receipt: Receipt | None) -> EditSnapshot | None:
+    if receipt is None or receipt.edit_sha256 is None:
+        return None
+    return load_edit(edits_dir(receipts), receipt.edit_sha256)
+
+
+def _rule_for(registry: Registry, rule_id: str) -> RuleAndRoot | None:
+    pairs = _rules_with_roots(registry)
+    return next((pair for pair in pairs if rule_name(pair[0]) == rule_id), None)
+
+
+def _rescan(edit: EditSnapshot, rule: RuleAndRoot, log: Path) -> Verdict:
+    scan: Scan = lambda t, b: _check_rule(t, b, rule[0], rule[1], log)
+    verdict: Verdict = _on_temps(edit.after, edit.before, scan)
+    return verdict
 
 
 def _write_temp(content: str) -> Path:
