@@ -187,6 +187,14 @@ def extraction(prompt: str) -> str:
     return json.dumps({"decisions": [decision] if decision else []})
 
 
+class SparkRuling:
+    # Spark behind argue's port, named as the fake it is so traces never say muse-spark-1.3.
+    model = "fake-spark"
+
+    def __call__(self, prompt: str) -> str:
+        return spark_ruling(prompt)
+
+
 def spark_ruling(prompt: str) -> str:
     # Spark: holds on the restated alias, escalates on a case the quotes never mention.
     if ESCALATING in prompt:
@@ -217,7 +225,7 @@ def install_fakes() -> None:
     cli.github_client = fake_github
     cli.adversary_client = fake_adversary
     cli.partner_client = lambda extractor: SparkOpen()
-    cli.ask_spark = spark_ruling
+    cli.ask_spark = SparkRuling()
     hook.live_clients = fake_clients
     hook.optional_partner = lambda extractor="spark": SparkOpen()
 

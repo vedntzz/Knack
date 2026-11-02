@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from knack.contracts.models import Ruling
-from knack.dispute.argue import ruling_prompt, SPARK_MODEL
+from knack.dispute.argue import ruling_prompt
 from knack.dispute.latest import Disputed
-from knack.dispute.rulings import model_call, ModelCall
+from knack.dispute.rulings import model_call, ModelCall, NOT_RECORDED
 from knack.miss.cases import EditCase, ModelAnswer
 from knack.miss.provisional import save_provisional
 from knack.miss.selfcheck import (
@@ -84,7 +84,8 @@ def _auto_case(done: Disputed, places: Places) -> EditCase:
 
 def _spark_answer(done: Disputed) -> ModelAnswer:
     prompt, answer = done.spark or ("", "")
-    fields = {"model": SPARK_MODEL, "prompt_sha256": prompt_sha256(prompt)}
+    model = done.record.model or NOT_RECORDED
+    fields = {"model": model, "prompt_sha256": prompt_sha256(prompt)}
     return ModelAnswer(**fields, yes=_escalates_quietly(answer), answer=answer)
 
 

@@ -43,6 +43,7 @@ def argue(objection: str, roots: list[Root], ask: Ask | None = None) -> Ruling:
 
 class SparkRuling:
     # Spark behind argue's Ask; it keeps the last response id as the ruling's trace.
+    model = SPARK_MODEL
     host = SPARK_HOST
 
     def __init__(self) -> None:

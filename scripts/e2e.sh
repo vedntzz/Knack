@@ -185,8 +185,8 @@ argue_escalate() {
   echo "$out"
   says "$out" "ESCALATE: held for a person" || return 1
   says "$out" "knack resolve [0-9a-f]{64} allow\|retire" || return 1
-  # argue names Spark by its model id; the fake answers in its place.
-  says "$out" "muse-spark-1.3 yes, fake-spark-open no; logged only" || return 1
+  # argue names the model that answered: here the fake, never muse-spark-1.3.
+  says "$out" "fake-spark yes, fake-spark-open no; logged only" || return 1
   must test ! -d "$REGISTRY_DIR/cases" || return 1
   test "$(grep -c '"trigger":"argue"' "$checks")" -eq 1
 }

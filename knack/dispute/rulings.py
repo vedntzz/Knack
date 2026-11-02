@@ -26,6 +26,12 @@ class Traced(Protocol):
     last_trace_id: str | None
 
 
+@runtime_checkable
+class Named(Protocol):
+    # A client that names the model behind it.
+    model: str
+
+
 class RulingRecord(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -50,6 +56,11 @@ def model_call(model: str, client: object) -> ModelCall:
     host = traced.host if traced else NOT_RECORDED
     trace = (traced.last_trace_id if traced else None) or NOT_RECORDED
     return ModelCall(model=model, host=host, trace_id=trace)
+
+
+def model_of(client: object) -> str:
+    # The answering client's own model; a client that names none is not guessed.
+    return client.model if isinstance(client, Named) else NOT_RECORDED
 
 
 def rulings_path() -> Path:
