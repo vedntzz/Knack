@@ -54,6 +54,8 @@ The commands below assume the venv is active, so `python` is the venv's.
 
 **Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain. The ruling is Spark's alone. Spark Open is asked only after Spark escalates. Each ruling in `rulings.jsonl` names every model that answered (name, host, trace id) and the agent from the PreToolUse payload, or `not recorded`. If Spark and Spark Open both escalate, the edit is held as a provisional case. It becomes a must-pass case for the next recompile only after a person's `knack resolve ... allow`. An objection never recompiles a rule.
 
+A person has three choices: `knack resolve <receipt> allow|retire|uphold --reason "<why>"`. Allow lets that exact edit through, retire drops the decision's rule, and uphold confirms the decision stands: the edit stays blocked, the held case closes, and no exception or case is added.
+
 Every decision carries one honest label, plus a `seeded` flag:
 
 | Label | Meaning | Blocks? |
