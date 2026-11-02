@@ -23,7 +23,7 @@ The brief's draft, `mockups/refs/knack-board-preview.html`, does not exist in th
 | Argue and Dismiss buttons with keys | The `knack argue` command with a Copy button | The page can't argue or dismiss for you; the command is the real action. |
 | JetBrains Mono, Plex Sans | Plex Serif (the human), Plex Sans (the tool), Plex Mono (code, hashes, commands), self-hosted with the OFL | The brief's font locks. |
 
-## Motion (`static/console.js`)
+## Motion (`static/motion.js`)
 One move per beat, then still. Nothing loops, and it only runs on a deny.
 
 | Beat (ms from load) | Move | Easing, duration | Why |
@@ -90,3 +90,10 @@ Not changed, with reasons:
 - **Full comment:** `data/roots/airflow/75025.json` `quote` is now Pushkal Gupta's whole paragraph, cut verbatim from the PR body in `mockups/refs/github-75025.json`. Before, it held only the first sentence. The note renders every sentence and grows; nothing clips it, and a test guards that.
   - At 720p the three-sentence note pushes lines 137–140 and the Verify row below the fold; the page is 866 px tall and scrolls. At 1080p lines 137–138 sit at the bottom edge. See `verdict-720p-fullpage.png`.
 - **Receipts:** receipts made before this change hash the old one-sentence quote, so their `quote_verified` reads false. That includes `tests/fixtures/console_75025`, which is kept as a historical receipt. `bench/demo_block.receipts.jsonl` was re-run after the change.
+
+## KN-90: structure (no behaviour or visual change)
+- `app.py` holds routes only and includes `pages/verdict.py`, the block page's router. `render.py` fills `templates/base.html` (bar, fonts, tokens, verify row) around each page's template and the `partials/`.
+- `facts.py` is pure: the verdict, its root, its proof and an edit snapshot in, `VerdictPage` out. The router reads the snapshot.
+- `static/tokens.css` holds every colour, face, size and spacing value; `console.css` reads only tokens. `live.js` is the `/events` listener, `motion.js` the arrival beats, and `console.js` the thread and Copy. `console.js` measures the thread before `motion.js` moves anything, so it still lands on the underline.
+- Four spacing values are off the 8-point scale and kept as named tokens so no pixel moves: `--space-separator` (6 px), `--space-paper` (20 px), `--space-figure-column` (20 px) and `--space-quiet` (128 px). The seal's 6 px padding and the bar's 18 px top are now on the scale, with line height carrying the difference.
+- Guarded by `tests/console/test_screenshot.py`: the full 75025 page at 1920×1080 and 1280×720 under reduced motion, against baselines shot before the refactor, with at most 0.1% of pixels changed. `KNACK_SAVE_BASELINE=1` re-shoots them.

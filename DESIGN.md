@@ -18,7 +18,7 @@ The console, the agent's code and every figure Knack measured sit on a cool near
 Refactoring UI (hierarchy by weight and shade first, space between groups larger than within, depth from lightness, fewer borders) and the 8-point grid (4, 8, 12, 16, 24, 32, 48, 64). Sentence case. No monospace except code, hashes and commands. No eyebrows, no tracked capitals, no hairline rules, no shadows at rest, no icons in tinted squares.
 
 ## Palette
-Every colour is a token in `knack/console/static/console.css`; nothing else is allowed.
+Every colour is a token in `knack/console/static/tokens.css`; `console.css` builds only from tokens, and nothing else is allowed.
 
 | Token | Hex | Role |
 |---|---|---|
