@@ -28,6 +28,8 @@ RuleAndRoot = tuple[Path, Root | None]
 WRITE_TOOL = "write_file"
 EDIT_TOOL = "edit_file"
 DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
+# The console link only loads while knack console serves it.
+OPEN_CONSOLE = "(open with: knack console)"
 # Muse Code's PreToolUse payload names the agent's model here (tests/hooks/fixtures).
 AGENT_KEY = "model"
 
@@ -282,7 +284,7 @@ def _rule_id(rule_path: Path) -> str:
 def _deny(reason: str, receipt: Receipt | None) -> JsonDict:
     # Muse Code only honors this exact deny envelope, exit 0.
     inner = {"hookEventName": "PreToolUse", "permissionDecision": "deny"}
-    link = f"Console: {verdict_url(receipt.hash)}\n" if receipt else ""
+    link = f"Console: {verdict_url(receipt.hash)} {OPEN_CONSOLE}\n" if receipt else ""
     inner["permissionDecisionReason"] = f"{reason}\n{link}{DISPUTE_LINE}"
     return {"hookSpecificOutput": inner}
 

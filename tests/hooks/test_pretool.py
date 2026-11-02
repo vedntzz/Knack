@@ -613,7 +613,7 @@ def test_the_deny_message_links_its_receipt_on_the_console(tmp_path: Path) -> No
         decide(event, make_registry(tmp_path), tmp_path / "log", receipts)
     )
     [receipt] = receipt_lines(receipts)
-    link = f"Console: {CONSOLE}/verdict/{receipt['hash']}"
+    link = f"Console: {CONSOLE}/verdict/{receipt['hash']} (open with: knack console)"
     assert link in reason.splitlines()
     assert reason.endswith(pretool_guard.DISPUTE_LINE)
 
