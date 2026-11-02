@@ -1,6 +1,6 @@
 # Landing: where every visible value comes from
 
-`K` is `window.KNACK` (`mockups/fixtures/scenes.js`) and `B` is `window.BLOCK` (`mockups/fixtures/block.js`). The hero image is `mockups/shots/kn80/verdict-1080p.png`, the block page's 1080p capture, as the brief names it. Audited against `shots/landing/landing-720p-fullpage.png`, `-1080p-fullpage.png` and `-390-fullpage.png`.
+`K` is `window.KNACK` (`mockups/fixtures/scenes.js`), `B` is `window.BLOCK` (`mockups/fixtures/block.js`) and `R` is `window.README` (`mockups/fixtures/readme.js`, frozen by `freeze_readme.py`). The hero image is `mockups/shots/kn80/verdict-1080p.png`, the block page's 1080p capture, as the brief names it. Audited against `shots/landing/landing-720p-fullpage.png`, `-1080p-fullpage.png` and `-390-fullpage.png`.
 
 **Two receipts, labelled, not merged.** The capture comes from its own demo run: receipt `5e8a44648bd0` and 16.5 ms, both read off the image. Every figure in the text comes from `block.js`: receipt `80b311c17a39` and 18.7 ms. The caption says so.
 
@@ -35,7 +35,7 @@
 | 0 false alarms on Airflow's current tree and release 3.3.2 | `K.proof.fp`, `K.proof.old_release` | |
 | 37 receipts, chain intact | `K.receipts_verify`, split at the first comma | |
 | `knack receipts verify` + Copy | the command whose output `K.receipts_verify` freezes | As on argue and held |
-| Install command not recorded | none | Gap |
-| Repo link not recorded (bar, footer) | none | Gap |
+| Install: the four lines from `git clone https://github.com/vedntzz/Knack.git` to `source .venv/bin/activate`, + Copy | `R.install`: README.md lines 27–30, the `sh` block under “Get it running” | Verbatim; Copy copies all four lines |
+| `https://github.com/vedntzz/Knack.git` (bar, footer) | `R.repo`: README.md line 27, the `git clone` URL | Verbatim, `.git` kept |
 | Demo video slot | the brief's slot | Nothing recorded |
 | fonts IBM Plex, SIL Open Font License | `knack/console/static/fonts/OFL.txt` | Credit line, not data |
