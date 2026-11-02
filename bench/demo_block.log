@@ -1,0 +1,28 @@
+knack demo: an agent's recorded edit (run 3) meets the PreToolUse hook. No model, no network.
+
+== install ==
+clone: apache/airflow at the base of #75025
+registry: apache/airflow, 5 rules -> ~/.knack/registries/apache-airflow
+user hook: ~/.config/muse/settings.json PreToolUse write_file|edit_file -> knack.hooks.pretool
+
+== replay tests/guard/fixtures/replay/run_neutral_3.diff ==
+edit_file airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py: -7 +12 lines
+
+== deny payload ==
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "Knack blocked this edit.\nDecision: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.\nDecided by: Pushkal Gupta (author); approved and merged by bbovenzi\nWhy: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.\nRejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.\nQuote: \"I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.\"\nSource: https://github.com/apache/airflow/pull/75025\nMatched: \"state\": DagRun.state (line 135), \"state\" (line 135), \"start_date\": DagRun.start_date (line 136), \"start_date\" (line 136)\nConsole: http://127.0.0.1:7655/verdict/80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16\nTo dispute: knack argue \"<your reason>\""}}
+
+== reason, as the agent reads it ==
+Knack blocked this edit.
+Decision: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.
+Decided by: Pushkal Gupta (author); approved and merged by bbovenzi
+Why: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.
+Rejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.
+Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
+Source: https://github.com/apache/airflow/pull/75025
+Matched: "state": DagRun.state (line 135), "state" (line 135), "start_date": DagRun.start_date (line 136), "start_date" (line 136)
+Console: http://127.0.0.1:7655/verdict/80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16
+To dispute: knack argue "<your reason>"
+
+== latency ==
+guard verdict: 18.7 ms (ast-grep scan, from the deny receipt)
+hook round trip: 212 ms (sh -c, Python start to deny envelope, as Muse runs it)

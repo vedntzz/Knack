@@ -2,6 +2,23 @@
 
 Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
+This is what the agent reads when the hook denies its edit. It is copied verbatim from [`bench/demo_block.log`](bench/demo_block.log), a run of `bash scripts/demo_block.sh` that replays an agent's recorded edit to apache/airflow's Dag list routes:
+
+```text
+Knack blocked this edit.
+Decision: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.
+Decided by: Pushkal Gupta (author); approved and merged by bbovenzi
+Why: The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.
+Rejected alternative: Alias state and start_date onto DagRun.state and DagRun.start_date.
+Quote: "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
+Source: https://github.com/apache/airflow/pull/75025
+Matched: "state": DagRun.state (line 135), "state" (line 135), "start_date": DagRun.start_date (line 136), "start_date" (line 136)
+Console: http://127.0.0.1:7655/verdict/80b311c17a3980dd2e9c712f2dc113c0d2be9ff94e45136d790f86cac64bef16
+To dispute: knack argue "<your reason>"
+```
+
+Problem statement: Build for Your World, because the world an agent works in is a team's own codebase, and that world's rules are the decisions the team already argued out in review, which the agent has never read.
+
 ## Get it running
 
 Prerequisites: git, [uv](https://docs.astral.sh/uv/), jq (one check in the table below uses it) and Python 3.11. If Python 3.11 is not installed, `uv sync` downloads it, which needs network once. ast-grep comes from the pinned `ast-grep-cli==0.51.0` dependency, so there is nothing else to install. `uv sync --frozen` installs the exact versions pinned in the committed `uv.lock` into `.venv`.
@@ -15,7 +32,9 @@ source .venv/bin/activate
 
 The commands below assume the venv is active, so `python` is the venv's.
 
-## Verify any claim in 60 seconds
+## Verify any claim: reproduce.sh runs in 80 s
+
+`bash scripts/reproduce.sh` checks every row below in one run. It took 80 s of wall time on an Apple M5 Pro on 2026-11-01, ending `PROOF: PASS`.
 
 | Claim | Artifact | Check |
 |---|---|---|
@@ -52,6 +71,69 @@ Confirming pins the sha256 of the rule file. If the rule is recompiled later, it
 `seeded` is true when a root was marked Confirmed by a script rather than a person. All 22 committed roots have `seeded=false`. The bench is different: its guard arms mark every root Confirmed with `seeded=true`, so every bench block was on a seeded root, not a human-reviewed one.
 
 Knack has only been run on public repos; on a private repo, `knack init` and `knack watch` would send PR text to Meta (Spark) and Baseten (Spark Open), while the guard hook stays local and uses no network.
+
+## Muse Code setup
+
+Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. These are the two guard entries. `/abs/path/to/Knack/.venv/bin/python` stands for the absolute path of your clone's venv Python.
+
+```json
+{
+  "schema_version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.pretool || true'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.warn || true'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file` or `edit_file` goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule.
+- `UserPromptSubmit` is not written by `demo_block.sh`. It is the entry the bench's `warn+veto` arm writes ([`knack/bench/arms.py`](knack/bench/arms.py)), in the same shape and with no matcher. `knack.hooks.warn` puts a Confirmed decision and its quote into the agent's context when a prompt names it. The bench adds a `KNACK_REGISTRY=<bench registry>` prefix to point it at its seeded registry. Without that prefix, the hook finds the home registry from `git remote get-url origin`.
+- `|| true` makes a crashed hook exit 0 with no output, and Muse Code then allows the edit. The guard fails open.
+
+`knack watch` adds two more hooks. It puts a `PostToolBatch` entry in the same file (`sh -c '... -m knack.watch.hook tool-batch --registry <registry> || true'`), which notices merges made during an agent session. It also installs a git `post-merge` hook in the clone (`.git/hooks/post-merge`, or under `core.hooksPath`). `--muse-settings` points it at a different settings file.
+
+## Runs unattended
+
+Once `knack watch` is installed, these steps run with no person involved:
+
+- **Every merge.** The `post-merge` hook, or the `PostToolBatch` hook for a merge made inside an agent session, runs the pipeline on the PRs merged since the last run. Spark extracts each decision and compiles it into an ast-grep rule. The rule is proven against the PR's sides, variants and held-out sets, and installed only if it passes ([`knack/watch/run.py`](knack/watch/run.py), [`knack/pipeline/stages.py`](knack/pipeline/stages.py)). Then the Spark Open self-check runs: for every Confirmed rule the merge did not trip, Spark and Spark Open are each asked, blind, whether the change takes the rejected path. If both say yes, the change is recorded as a case on the spot ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)). The self-check is on by default when `BASETEN_API_KEY` is set and off with `--no-corroborate`.
+- **The miss loop.** A recorded case recompiles its rule ([`knack/miss/loop.py`](knack/miss/loop.py)). The candidate replaces the installed rule only if it passes every gate in [the miss loop](#miss-loop-not-in-reproducesh). If any gate fails, the candidate is saved for review and the old rule stays installed. The rollback belongs to a different gate, the correction regression gate ([`knack/roots/gate.py`](knack/roots/gate.py)). If a correction makes the extractor lose a root it used to find, the gate restores the registry and roots and exits 1. The e2e step "regression gate rolls back a bad correction" checks this.
+- **The guard.** At edit time the `PreToolUse` hook denies a matching edit, cites the decision and writes a receipt. No person and no model is involved.
+
+One step always waits for a person. When an agent disputes a deny with `knack argue` and both Spark and Spark Open escalate, the edit is held for a person as a provisional must-pass case. It becomes a case only after `knack resolve <receipt> allow --reason "<why>"` ([`knack/dispute/second.py`](knack/dispute/second.py)). Whether a decision can block at all is also a person's call: only `knack confirm` makes a root Confirmed.
+
+## Open weights
+
+Muse Spark Open is an open-weights Meta model, served on Baseten as `meta-models/muse-spark-open-1026` ([`knack/pipeline/spark_open.py`](knack/pipeline/spark_open.py)). It is the second model in every place where Knack wants a check that Spark did not write:
+
+- **Corroborating extractor:** it reads the same PRs, and a decision both models find is Corroborated ([`knack/pipeline/corroborate.py`](knack/pipeline/corroborate.py), `--corroborate`).
+- **Held-out variant writer:** it writes the violating and compliant variants that a rule must pass before install, and Spark never sees them ([`knack/pipeline/variants.py`](knack/pipeline/variants.py), [`knack/pipeline/heldout.py`](knack/pipeline/heldout.py)).
+- **Watch self-check:** it judges each merge blind, alongside Spark ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)).
+- **Argue second opinion:** it is asked independently when Spark escalates an objection ([`knack/dispute/second.py`](knack/dispute/second.py)).
+- **RejectBench blind judge:** it labels each bench diff without seeing the guard's verdict ([`knack/bench/blind.py`](knack/bench/blind.py), [`knack/bench/run.py`](knack/bench/run.py)).
+
+Neither model is in the verdict path.
+
+Limit: Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
 
 ## Reproduce every number
 
@@ -97,23 +179,33 @@ The violation and compliant counts cover the 12 installed rules. Each side has e
 
 The #15937 result is the reason for the second model. Its rule passes Spark's own variants (3/3) but catches only 1/3 of Spark Open's.
 
-### Agent bench [bench]
+### RejectBench [bench]
 
-A real coding agent (Muse Code 1.4.14, web off) worked 9 tickets, each written so that the obvious fix risks taking a rejected path. There were 3 arms: `none`, `veto` and `warn+veto`, with 3 repeats each. The design was frozen before the run in [`bench/PREREGISTRATION.md`](bench/PREREGISTRATION.md). The primary set is 72 runs, 24 per arm. It excludes fastapi-16049, whose rule was documented as false-positive-prone before the first run. Intervals are Wilson 95%.
+RejectBench: a real coding agent (Muse Code 1.4.14, web off) worked 9 tickets, each written so that the obvious fix risks taking a rejected path. There were 3 arms: `none`, `veto` and `warn+veto`, with 3 repeats each. The design was frozen before the run in [`bench/PREREGISTRATION.md`](bench/PREREGISTRATION.md). The primary set is 72 runs, 24 per arm. It excludes fastapi-16049, whose rule was documented as false-positive-prone before the first run. Intervals are Wilson 95%.
 
 | Arm | Blocked | Rejected path shipped | Repeat rate | Attempt rate | Judge agreement |
 |---|---|---|---|---|---|
-| none | 0/24 | 0/24 | 0/24 (0% [0–14%]) | 3/24 | 21/24 |
-| veto | 2/24 | 0/24 | 2/24 (8% [2–26%]) | 2/24 | 23/24 |
-| warn+veto | 3/24 | 1/24 | 4/24 (17% [7–36%]) | 3/24 | 21/24 |
+| none | 0/24 (0% [0–14%]) | 0/24 | 0/24 (0% [0–14%]) | 3/24 (12% [4–31%]) | 21/24 (88% [69–96%]) |
+| veto | 2/24 (8% [2–26%]) | 0/24 | 2/24 (8% [2–26%]) | 2/24 (8% [2–26%]) | 23/24 (96% [80–99%]) |
+| warn+veto | 3/24 (12% [4–31%]) | 1/24 | 4/24 (17% [7–36%]) | 3/24 (12% [4–31%]) | 21/24 (88% [69–96%]) |
 
 The step also checks that the regenerated report matches [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md) byte for byte.
 
 **Read this table together with the audit below. The raw numbers overstate what the guard did.**
 
+RejectBench-Fresh, a second set of tickets whose decisions all merged after the agent model's training cutoff, is pre-registered in [`bench/PREREGISTRATION-FRESH.md`](bench/PREREGISTRATION-FRESH.md) and not run: 1 of its 5 candidate tickets passed the screen, so the design is not frozen.
+
+### Repeats [repeats]
+
+After each of the 12 installed rules' decisions merged: 5068 commits scanned, 0 repeat commits (0 human, 0 bot), from `python -m knack.reproduce repeats`. A repeat is a rule match on a line a later first-parent commit added. The hunt needs full clones, so the script reads its record, [`bench/REPEATS.md`](bench/REPEATS.md), rather than re-running it.
+
 ### End to end [e2e]
 
 e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fixture clone with fake GitHub, Spark and Spark Open clients. It covers every loop: init, confirm pinning the rule sha, the warning, the alias edit denied, the decided fix allowed, argue HOLD and ESCALATE, resolve allow and retire, watch on a real merge, miss, false-block, the two-model self-check, the regression gate rolling back, reprove, the console JSON, receipts and the proof grid. #75025 is real. The watch merges #900001 and #900002 are synthetic e2e PRs, not apache/airflow PRs. `scripts/live-smoke.sh` (needs `KNACK_LIVE=1` and keys) runs the same paths against the real services.
+
+### The block, timed (not in `reproduce.sh`)
+
+`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. In the committed run, [`bench/demo_block.log`](bench/demo_block.log), the guard verdict took 18.7 ms (the ast-grep scan, from the deny receipt) and the hook round trip took 212 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Those two numbers and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
 
 ### Miss loop (not in `reproduce.sh`)
 
@@ -149,7 +241,6 @@ When the guard misses an edit, that edit becomes a recorded case. Spark recompil
 - The recompiled #16062 rule has a broad branch: any integer of 4097 or more in a module that names the cached helpers is denied. A probe line `TIMEOUT_MS = 30000` in that module is blocked. It has 0 matches on the default branch and release 0.140.0 today, but unrelated constants in `fastapi/dependencies/models.py` can trip it.
 - The scorer counts moved code as a new match. The attempt replay does not. They disagree on `16062--warn+veto--0`.
 - In one pilot run the agent wrote upstream names that merged after the ticket's base. That looks like training-data recall.
-- Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
 
 ## Retractions
 

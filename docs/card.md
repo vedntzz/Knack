@@ -22,7 +22,8 @@ If the edit adds a match for a Confirmed decision's rule, Muse Code gets a deny 
 ## Verify
 
 ```sh
-uv venv && uv pip install --python .venv/bin/python -e ".[dev]"
+uv sync --frozen --extra dev --python 3.11
+source .venv/bin/activate
 bash scripts/reproduce.sh
 ```
 
