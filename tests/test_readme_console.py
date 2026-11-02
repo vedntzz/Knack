@@ -22,6 +22,7 @@ CONSOLE = "http://127.0.0.1:7655"
 BLOCK_PAGE = f"{CONSOLE}/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9"
 ARGUE_PAGE = f"{BLOCK_PAGE}/argue"
 HELD_PAGE = f"{BLOCK_PAGE}/held"
+RECOVERY_PAGE = f"{CONSOLE}/recovery/airflow-75025"
 ONE_STORY = REPO_ROOT / "mockups" / "fixtures" / "one_story"
 ROOT_75025 = REPO_ROOT / "data" / "roots" / "airflow" / "75025.json"
 LINK = re.compile(r"http://127\.0\.0\.1:7655/\S*?(?=[)`>\s]|$)", re.M)
@@ -167,8 +168,8 @@ def upheld_by() -> str:
     return uphold["by"]
 
 
-def test_the_console_section_links_the_block_argue_held_and_home() -> None:
-    pages = {BLOCK_PAGE, ARGUE_PAGE, HELD_PAGE, CONSOLE + "/"}
+def test_the_console_section_links_the_block_argue_held_recovery_and_home() -> None:
+    pages = {BLOCK_PAGE, ARGUE_PAGE, HELD_PAGE, RECOVERY_PAGE, CONSOLE + "/"}
     assert sorted(set(console_links())) == sorted(pages)
 
 
@@ -201,6 +202,15 @@ def test_the_held_page_shows_the_escalated_objection_and_the_uphold() -> None:
     text = page_text(html)
     assert status == 200 and objection("escalate") in text
     assert f"Upheld by {upheld_by()}" in text
+
+
+@pytest.mark.usefixtures("readme_console")
+def test_the_recovery_page_shows_the_repair_and_both_confirms() -> None:
+    status, html = get(RECOVERY_PAGE)
+    text = page_text(html)
+    assert status == 200 and "Knack repaired its own rule." in text
+    assert "rolled back by the regression gate" in text
+    assert "passed, pinned to rule 865e1a983ffe" in text
 
 
 def test_the_setup_block_ends_with_reproduce() -> None:

@@ -189,3 +189,36 @@ Each week's column fades in (opacity only), week n at n × 7 ms for 220 ms, ease
 
 ## Captures
 `mockups/shots/kn93/`: `day-1080p.png`, `day-720p.png`, `-hover` of each (Oct 19), and `day-720p-fade-150ms.png` (mid-fade). Served from a clone with origin apache/airflow, `bench/demo_block.receipts.jsonl` and `data/registry/airflow.json`; no GitHub token, so PRs read as not recorded.
+
+## KN-94: the recovery page (`/recovery/airflow-75025`)
+
+`pages/recovery.py` reads the kept self-repair run (`mockups/fixtures/self_repair/`, KN-97) per request; `repair_facts.recovery_page` turns it into the page's facts and reads no file. The console finds the run beside its kept receipts: `KNACK_CONSOLE_RECEIPTS=…/fixtures/one_story/receipts.jsonl` serves `…/fixtures/self_repair`. Without kept receipts, or for any other rule, the route is 404.
+
+### Where each value comes from
+- Step 1 and 6: the rule's receipts, told apart by the edit snapshot each names (`traces/receipt_edits/`): the must-fail case, the must-pass case, `edits/corrected.after.py`. The evasion's line number comes from the later deny's match (line 89).
+- Step 2: the must-pass case's line 6, from the deny's own match. The name `compliant_3.py` is the file the driver replayed (`driver/*/steps.py`).
+- Step 3: kept, dropped and added are v1's and v2's `rule.any` checks compared as parsed YAML; each is said by the node it matches, a pattern as written. Attempts and the compile calls are from the false-block log and `models.jsonl`.
+- Step 4: every `PASS` line of the false-block log, verbatim, without the local cache path in parentheses on the fresh cross-model line.
+- Step 5: each `knack confirm` log, its pin line, exit code and the gate's indented reason; the person is `corrections.jsonl`'s confirm.
+- Step 6: chain count and state from `verify_chain` on the kept receipts.
+- Rail: v1 and v2 are the roots' `rule_sha` before and after; who did the work is `models.jsonl` grouped by model and by what each prompt asked, with every trace id.
+
+### Departures, and why
+- Trace ids sit under "Who did the work", not in step 3: with them in step 3 the timeline ran 68 px past 720p. Step 3 names each model, its host and its call count.
+- `compliant_3.py` is on paper, as the brief asks, though DESIGN.md keeps paper for the human: it is the correct code, the same role as the fix.
+- Red appears once, on "Blocked" in step 6: the evasion was denied live by the hook.
+- The verify command ends in an ellipsis in the rail at 720p and 1080p; its full text is in its title and the Copy button copies it. Wrapping it ran the rail 44 px past 720p.
+
+### Motion (`static/recovery.js`)
+The track fills top to bottom once: `scaleY` 0→1, 1680 ms after a 240 ms wait, `cubic-bezier(0.77, 0, 0.175, 1)` (on-screen movement, so a strong ease-in-out; about 280 ms a step, done well inside a 5 s look). `fill: backwards` holds the empty track through the wait; after, the CSS frame is the final one. Without script, or under `prefers-reduced-motion`, the track is drawn full.
+
+### Impeccable critique (dual-agent: A design review, B detector)
+- A: the peak was buried (14 px "Blocked" mid-line) and the end was a hash run-on. Fixed: step 6's title and "Blocked" are one step up (20 px, same 24 px leading); the end says "The correct file and the corrected edit both pass." before its receipts. Also fixed: Copy before the command so it is never clipped, muted trace ids, receipts that never break mid-way, the proof line's full text in its title, backticked spans in the gate's reason as code. Not taken: a two-column gate grid (the held-out lines wrap at half width and add rows).
+- B: 88 text nodes at each size, 0 below AA (lowest 6.34:1, "Blocked" on the ground); smallest text 12.25 px at 720p; no overflow, no console errors, no outside requests. Detector: `cramped-padding` on the code line (a false positive: the number gutter is the padding) and `line-length` on step 5's first attempt (left: it is the gate's verbatim message).
+
+### Gaps (honest)
+- The run is one frozen run; the page names no other repair.
+- The day page's decision notes render `.said` as console.css's argue card (dark on paper). That predates this ticket and is left alone, since other pages' look must not change here.
+
+### Captures
+`mockups/shots/kn94/`: 720p, 1080p, 720p reduced motion, 390 full page, four fill beats at 720p, and the day page with its "rule repaired" link.

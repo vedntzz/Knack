@@ -58,6 +58,7 @@ def waiting_html() -> str:
 
 NO_RECEIPT_SAID = "No receipt with that hash."
 NO_RULING_SAID = "No ruling on that receipt."
+NO_REPAIR_SAID = "No kept repair for that rule."
 
 
 def missing_html(said: str = NO_RECEIPT_SAID) -> str:

@@ -1,0 +1,72 @@
+/* The recovery page, built only from tokens.css: six steps down one track, the rule and who worked beside them. */
+.recovery { display: grid; grid-template-columns: minmax(0, 1fr) var(--repair-rail); grid-template-areas: "head rail" "timeline rail"; grid-template-rows: auto minmax(0, 1fr); gap: var(--space-12) var(--space-48); padding: var(--space-8) var(--space-32) var(--space-16); height: calc(100vh - var(--bar-height)); }
+.recovery .head { grid-area: head; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-16); }
+.recovery h1 { font-size: var(--type-28); line-height: var(--leading-36); }
+.recovery .sub { color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); }
+.recovery .sub a { color: var(--text); }
+.recovery code { font-size: var(--type-code); }
+
+/* The timeline: one track down the left edge, drawn whole; the script fills it once. */
+.timeline { grid-area: timeline; position: relative; min-height: 0; padding-left: var(--space-24); }
+.timeline::before, .fill { content: ""; position: absolute; left: 0; top: var(--space-4); bottom: var(--space-4); width: var(--track); border-radius: var(--radius-paper); }
+.timeline::before { background: var(--raised); }
+.fill { background: var(--muted); transform-origin: top; }
+.steps { list-style: none; display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-8); height: 100%; min-height: 0; overflow-y: auto; }
+.step { display: flex; flex-direction: column; gap: var(--space-4); font-size: var(--type-14); line-height: var(--leading-20); color: var(--muted); }
+.step .title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-16); }
+.step .meta { color: var(--muted); }
+.step h2 { font-size: var(--type-16); line-height: var(--leading-24); font-weight: var(--weight-bold); color: var(--text); text-wrap: balance; }
+.step h2 b { font-weight: var(--weight-bold); }
+.step p, .step li { text-wrap: pretty; }
+.step .decided, .step b { color: var(--text); font-weight: var(--weight-medium); }
+.step time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step q { color: var(--text); }
+.step .quiet { color: var(--muted); }
+.step .blocked { color: var(--red); font-weight: var(--weight-bold); }
+
+/* One line of the agent's code on the panel step, numbered as on the block page. */
+.step .line { display: grid; grid-template-columns: var(--col-number) minmax(0, 1fr); gap: var(--space-8); align-items: baseline; background: var(--panel); border-radius: var(--radius-board); padding: var(--space-4) var(--space-12) var(--space-4) 0; font-family: var(--mono); color: var(--text); }
+.step .line .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.step .line code { font-size: var(--type-same); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+
+/* The correct code, on paper: the proof the old rule blocked what it should allow. */
+.proof { background: var(--paper); color: var(--ink); border-radius: var(--radius-paper); padding: var(--space-4) var(--space-4) var(--space-4) var(--space-12); display: flex; align-items: baseline; gap: var(--space-8); }
+.proof .line { flex: 1; min-width: 0; }
+.proof figcaption { color: var(--ink-muted); }
+.proof b { color: var(--ink); }
+.proof .line { background: var(--paper-raised); color: var(--ink); }
+.proof .line .n { color: var(--ink-muted); }
+
+.gates { list-style: none; display: flex; flex-wrap: wrap; gap: 0 var(--space-16); }
+.gates b { font-weight: var(--weight-medium); }
+
+/* Rail: the rule's two pins, who did the work, and the plain note. */
+.recovery .rail { grid-area: rail; display: flex; flex-direction: column; gap: var(--space-24); min-height: 0; overflow-y: auto; padding-top: var(--space-8); }
+.recovery .rail h2 { font-size: var(--type-16); line-height: var(--leading-24); font-weight: var(--weight-medium); color: var(--text); }
+.pins { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-8); }
+.pins p { color: var(--muted); }
+.pins code { color: var(--text); }
+.recovery .by ul { list-style: none; display: flex; flex-direction: column; gap: var(--space-8); margin-top: var(--space-4); font-size: var(--type-14); line-height: var(--leading-20); color: var(--muted); }
+.recovery .by li { margin: 0; line-height: var(--leading-20); }
+.recovery .by b { color: var(--text); font-weight: var(--weight-bold); }
+.recovery .rail .plain { color: var(--muted); font-size: var(--type-14); line-height: var(--leading-20); text-wrap: pretty; }
+
+.recovery .verify { margin-top: auto; align-self: stretch; min-width: 0; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: var(--space-4); }
+.recovery .verify p { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.recovery .verify code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 47.5rem), (max-aspect-ratio: 4/3) {
+  .recovery { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "timeline" "rail"; padding: var(--space-16); gap: var(--space-24); }
+  .steps { height: auto; overflow: visible; gap: var(--space-24); }
+  .recovery .rail { overflow: visible; }
+  .step .line code { text-overflow: clip; overflow-x: auto; }
+  .proof { flex-direction: column; align-items: stretch; padding: var(--space-8) var(--space-12); }
+  .recovery .verify p { flex-wrap: wrap; min-width: 0; }
+  .recovery .verify code { white-space: normal; overflow-wrap: anywhere; }
+  .recovery .copy { height: var(--control-touch); }
+}
+
+/* The peak: the evasion blocked, one step larger; the leading stays, so no height is added. */
+.step:last-child h2, .step:last-child .blocked { font-size: var(--type-20); line-height: var(--leading-24); }
+.recovery .by code { color: var(--muted); }
+.recovery .verify .copy { flex: none; }

@@ -36,7 +36,7 @@ PARTIALS = {
     "decision.html",
 }
 # Every stylesheet a page links; tokens.css is where the values live.
-SHEETS = ("console.css", "day.css")
+SHEETS = ("console.css", "day.css", "recovery.css")
 
 
 def text(path: Path) -> str:
@@ -111,6 +111,7 @@ def test_every_page_is_built_from_base_and_the_partials() -> None:
         "waiting.html",
         "missing.html",
         "day.html",
+        "recovery.html",
     ):
         assert "<html" not in text(TEMPLATES / page)
     assert '<header class="bar">' in text(TEMPLATES / "base.html")
@@ -122,8 +123,8 @@ def test_the_block_page_is_its_own_router() -> None:
     assert not (CONSOLE / "page.py").exists()
 
 
-def test_argue_and_held_are_their_own_routers() -> None:
-    for name in ("argue", "held"):
+def test_argue_held_and_recovery_are_their_own_routers() -> None:
+    for name in ("argue", "held", "recovery"):
         assert f"knack.console.pages.{name}" in imported(CONSOLE / "app.py")
         assert "APIRouter" in text(CONSOLE / "pages" / f"{name}.py")
 
