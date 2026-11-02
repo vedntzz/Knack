@@ -33,7 +33,8 @@ RULE_ID = "airflow-75025"
 ALIAS_LINES = (135, 136)
 ALIASES = ('"state": DagRun.state,', '"start_date": DagRun.start_date,')
 NOT_ALIASES = "lines 135-136 of the blocked edit are not the state/start_date aliases"
-EVENT = {"hook_event_name": "PreToolUse", "tool_name": "edit_file"}
+# The real Muse Code PreToolUse payload each edit is replayed inside; its model names the agent.
+CAPTURED_EVENT = ROOT / "tests" / "hooks" / "fixtures" / "edit_event.json"
 PRETOOL = " -m knack.hooks.pretool || true"
 MATCHER = "write_file|edit_file"
 # What a hook step must do: the alias edit is denied, the corrected one allowed.
@@ -132,8 +133,9 @@ def edit_event(work: Path, which: str) -> Json:
     if which == "corrected":
         replace = corrected_replace(start, replace)
     edit = {"path": PUBLIC_DAGS, "find": "\n".join(find), "replace": "\n".join(replace)}
+    # Only the edit, the clone and the session change; this run is not the captured session.
     where = {"tool_input": edit, "cwd": str(clone(work)), "session_id": "one-story"}
-    return EVENT | where
+    return json.loads(CAPTURED_EVENT.read_text()) | where
 
 
 def hook(work: Path, which: str) -> None:

@@ -207,7 +207,7 @@ e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fix
 
 ### The block, timed (not in `reproduce.sh`)
 
-`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. In the committed run, [`bench/demo_block.log`](bench/demo_block.log), the guard verdict took 18.7 ms (the ast-grep scan, from the deny receipt) and the hook round trip took 212 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Those two numbers and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
+`bash scripts/demo_block.sh` replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. The committed log is [`bench/demo_block.log`](bench/demo_block.log). Timings come from one place, [`spikes/one_story_live.md`](spikes/one_story_live.md): in this run (the live one-story run, 2026-11-02), the guard verdict took 17.3 ms on the block (the ast-grep scan, from the deny receipt) and the hook round trip took 171 ms (`sh -c`, Python start to the deny envelope, as Muse Code runs it). Across today's three live runs, including this one, the verdict took 16.3–18.4 ms and the round trip 163–256 ms. The timings and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
 
 ### Miss loop (not in `reproduce.sh`)
 

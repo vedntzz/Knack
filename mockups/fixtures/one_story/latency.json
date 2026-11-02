@@ -1,0 +1,18 @@
+{
+  "block": {
+    "receipt": "0e7ab608386631d65da47ec1bd194f45a335f49a0a8750635fc608f6559e65a9",
+    "guard_ms": 17.321375002211425
+  },
+  "corrected": {
+    "receipt": "a8d50318b23e82eca13749fbc9c751f10f65231a5a679c7dbd963c0bf48781e8",
+    "guard_ms": 16.983207999146543
+  },
+  "wall_ms": {
+    "block": 171.4,
+    "argue_hold": 8721.5,
+    "argue_escalate": 19741.3,
+    "resolve": 119.2,
+    "corrected": 198.2,
+    "verify": 119.9
+  }
+}

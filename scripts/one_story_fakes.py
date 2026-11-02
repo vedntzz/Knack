@@ -11,8 +11,8 @@ from knack import cli
 
 HOST = "no network (scripts/one_story_fakes.py)"
 QUOTE = "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`."
-# The #75025 quotes never mention a customer contract, so both fakes escalate on it.
-UNADDRESSED = "contract"
+# The #75025 quotes never mention a deprecation cycle, so both fakes escalate on it.
+UNADDRESSED = "deprecation"
 HOLD = {
     "decision": "hold",
     "reply": "The team removed these sort keys instead of aliasing them.",
@@ -20,7 +20,7 @@ HOLD = {
 }
 ESCALATE = {
     "decision": "escalate",
-    "reply": "The quotes say nothing about a customer contract that pins order_by=state.",
+    "reply": "The quotes say nothing about a deprecation cycle for the public REST API.",
     "cited_quotes": [],
 }
 

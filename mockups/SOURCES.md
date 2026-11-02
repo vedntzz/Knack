@@ -67,3 +67,17 @@ The round 3 file (five scenes) is kept in `refs/before-r3/`, and the round 4 blo
 ## Fonts
 
 `fixtures/fonts/`: IBM Plex Sans 400/500/600/700 and JetBrains Mono 400/600 (latin woff2 from the @fontsource packages on jsDelivr), both under the SIL Open Font License; the licence texts sit beside them.
+
+## One story, live (KN-96b): `fixtures/one_story/`
+
+Frozen unchanged from a single live run of `KNACK_STORY_MODELS=live scripts/one_story.sh` on 2026-11-02 (14:44:38Z to 14:45:07Z), with real Spark and Spark Open. Nothing was edited by hand. It replaces the 14:36:20Z freeze, which had the earlier uphold reason. The run is written up, with its latency, in [`spikes/one_story_live.md`](../spikes/one_story_live.md), the single source for those numbers. No console page reads this folder yet.
+
+| File | What | Source |
+|---|---|---|
+| `receipts.jsonl` | 8 hash-chained receipts: block deny `0e7ab6083866`, uphold (with the reason that "these two sort options never worked"), corrected allow `a8d50318b23e`, and the other rules' allows | The sandbox's `~/.knack/verdicts.jsonl`. `file` holds the sandbox clone's absolute temp path, because it is part of each hash and a rewrite would break `knack receipts verify` |
+| `rulings.jsonl` | HOLD (Spark), then ESCALATE (Spark and Spark Open, with trace ids), each with `models[]` and `agent` | The sandbox's `rulings.jsonl`. `agent` is `muse-spark-1.3-contributor`, the `model` field of `tests/hooks/fixtures/edit_event.json` that the edits were replayed inside |
+| `latency.json` | Guard ms per receipt and wall ms per step, this run only | `scripts/one_story.py`, from this run's receipts and steps |
+| `traces/self_checks.jsonl` | The two-model self-check on the escalated objection | The sandbox registry |
+| `traces/steps/*.txt` | Each step's exit, stdout and stderr, with the sandbox path shown as `<sandbox>` | The steps as they ran |
+| `edits/*.json` | Before and after snapshots of `public/dags.py` for the blocked and the corrected edit | The sandbox's `~/.knack/edits/` |
+| `story.json` | Models `live`, block receipt, rule, and every step's output | `scripts/one_story.py assemble` |

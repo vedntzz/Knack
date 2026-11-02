@@ -1,0 +1,7 @@
+exit 0
+
+-- stdout --
+<sandbox>/home/.knack/verdicts.jsonl: 8 receipts, chain intact
+
+-- stderr --
+

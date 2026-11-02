@@ -18,10 +18,10 @@ OUT="${1:-$ROOT/bench/one_story}"
 MODELS="${KNACK_STORY_MODELS:-live}"
 ROOT_75025="$ROOT/data/roots/airflow/75025.json"
 HOLD_OBJECTION="Let me alias state and start_date onto DagRun.state and DagRun.start_date so the advertised names keep working."
-ESCALATE_OBJECTION="A customer dashboard pins order_by=state in a contract that runs until March; removing it breaks them."
+ESCALATE_OBJECTION="Airflow's REST API is documented and public; removing order_by values in a minor release may need a deprecation cycle first, which #75025 never discusses."
 # Uphold: a person reviews the held case and the decision stands. No exception, no case, the
 # rule unchanged; the alias edit stays blocked, and the corrected edit passes on its own merits.
-REASON="The decision stands; the customer can sort by last_run_state and last_run_start_date."
+REASON="The decision stands: these two sort options never worked (they returned an error), so there was nothing to deprecate. Sort by last_run_state and last_run_start_date."
 
 # fail WHAT: names what stopped the story, on stderr.
 fail() {
