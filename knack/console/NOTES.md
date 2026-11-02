@@ -145,6 +145,21 @@ One card rises per beat (0.75 rem, opacity, `cubic-bezier(0.23,1,0.32,1)`, 420 m
 - **Fit:** argue is 746 px at 720p, of which the verify row wraps 26 px because the fixture's receipts path is long. Held is 802 px at 720p (resolved) and 858 px (unresolved). Both scroll, as the block page does (898 px).
 - **Shots:** `mockups/shots/kn91/`: argue and held at 1080p and 720p, both at 390 full page, and the unresolved held state at 1080p and 720p (served from a copy of the run without the uphold receipt).
 
+## KN-95: live rulings
+`GET /events` now sends three kinds of event, each once, in order:
+- `deny`, whose data is the receipt hash, as before.
+- `ruling`, with data `{"block", "decision"}` for each new line in `rulings.jsonl`.
+- `resolution`, with data `{"block", "action"}` for each new receipt carrying a `resolution`.
+
+Within one poll the order is the order these can happen: denies, then rulings, then resolutions. A ruling has no hash, so its whole line is its key. A torn line is skipped until it is whole.
+
+The argue and held pages listen on `data-block`, and only for their own block. The block page still switches to any new deny. On news, `live.js` fetches the page's own URL, so the server stays the only renderer. It then swaps each `[data-live]` region (head, exchange, rail) whose served HTML differs.
+
+### Motion
+One move, then still. Only the newly arrived `[data-arrives]` node rises: the "later objection was held for a person" line on argue, or the paper "Upheld by …" card on held. It rises 0.75 rem with opacity, `cubic-bezier(0.23,1,0.32,1)`, 420 ms, the same rise as every arrival. Everything else that changed, such as held's h1, swaps silently. Under reduced motion nothing moves.
+
+`tests/console/test_live_rulings.py` drives a real browser to check three things: the page is not reloaded, exactly one animation runs at the change, and none are left after it. Copy is now one delegated listener, so a swapped-in button still copies.
+
 # KN-93: the day page (GET /)
 When the console knows its clone (`knack console`), `/` is the repo's memory; without a clone it still waits. It listens on `/events` like before, so a new deny switches it to `/verdict/<hash>`. `GET /graph` serves the per-day counts the squares show. Facts come from `facts.day_page` and `facts.graph` (pure); reading the registry, roots and chain is in `pages/day.py`.
 
