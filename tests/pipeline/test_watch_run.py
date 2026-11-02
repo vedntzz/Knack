@@ -288,3 +288,42 @@ def test_watch_discards_a_rule_that_flags_a_heldout_compliant_file(
         "  #9 discarded after 1 attempts: held-out: 2/3 compliant allowed "
         "(every held-out compliant file must be allowed)"
     ) in setup.lines
+
+
+def named_registry(base: Path) -> Path:
+    # Laid out like data/registry/airflow.json: rules and roots live outside its folder.
+    (base / "rules" / "widgets").mkdir(parents=True)
+    (base / "rules" / "widgets" / "1.yml").write_text("id: widgets-1\n")
+    entry = RegistryEntry(rule=Path("../rules/widgets/1.yml"), root_ids=["widgets-1-1"])
+    roots = Path("../roots/widgets")
+    registry = Registry(repo="acme/widgets", roots_dir=roots, rules=[entry])
+    (base / "registry").mkdir()
+    (base / "registry" / "widgets.json").write_text(registry.model_dump_json())
+    return base / "registry" / "widgets.json"
+
+
+def test_a_named_registry_file_gets_the_rule_and_no_sibling_appears(
+    setup: Setup,
+) -> None:
+    setup.registry = named_registry(setup.out.parent / "data")
+    write_seen(setup.registry.parent, head(setup.repo))
+    merge_pr(setup.repo)
+    assert setup.run() == setup.registry
+    assert not (setup.registry.parent / "registry.json").exists()
+    rules = [(e.rule.name, e.root_ids) for e in load_registry(setup.registry).rules]
+    assert rules == [("1.yml", ["widgets-1-1"]), ("9.yml", ["widgets-9-1"])]
+    assert all(e.rule.is_file() for e in load_registry(setup.registry).rules)
+
+
+def test_a_named_registry_keeps_its_roots_dir_and_gets_the_root_there(
+    setup: Setup,
+) -> None:
+    setup.registry = named_registry(setup.out.parent / "data")
+    write_seen(setup.registry.parent, head(setup.repo))
+    merge_pr(setup.repo)
+    setup.run()
+    raw = Registry.model_validate_json(setup.registry.read_text())
+    assert raw.roots_dir == Path("../roots/widgets")
+    found = load_roots(setup.out.parent / "data" / "roots" / "widgets")
+    assert [r.id for r in found] == ["widgets-9-1"]
+    assert not (setup.registry.parent / "roots").exists()

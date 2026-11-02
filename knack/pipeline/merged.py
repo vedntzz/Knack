@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 from knack.pipeline.ports import GitHub, Spark
@@ -15,7 +16,8 @@ def run_merged(
     log: Log,
     second: Spark | None = None,
 ) -> Path:
-    # The named PRs through the same stages; proven rules join the existing registry.
+    # The named PRs through the same stages; proven rules join the named registry file.
     kept = Registry.model_validate_json(registry_path.read_text(encoding="utf-8"))
     run = Run(github, spark, kept.repo, registry_path.parent, log, tree, second=second)
+    run = replace(run, registry=registry_path)
     return finish(run, select_numbers(github, kept.repo, numbers), keep=kept.rules)
