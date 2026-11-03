@@ -110,6 +110,10 @@ RECEIPTS_HELP = "defaults to $KNACK_HOME/verdicts.jsonl"
 RUNS_HELP = "bench run files; defaults to bench/runs*.jsonl"
 KEPT = "the old rule is kept"
 RESOLVE_REGISTRY_HELP = "defaults to the home registry of the receipt's repo"
+NOT_A_PERSON = (
+    "only a person can resolve a deny: run it in an interactive terminal,"
+    " or pass --by <your name> with KNACK_HUMAN=1 set by you"
+)
 NO_WRITER = (
     "the fresh cross-model set needs a second model: set its key or pass --adversary"
 )
@@ -356,6 +360,8 @@ def _add_resolve_arguments(resolve: argparse.ArgumentParser) -> None:
 
 def _resolve_command(args: argparse.Namespace) -> int:
     # A bad hash, reason, registry or root is operator error: exit 2, nothing written.
+    if not _run_by_a_person(args):
+        return _loop_refused("resolve", NOT_A_PERSON, 2)
     named = (receipts_path(), args.receipt, args.action, args.reason, _by(args))
     try:
         done = resolve_deny(*named, corrections_path(), args.registry)
@@ -365,6 +371,12 @@ def _resolve_command(args: argparse.Namespace) -> int:
         "\n".join([_resolved_line(done), *_promoted_lines(done), *_closed_lines(done)])
     )
     return 0
+
+
+def _run_by_a_person(args: argparse.Namespace) -> bool:
+    # A terminal, or a person naming themself and setting KNACK_HUMAN=1; never an agent's pipe.
+    said = bool(args.by) and os.environ.get("KNACK_HUMAN") == "1"
+    return sys.stdin.isatty() or said
 
 
 def _by(args: argparse.Namespace) -> str:

@@ -155,8 +155,21 @@ def test_escalate_prints_held_for_a_person(
     out = capsys.readouterr().out
     assert out.splitlines()[0] == "ESCALATE: held for a person"
     assert "The quotes say nothing about clients." in out
-    assert out.splitlines()[-1].startswith("To resolve: knack resolve ")
-    assert "allow|retire|uphold --reason" in out.splitlines()[-1]
+    assert "knack resolve" not in out and "knack confirm" not in out
+
+
+def test_escalate_says_where_a_person_finds_the_command(
+    clone: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # The agent learns only where a person settles it: the console's held page.
+    spark_says(monkeypatch, "escalate", "Not covered.", [])
+    denied = receipt(home_of(clone), clone / "dags.py", "airflow-75025")
+    assert cli.main(["argue", "A pinned client needs sort=state."]) == 0
+    last = capsys.readouterr().out.splitlines()[-1]
+    assert "for a person" in last
+    assert f"http://127.0.0.1:7655/verdict/{denied.hash}/held" in last
 
 
 def test_the_latest_deny_picks_the_rule(

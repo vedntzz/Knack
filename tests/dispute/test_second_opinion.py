@@ -102,7 +102,8 @@ def test_both_escalate_record_a_provisional_case_and_never_run_the_loop(
     assert denied.hash in case.source and "auto" in case.source
     assert [a.model for a in case.answers] == [NOT_RECORDED, OPEN_MODEL]
     out = capsys.readouterr().out
-    assert "provisional" in out and f"knack resolve {denied.hash} allow" in out
+    assert "provisional" in out and "knack resolve" not in out
+    assert f"/verdict/{denied.hash}/held" in out
     assert "recompil" not in out and "kept airflow-75025" not in out
 
 

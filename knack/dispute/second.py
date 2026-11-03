@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.error import URLError
 
+from knack.console.links import held_url
 from knack.contracts.models import Ruling
 from knack.dispute.argue import ruling_prompt
 from knack.dispute.latest import Disputed
@@ -22,7 +23,7 @@ from knack.pipeline.ports import Spark
 
 QUESTION = "the quotes do not answer the objection, so the deny should not hold"
 AUTO_NOTE = "auto, provisional: Spark escalated, and Spark Open, asked independently, escalated too"
-HELD = 'provisional must-pass case {path}; a case only after: knack resolve {hash} allow --reason "<why>"'
+HELD = "provisional must-pass case {path}; a case only after a person allows it on the console's held page: {url}"
 # Spark Open has no schema mode, so the shape argue's schema enforces is asked for in words.
 JSON_REPLY = """
 Reply with JSON only: {"decision": "hold" or "escalate", "reply": "one or two sentences", "cited_quotes": ["exact words from a quote"]}
@@ -100,7 +101,7 @@ def timed_out(error: Exception) -> bool:
 def _held(second: Second, receipt_hash: str, case: EditCase) -> Path:
     # Waits beside the registry until a person's knack resolve allow promotes it.
     path = save_provisional(second.registry, receipt_hash, case)
-    second.log(HELD.format(path=path, hash=receipt_hash))
+    second.log(HELD.format(path=path, url=held_url(receipt_hash)))
     return path
 
 

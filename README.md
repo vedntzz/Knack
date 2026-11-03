@@ -75,7 +75,7 @@ Then open:
 
 **Plain code guards.** The models are in the proof loop: they extract, compile and attack rules before install. They are not in the verdict path. A rule is installed only if it passes the held-out bar: it catches at least 2 of 3 violating variants and allows all 3 compliant ones. At edit time, a PreToolUse hook runs plain code: ast-grep plus a check for matches that are new in the edit. No model and no network are involved. The hook denies the edit with a citation. If Knack itself fails, the agent proceeds and the failure is logged to `.knack/guard_errors.log`.
 
-**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain. The ruling is Spark's alone. Spark Open is asked only after Spark escalates. Each ruling in `rulings.jsonl` names every model that answered (name, host, trace id) and the agent from the PreToolUse payload, or `not recorded`. Spark Open gets 60 s; if it runs out, the ruling is still written and lists it under `timed_out`. If Spark and Spark Open both escalate, the edit is held as a provisional case. It becomes a must-pass case for the next recompile only after a person's `knack resolve ... allow`. An objection never recompiles a rule.
+**Knack reviews the recorded evidence.** When an agent objects to a deny (`knack argue`), Spark may hold the decision only by citing words that are verbatim in a Confirmed root. Otherwise the objection goes to a person, who settles it with `knack resolve <receipt> allow|retire --reason`: allow lets that exact edit through, and retire drops the decision's rule. Both are logged to the corrections log and the receipts chain. Only a person can allow, and three things keep an agent out: `knack argue` never prints the resolve command, only where a person finds it (the console's held page); the PreToolUse guard denies any agent shell command that runs `knack resolve`, `knack confirm`, `knack false-block` or `knack retire`; and `knack resolve` refuses to run without an interactive terminal unless `--by` is given and the person sets `KNACK_HUMAN=1`. The ruling is Spark's alone. Spark Open is asked only after Spark escalates. Each ruling in `rulings.jsonl` names every model that answered (name, host, trace id) and the agent from the PreToolUse payload, or `not recorded`. Spark Open gets 60 s; if it runs out, the ruling is still written and lists it under `timed_out`. If Spark and Spark Open both escalate, the edit is held as a provisional case. It becomes a must-pass case for the next recompile only after a person's `knack resolve ... allow`. An objection never recompiles a rule.
 
 A person has three choices: `knack resolve <receipt> allow|retire|uphold --reason "<why>"`. Allow lets that exact edit through, retire drops the decision's rule, and uphold confirms the decision stands: the edit stays blocked, the held case closes, and no exception or case is added.
 
@@ -107,7 +107,7 @@ Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. Th
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "write_file|edit_file",
+        "matcher": "write_file|edit_file|bash",
         "hooks": [
           {
             "type": "command",
@@ -130,7 +130,7 @@ Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. Th
 }
 ```
 
-- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file` or `edit_file` goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule.
+- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file`, `edit_file` or `bash` call goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule, and a shell command that runs one of the person-only commands.
 - `UserPromptSubmit` is not written by `demo_block.sh`. It is the entry the bench's `warn+veto` arm writes ([`knack/bench/arms.py`](knack/bench/arms.py)), in the same shape and with no matcher. `knack.hooks.warn` puts a Confirmed decision and its quote into the agent's context when a prompt names it. The bench adds a `KNACK_REGISTRY=<bench registry>` prefix to point it at its seeded registry. Without that prefix, the hook finds the home registry from `git remote get-url origin`.
 - `|| true` makes a crashed hook exit 0 with no output, and Muse Code then allows the edit. The guard fails open.
 

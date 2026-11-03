@@ -121,7 +121,7 @@ open http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a875
 | Held: the escalation | the latest `escalate` ruling |
 | Held: Spark Open's answer | its verbatim `reply` in the latest argue self-check that names the receipt. The registry's `self_checks.jsonl`; kept receipts keep it at `traces/self_checks.jsonl`, as `one_story.py` froze it. A missing check reads "<model>'s answer not recorded". |
 | Held: "A person upheld the decision." and "Upheld by Vedant Srivastava", the reason, the time, receipt ff61cef7 | the uphold receipt's `resolution` and time (`ResolutionView`) |
-| Held, unresolved: the command and Copy allow / retire / uphold | `RESOLVE_HINT` as `knack argue` prints it; each button copies one runnable line |
+| Held, unresolved: the command and Copy allow / retire / uphold | `RESOLVE_HINT`, shown only here (`knack argue` points the agent at this page, never prints it); each button copies one runnable line |
 
 Kept receipts now bring their rulings: with `KNACK_CONSOLE_RECEIPTS` set, the console reads `rulings.jsonl` beside it, as it already read `edits/`. The block page's "argue it" becomes a link to the argue page once a ruling exists, so an unargued deny's page is unchanged; the screenshot baselines still pass.
 

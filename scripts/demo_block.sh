@@ -55,16 +55,16 @@ EOF
 }
 
 install_hook() {
-  # The user-level Muse hook: every write_file/edit_file goes through knack.hooks.pretool.
+  # The user-level Muse hook: every write_file/edit_file/bash call goes through knack.hooks.pretool.
   "$PY" - "$SETTINGS" "$PY" <<'EOF'
 import json, shlex, sys
 from pathlib import Path
 settings, python = Path(sys.argv[1]), sys.argv[2]
 command = f"sh -c {shlex.quote(shlex.quote(python) + ' -m knack.hooks.pretool || true')}"
-entry = {"matcher": "write_file|edit_file", "hooks": [{"type": "command", "command": command}]}
+entry = {"matcher": "write_file|edit_file|bash", "hooks": [{"type": "command", "command": command}]}
 settings.parent.mkdir(parents=True)
 settings.write_text(json.dumps({"schema_version": 1, "hooks": {"PreToolUse": [entry]}}, indent=2) + "\n")
-print("user hook: ~/.config/muse/settings.json PreToolUse write_file|edit_file -> knack.hooks.pretool")
+print("user hook: ~/.config/muse/settings.json PreToolUse write_file|edit_file|bash -> knack.hooks.pretool")
 EOF
 }
 

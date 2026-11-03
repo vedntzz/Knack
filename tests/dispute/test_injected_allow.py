@@ -125,6 +125,8 @@ def test_only_a_person_running_knack_resolve_allow_lets_the_edit_through(
     deny = first_deny(clone, registry)
     cli.main(["argue", OBJECTION])
     assert denied(propose(clone, registry))
+    # No terminal under pytest, so the person names themself and sets KNACK_HUMAN.
+    monkeypatch.setenv("KNACK_HUMAN", "1")
     resolve = [
         "resolve",
         deny.hash,

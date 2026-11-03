@@ -21,12 +21,13 @@ from knack.console.pages.argue import (
 from knack.console.pages.verdict import gap, note, partial, stamp, tail
 from knack.console.render import page
 from knack.console.verdict import RegistryFor, ResolutionView
-from knack.dispute.latest import RESOLVE_HINT
 from knack.dispute.rulings import RulingRecord, rulings_for
 from knack.miss.selfcheck import load_checks, SELF_CHECKS, self_checks_path, SelfCheck
 
 DONE = {"allow": "Allowed", "retire": "Retired", "uphold": "Upheld"}
 RESOLVE = 'knack resolve {hash} {action} --reason "<why>"'
+# Shown only here, to a person; knack argue never prints it to the agent.
+RESOLVE_HINT = 'knack resolve {hash} allow|retire|uphold --reason "<why>"'
 DONE_LINE = {
     "allow": "A person let the edit through.",
     "retire": "A person retired the decision.",
@@ -121,8 +122,8 @@ def resolved(resolution: ResolutionView) -> str:
 
 
 def to_resolve(receipt_hash: str) -> str:
-    # The command as knack argue prints it; each button copies one runnable line.
-    shown = RESOLVE_HINT.removeprefix("To resolve: ").format(hash=receipt_hash)
+    # The command for a person; each button copies one runnable line.
+    shown = RESOLVE_HINT.format(hash=receipt_hash)
     buttons = "".join(copy_action(receipt_hash, action) for action in DONE)
     well = f'<div class="well"><code>{escape(shown, quote=False)}</code></div>'
     return partial("resolve.html", well=well, buttons=buttons, at=str(BEATS["person"]))
