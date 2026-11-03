@@ -4,6 +4,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from knack.atomic import write_atomically
 from knack.contracts.models import Root
 from knack.pipeline.compile import Attempt, compile_prompt, compile_rule, with_rule_id
 from knack.pipeline.corroborate import corroborated_roots
@@ -299,7 +300,7 @@ def _with_heldout(run: Run, compiled: Compiled, prompt: str, text: str) -> Compi
 
 def _written(compiled: Compiled, rule: Path, heldout: HeldOut, text: str) -> Compiled:
     # Only a rule that cleared the held-out bar reaches disk.
-    rule.write_text(text, encoding="utf-8")
+    write_atomically(rule, text)
     proof = with_heldout(compiled.proof, heldout)
     return compiled.model_copy(update={"heldout": heldout, "proof": proof})
 
@@ -375,8 +376,7 @@ def _write_registry(run: Run, rules: list[RegistryEntry]) -> Path:
     # Paths in the registry are relative to it, so the folder can move.
     registry = Registry(repo=run.repo, roots_dir=_roots_field(run), rules=rules)
     path = run.registry or run.out / "registry.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(registry.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    write_atomically(path, registry.model_dump_json(indent=2) + "\n")
     return path
 
 

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from knack.contracts.models import ModelCall, NOT_RECORDED
 from knack.home import knack_home
+from knack.receipts.chain import fresh_line
 
 
 @runtime_checkable
@@ -61,8 +62,9 @@ def rulings_path() -> Path:
 def append_ruling(path: Path, record: RulingRecord) -> None:
     # One appended line per write is small enough that parallel argues never interleave.
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(record.model_dump_json() + "\n")
+    with path.open("a+b") as handle:
+        line = fresh_line(handle) + record.model_dump_json() + "\n"
+        handle.write(line.encode("utf-8"))
 
 
 def load_rulings(path: Path) -> list[RulingRecord]:

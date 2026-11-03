@@ -6,6 +6,14 @@ import urllib.request
 from typing import Any
 
 RETRIES = 5
+# http.client quotes a bad header value in its error, and that value may be a key.
+REQUEST_REFUSED = (
+    "request refused before sending: a header or URL value is invalid (not shown)"
+)
+
+
+class RequestRefused(ValueError):
+    pass
 
 
 def request_bytes(
@@ -35,7 +43,19 @@ def response_id(response: dict[str, Any]) -> str | None:
 def _send(url: str, headers: dict[str, str], body: Any, timeout: float) -> bytes:
     data = None if body is None else json.dumps(body).encode()
     sent = {**headers, "Content-Type": "application/json"} if data else headers
-    request = urllib.request.Request(url, data=data, headers=sent)
+    return _opened(urllib.request.Request(url, data=data, headers=sent), timeout)
+
+
+def _opened(request: urllib.request.Request, timeout: float) -> bytes:
+    try:
+        return _read(request, timeout)
+    except ValueError:
+        pass
+    # Raised outside the handler, so the error quoting the value is not even its context.
+    raise RequestRefused(REQUEST_REFUSED)
+
+
+def _read(request: urllib.request.Request, timeout: float) -> bytes:
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 

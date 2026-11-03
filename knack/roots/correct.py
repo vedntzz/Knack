@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any, Literal
 
+from knack.atomic import write_atomically
 from knack.contracts.models import DecisionStatus, Root
 from knack.git import git_output
 from knack.roots.corrections import append_correction, Correction
@@ -123,7 +124,7 @@ def drop_from_registry(registry_path: Path, root_id: str) -> None:
     if kept == registry.rules:
         return
     updated = registry.model_copy(update={"rules": kept})
-    registry_path.write_text(updated.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    write_atomically(registry_path, updated.model_dump_json(indent=2) + "\n")
 
 
 def _without(entry: RegistryEntry, root_id: str) -> RegistryEntry:
