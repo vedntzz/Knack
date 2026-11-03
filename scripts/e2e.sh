@@ -135,8 +135,9 @@ init_step() {
 
 confirm_step() {
   # Confirmed, by the named reviewer, pinned to the sha of the rule file now installed.
+  # A person without a terminal: they name themself and set KNACK_HUMAN=1, as for resolve.
   local out sha
-  out="$(in_clone faked confirm "$ROOT_ID" --by "e2e reviewer")" || return 1
+  out="$(KNACK_HUMAN=1 in_clone faked confirm "$ROOT_ID" --by "e2e reviewer")" || return 1
   echo "$out"
   says "$out" "Confirmed, pinned to rule [0-9a-f]{12}" || return 1
   sha="$(shasum -a 256 "$REGISTRY_DIR/rules/75025.yml" | cut -d' ' -f1)"
@@ -314,7 +315,7 @@ self_check_step() {
   # rejected path, so a case is recorded. The argue check, where they disagreed, recorded none.
   local out checks="$REGISTRY_DIR/self_checks.jsonl"
   # Only rules that block are self-checked, so the loader root is Confirmed first.
-  in_clone faked confirm "$LOADER_ROOT" --by "e2e reviewer" --no-gate || return 1
+  KNACK_HUMAN=1 in_clone faked confirm "$LOADER_ROOT" --by "e2e reviewer" --no-gate || return 1
   # Watch's loop reads held-out sets from default_heldout(registry): ../heldout/<registry stem>.
   must mkdir -p "$WORK/home/.knack/registries/heldout/registry" || return 1
   must cp -R "$FIX/heldout/900001" "$WORK/home/.knack/registries/heldout/registry/" || return 1
@@ -335,7 +336,7 @@ EOF
 gate_holds() {
   # Re-pinning the recompiled loader rule re-reads every Confirmed PR; none is lost, so it stands.
   local out
-  out="$(in_clone faked confirm "$LOADER_ROOT" --by "e2e reviewer")" || return 1
+  out="$(KNACK_HUMAN=1 in_clone faked confirm "$LOADER_ROOT" --by "e2e reviewer")" || return 1
   echo "$out"
   says "$out" "gate: re-extracting 2 PR\(s\)" || return 1
   holds "$REGISTRY_DIR/roots/$LOADER_ROOT.json" "d['status'] == 'Confirmed' and d['rule_sha']"

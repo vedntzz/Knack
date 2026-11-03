@@ -114,8 +114,10 @@ def test_injected_pr_text_never_produces_a_blocking_rule(
 
 
 def test_only_knack_confirm_by_a_person_makes_the_rule_block(
-    obeying: list[ObeyingSpark], tmp_path: Path
+    obeying: list[ObeyingSpark], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # No terminal under pytest, so the person names themself and sets KNACK_HUMAN.
+    monkeypatch.setenv("KNACK_HUMAN", "1")
     registry = init_registry(tmp_path)
     [root] = load_roots(load_registry(registry).roots_dir)
     confirm = ["confirm", root.id, "--registry", str(registry), "--by", "maria"]

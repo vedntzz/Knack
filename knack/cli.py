@@ -111,8 +111,9 @@ RECEIPTS_HELP = "defaults to $KNACK_HOME/verdicts.jsonl"
 RUNS_HELP = "bench run files; defaults to bench/runs*.jsonl"
 KEPT = "the old rule is kept"
 RESOLVE_REGISTRY_HELP = "defaults to the home registry of the receipt's repo"
+# Shared by resolve and confirm; {what} names the act only a person may do.
 NOT_A_PERSON = (
-    "only a person can resolve a deny: run it in an interactive terminal,"
+    "only a person can {what}: run it in an interactive terminal,"
     " or pass --by <your name> with KNACK_HUMAN=1 set by you"
 )
 NO_WRITER = (
@@ -297,6 +298,9 @@ def _add_reject_arguments(reject: argparse.ArgumentParser) -> None:
 
 
 def _confirm_command(args: argparse.Namespace) -> int:
+    # Confirm makes a root block, so it gets resolve's person check.
+    if not _run_by_a_person(args):
+        return _loop_refused("confirm", NOT_A_PERSON.format(what="confirm a root"), 2)
     by, log = args.by or reviewer_name(Path.cwd()), corrections_path()
     apply = partial(confirm_root, root_id=args.root_id, by=by, log=log)
     return _correct("confirm", args, apply)
@@ -362,7 +366,7 @@ def _add_resolve_arguments(resolve: argparse.ArgumentParser) -> None:
 def _resolve_command(args: argparse.Namespace) -> int:
     # A bad hash, reason, registry or root is operator error: exit 2, nothing written.
     if not _run_by_a_person(args):
-        return _loop_refused("resolve", NOT_A_PERSON, 2)
+        return _loop_refused("resolve", NOT_A_PERSON.format(what="resolve a deny"), 2)
     named = (receipts_path(), args.receipt, args.action, args.reason, _by(args))
     try:
         done = resolve_deny(*named, corrections_path(), args.registry)

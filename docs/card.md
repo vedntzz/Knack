@@ -12,7 +12,8 @@ In this run (live, 2026-11-02) the verdict took 17.3 ms and the hook round trip 
 
 - **Muse Spark** (Meta) extracts decisions from merged PRs and compiles each into an ast-grep rule.
 - **Muse Spark Open**, a second, separately run Meta model, extracts the same PRs again and writes held-out variants that Spark never sees.
-- Neither model is in the verdict path. Only AST-checkable, human-confirmed rules can block.
+- Neither model is in the verdict path. Only AST-checkable rules on a Confirmed root can block.
+- No model output can allow a block. The guard denies an agent's direct and quoted `knack resolve` and `knack confirm`, but an agent running as you can still get around it (a variable, a script, `python -c`); the CI knack-guard is the floor: it reads no local receipts, so a local allow never passes a pull request.
 
 ## The numbers
 
