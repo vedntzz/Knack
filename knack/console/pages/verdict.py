@@ -286,17 +286,19 @@ def checks(found: Figures | None) -> str:
 
 def alarms(found: Figures | None, repo: str) -> str:
     if found is None or found.false_alarms is None:
-        return f"<li>{gap('False alarms')}</li>"
+        return f"<li>{gap('Matches outside the PR’s files')}</li>"
     name = escape(repo.split("/")[-1].capitalize())
     on = f" and release {escape(found.release)}" if found.release else ""
     return figure(
-        str(found.false_alarms), "", f"false alarms on {name}’s default branch{on}"
+        str(found.false_alarms),
+        "",
+        f"matches outside the PR’s files on {name}’s default branch{on}",
     )
 
 
 def timing(view: VerdictView) -> str:
     latency = f"{view.latency_ms:.1f}"
-    return figure(latency, " ms", "to decide, no AI model in the check")
+    return figure(latency, " ms", "rule evaluation, no AI model in the check")
 
 
 def shown_path(receipts: Path) -> str:

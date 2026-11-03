@@ -29,8 +29,8 @@ The round 3 file (five scenes) is kept in `refs/before-r3/`, and the round 4 blo
 | Decision on record | `root.decision` | Root |
 | "To comply, drop lines 135–136; lines 137–138 already sort by last_run_*." | computed | Line numbers from `where.lines` and the added rows that contain `last_run_`. The wording is UI copy |
 | 8 of 8 gates pass, by name | `proof.grid` | `bench/PROOF-GRID.md`: the header row and the `airflow-75025-1` row |
-| "0 FP on Airflow current tree and previous release, for the rules shown" | `proof.fp` | `data/registry/airflow.json`: `false_positives` 0, plus `old_release.false_positives` 0. The previous release is 3.3.2, shown only in the tooltip, to keep the fixed string verbatim |
-| 212 ms round trip (18.7 ms verdict) · ast-grep | `proof.round_trip_ms`, `proof.verdict_ms`, `proof.scan` | The log's `== latency ==` lines |
+| "0 FP on Airflow current tree and previous release, for the rules shown" | `proof.fp` | `data/registry/airflow.json`: `false_positives` 0, plus `old_release.false_positives` 0. Read as: zero matches outside the PR's changed files in the scanned snapshots. The previous release is 3.3.2, shown only in the tooltip, to keep the fixed string verbatim |
+| 212 ms hook round trip (18.7 ms rule evaluation) · ast-grep | `proof.round_trip_ms`, `proof.verdict_ms`, `proof.scan` | The log's `== latency ==` lines |
 | 0 model calls in this hook | `proof.no_model` | The log's first line: "No model, no network." |
 | Receipt 80b311c17a39 | `proof.receipt` | The log's `Console: …/verdict/<hash>` line. The full hash is in the tooltip |
 | `knack argue "<your reason>"` under Argue | `where.dispute` | The log's `To dispute:` line |
@@ -47,7 +47,7 @@ The round 3 file (five scenes) is kept in `refs/before-r3/`, and the round 4 blo
 | "Delete lines 135–136. Lines 137–138 already use the right names." and the lead's "already on lines 137–138" | computed | `where.lines` and the `last_run_` rows. The wording is the brief's, after the critic's change |
 | "The decision" sentence | computed | The names come from the fixture; the sentence is the brief's plain rewrite of `root.decision` |
 | 8/8 checks passed | `proof.grid` | `bench/PROOF-GRID.md`. The tooltip lists the gate names |
-| 0 false alarms on Airflow | `proof.fp`, `proof.old_release` | `data/registry/airflow.json`. The tooltip says current tree and release 3.3.2 |
+| 0 false alarms on Airflow | `proof.fp`, `proof.old_release` | `data/registry/airflow.json`. The tooltip says current tree and release 3.3.2. Read as: zero matches outside the PR's changed files in the scanned snapshots |
 | 212 ms, no AI model in the block | `proof.round_trip_ms`, `proof.no_model` | The log's latency line and its first line, "No model, no network." The tooltip gives the 18.7 ms verdict by ast-grep |
 | Verifier line: rule, root, Confirmed, not seeded, PreToolUse deny, held-out gate PASS, receipt, log committed | `where.*`, `root.*`, `proof.*` | As in the table above |
 | "Show the change in #75025", one − and one + row | `rejected` | Shown once because the line is identical in both files (checked at runtime) |
@@ -82,6 +82,6 @@ Frozen unchanged from a single live run of `KNACK_STORY_MODELS=live scripts/one_
 | `edits/*.json` | Before and after snapshots of `public/dags.py` for the blocked and the corrected edit | The sandbox's `~/.knack/edits/` |
 | `story.json` | Models `live`, block receipt, rule, and every step's output | `scripts/one_story.py assemble` |
 
-## Self-repair, live (KN-97): `fixtures/self_repair/`
+## Model-assisted repair, live (KN-97): `fixtures/self_repair/`
 
-Frozen unchanged from one live self-repair run of airflow-75025 on 2026-11-02, with real Spark and Spark Open. The first `knack confirm` was rolled back by the regression gate and the retry passed. Every file is listed in [`fixtures/self_repair/SOURCES.md`](fixtures/self_repair/SOURCES.md), and the run is written up in [`spikes/self_repair_live.md`](../spikes/self_repair_live.md). No console page reads this folder yet.
+Frozen unchanged from one live model-assisted repair of airflow-75025 on 2026-11-02, which a person initiated; recorded edit replay; real hook, real model calls (real Spark and Spark Open). The first `knack confirm` was rolled back by the regression gate and the retry passed. Every file is listed in [`fixtures/self_repair/SOURCES.md`](fixtures/self_repair/SOURCES.md), and the run is written up in [`spikes/self_repair_live.md`](../spikes/self_repair_live.md). No console page reads this folder yet.

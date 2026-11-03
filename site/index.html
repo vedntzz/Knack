@@ -24,9 +24,9 @@
     <figure class="shot" id="shot">
       <picture>
         <source media="(max-width: 47.5rem)" srcset="block-0e7ab6083866-390.png" width="780" height="1688">
-        <img src="block-0e7ab6083866-1080p.png" width="1920" height="1080" fetchpriority="high" alt="The Knack block page. A red Blocked seal beside the headline ‘This edit brings back what #75025 removed.’ The agent’s lines 135 and 136 put DagRun.state and DagRun.start_date back, marked in gold. Under them, on paper, Pushkal Gupta’s words from #75025: ‘I removed them rather than aliasing them onto DagRun.state and DagRun.start_date. The last_run_* spelling predates the refactor and already works, so a second name for the same sort felt worse than one. Happy to alias instead if you would rather keep the advertised names working.’ On the right: ‘Delete lines 135–136.’ and 17.3 ms to decide.">
+        <img src="block-0e7ab6083866-1080p.png" width="1920" height="1080" fetchpriority="high" alt="The Knack block page. A red Blocked seal beside the headline ‘This edit brings back what #75025 removed.’ The agent’s lines 135 and 136 put DagRun.state and DagRun.start_date back, marked in gold. Under them, on paper, Pushkal Gupta’s words from #75025: ‘I removed them rather than aliasing them onto DagRun.state and DagRun.start_date. The last_run_* spelling predates the refactor and already works, so a second name for the same sort felt worse than one. Happy to alias instead if you would rather keep the advertised names working.’ On the right: ‘Delete lines 135–136.’ and 17.3 ms rule evaluation.">
       </picture>
-      <figcaption>The block page for receipt <code>0e7ab6083866</code>, as <code>knack console</code> serves it from the committed receipts of the live run on Nov 2 2026. Its 8/8 checks and 0 false alarms (0 matches on Airflow’s default branch and on release 3.3.2) are the #75025 row of <a href="https://github.com/vedntzz/Knack/blob/main/bench/PROOF-GRID.md"><code>bench/PROOF-GRID.md</code></a>, which <code>bash scripts/reproduce.sh</code> regenerates byte for byte.</figcaption>
+      <figcaption>The block page for receipt <code>0e7ab6083866</code>, as <code>knack console</code> serves it from the committed receipts of the live run on Nov 2 2026. Its 8/8 checks, including zero matches outside the PR’s changed files in the scanned snapshots (Airflow’s default branch and release 3.3.2), are the #75025 row of <a href="https://github.com/vedntzz/Knack/blob/main/bench/PROOF-GRID.md"><code>bench/PROOF-GRID.md</code></a>, which <code>bash scripts/reproduce.sh</code> regenerates byte for byte.</figcaption>
     </figure>
   </section>
 
@@ -48,20 +48,21 @@
         <li><time datetime="2026-11-02T14:45:07Z">14:45:07</time><p>The corrected edit, lines 135–136 deleted, was allowed.</p></li>
       </ol>
       <div class="rail">
-        <p>The guard denied the edit in 17.3 ms, with no model and no network, and cited Pushkal Gupta’s words from #75025. When the agent argued, Spark could hold only by quoting a confirmed decision verbatim; when it could not, both models escalated and a person decided.</p>
-        <p class="limit">One run on one laptop. The edits were replayed inside a captured Muse Code hook payload; the rulings were live. The person who upheld the decision is Knack’s author.</p>
+        <p>The hook round trip took 171 ms, of which rule evaluation was 17.3 ms, with no model and no network; the guard cited Pushkal Gupta’s words from #75025. When the agent argued, Spark could hold only by quoting a confirmed decision verbatim; when it could not, both models escalated and a person decided.</p>
+        <p class="limit">One run on one laptop. Recorded edit replay; real hook, real model calls: the edits were inserted into a captured Muse Code hook payload, and the rulings were live. The person who upheld the decision is Knack’s author.</p>
         <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/one_story_live.md">The run: <code>spikes/one_story_live.md</code></a></p>
       </div>
     </article>
 
     <article class="promise" id="learns" aria-labelledby="learns-title">
-      <h3 id="learns-title">It learns each new decision from the merge.</h3>
+      <h3 id="learns-title">It learns each new decision from a local merge.</h3>
       <div class="board" data-arrive>
         <blockquote class="paper" data-root="data/roots/airflow/75271-1.json">
           <p>“<code>bool | Any</code> or <code>Any</code> would also be honest, but a union with <code>Any</code> switches type checking off for the argument, so <code>durable="yes"</code> would pass.”</p>
           <footer><b>dabla</b> · apache/airflow #75271</footer>
         </blockquote>
         <p class="decided" data-root="data/roots/airflow/75271-1.json">Decision, Confirmed: Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None</p>
+        <p>Decided in #75271 by @dabla · confirmed in Knack by @vedntzz after reading the full thread.</p>
         <pre class="log" data-source="spikes/self_improving.md"><code>$ git merge --ff-only pr-75271
 knack watch apache/airflow: 1 merged PR: #75271
 [1/5] select   1 PRs read, 1 kept
@@ -76,15 +77,16 @@ knack watch apache/airflow: 1 merged PR: #75271
       </div>
       <div class="rail">
         <p>A merge of #75271 into a watched clone ran the post-merge hook that <code>knack watch</code> installed. Spark extracted the decision, Spark Open wrote code to break it and code to follow it, and the rule was proven and installed. No one typed anything between the merge and the install.</p>
-        <p class="limit">Its two roots were Inferred when the rule installed, so it only advised. A person has since run <code>knack confirm</code> on both, so it now blocks.</p>
+        <p class="limit">Its two roots were Inferred when the rule installed, so it only advised. @vedntzz has since run <code>knack confirm</code> on both, so it now blocks.</p>
         <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/self_improving.md">The run: <code>spikes/self_improving.md</code></a></p>
       </div>
     </article>
 
     <article class="promise" id="repairs" aria-labelledby="repairs-title">
-      <h3 id="repairs-title">When it misses, it repairs the rule and proves the repair.</h3>
+      <h3 id="repairs-title">When it misses, a person starts a model-assisted repair, and every gate re-proves it.</h3>
       <div class="board" data-arrive>
         <p class="decided" data-root="data/roots/airflow/75025.json">Decision, Confirmed: Dag list endpoints do not accept bare state or start_date as sort keys; the latest run is sorted only as last_run_state and last_run_start_date.</p>
+        <p>Decided in #75025 by Pushkal Gupta (author; approved and merged by @bbovenzi) · confirmed in Knack by @vedntzz after reading the full thread. The quote reads as a preference, and @vedntzz confirmed it as policy for this demonstration.</p>
         <ol class="story">
           <li><time datetime="2026-11-02T19:57:20Z">19:57:20</time><p>The #75025 rule let an edit through that aliased state and start_date onto DagRun, the alternative #75025 rejected, spelled as <code>dict(state=DagRun.state, start_date=DagRun.start_date)</code>. Receipt <code>b27a4e112756</code>.</p></li>
           <li><time datetime="2026-11-02T19:57:20Z">19:57:20</time><div><p>The same rule denied <code>compliant_3.py</code>, a file Spark Open wrote to follow the decision. A false alarm, receipt <code>f679bf658d9f</code>:</p><figure class="paper said" data-source="mockups/fixtures/self_repair/cases/must-pass-6633cbc47011.json">
@@ -98,7 +100,7 @@ sorter_cc = SortParam(allowed_keys, DagModel, extra)
 dep_fn = sorter_cc.dynamic_depends()</code></pre>
             <figcaption><b>compliant_3.py</b>, by Spark Open · sorts the latest run only as last_run_state and last_run_start_date</figcaption>
           </figure></div></li>
-          <li><time datetime="2026-11-02T20:01:46Z">20:01:46</time><div><p>A person ran <code>knack false-block</code> on that receipt. With both edits as cases, Spark recompiled the rule. Its second attempt dropped 1, kept 6, added 5 branches; the one dropped is the branch that flagged <code>compliant_3.py</code>. Every gate passed, and it was installed:</p>
+          <li><time datetime="2026-11-02T20:01:46Z">20:01:46</time><div><p>A person ran <code>knack false-block</code> on that receipt. With both edits as cases, Spark recompiled the rule. Its second attempt kept 6 matcher branches, dropped 1 and added 5; the one dropped is the branch that flagged <code>compliant_3.py</code>. Every gate passed, and it was installed:</p>
             <pre class="log" data-source="mockups/fixtures/self_repair/traces/steps/04_04_knack_false_block.txt"><code>airflow-75025 fails: guard edit airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py [2ccf5ea40fa8] adds no new match; guard allow airflow-core/src/airflow/api_fastapi/core_api/routes/public/dag_sort_keys.py [6633cbc47011] adds a new match; recompiling with muse-spark-1.3
 PASS cases: every must-fail edit denied, every must-pass edit allowed
 PASS proof: base, guard-allow, guard-edit, head, rename-base, rename-head, variant-compliant, variant-violation hold; 0 FP on the default branch and release 3.3.2
@@ -119,8 +121,8 @@ exit 0, wall 39593.5 ms</code></pre></div></li>
         </ol>
       </div>
       <div class="rail">
-        <p>One rule, two mistakes: it missed an alias spelled as keywords and flagged code that followed the decision. Both became cases, and the repair went in only after it denied the one, allowed the other, still denied everything the old rule denied, caught as much held-out code from both models, and matched nothing on Airflow’s default branch or release 3.3.2. <code>compliant_3.py</code> is now a permanent must-pass case for every later recompile.</p>
-        <p class="limit">Started by a person: a script recorded the missed edit, and Knack’s author ran <code>knack false-block</code> and both confirms. The edits were replayed inside a captured Muse Code hook payload; the models were live. The unattended path, from a self-check case to an install, has run only with fake models, in the end-to-end test.</p>
+        <p>One rule, two mistakes: it missed an alias spelled as keywords and flagged code that followed the decision. Both became cases, and the repair went in only after it denied the one, allowed the other, lost no previously caught recorded violation, caught as much held-out code from both models, and had zero matches outside the PR’s changed files in the scanned snapshots (Airflow’s default branch and release 3.3.2). <code>compliant_3.py</code> is now a permanent must-pass case for every later recompile.</p>
+        <p class="limit">Started by a person: a script recorded the missed edit, and Knack’s author ran <code>knack false-block</code> and both confirms. Recorded edit replay; real hook, real model calls: the edits were inserted into a captured Muse Code hook payload, and the models were live. The unattended path, from a self-check case to an install, has run only with fake models, in the end-to-end test.</p>
         <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/self_repair_live.md">The run: <code>spikes/<wbr>self_repair_live.md</code></a></p>
       </div>
     </article>
@@ -146,7 +148,7 @@ exit 0, wall 39593.5 ms</code></pre></div></li>
         </tr>
         <tr>
           <th scope="row">Muse Code<span>on your machine, hooks in <code>~/.config/<wbr>muse/settings.json</code></span></th>
-          <td>The coding agent. Its PreToolUse hook hands each <code>write_file</code> and <code>edit_file</code> to Knack’s guard before the edit lands.</td>
+          <td>The coding agent. Its PreToolUse hook hands each <code>write_file</code> and <code>edit_file</code> to Knack’s guard before the edit lands. Knack also uses UserPromptSubmit and PostToolBatch, which fires after an agent’s tool batch (including a local merge), not on a GitHub merge event.</td>
           <td>Recorded as <code>muse-spark-1.3-contributor</code>, from the hook payload’s <code>model</code> field.</td>
         </tr>
       </tbody>
@@ -156,13 +158,13 @@ exit 0, wall 39593.5 ms</code></pre></div></li>
   <section class="numbers" id="numbers" aria-labelledby="numbers-title">
     <div class="lead">
       <h2 id="numbers-title">Every number here has a command</h2>
-      <p>From the <a href="https://github.com/vedntzz/Knack/blob/main/spikes/one_story_live.md">live run</a> on Nov 2 2026, with real Spark and Spark Open, frozen in the repo. One run on one laptop: this is not a distribution.</p>
+      <p>From the <a href="https://github.com/vedntzz/Knack/blob/main/spikes/one_story_live.md">one-story run</a> on Nov 2 2026 (recorded edit replay; real hook, real model calls), with real Spark and Spark Open, frozen in the repo. One run on one laptop: this is not a distribution.</p>
     </div>
     <div class="figures">
       <figure class="figure">
         <p class="big"><span class="value" data-count>17.3</span> <span class="unit">ms</span></p>
         <figcaption>
-          <p>for the guard to decide the block: the ast-grep scan. No model, no network.</p>
+          <p>for rule evaluation on the block: the ast-grep scan, inside the hook’s round trip. No model, no network.</p>
           <p class="well"><code>jq .block.guard_ms mockups/<wbr>fixtures/<wbr>one_story/<wbr>latency.json</code><button type="button" class="copy" hidden data-copy-text="jq .block.guard_ms mockups/fixtures/one_story/latency.json" aria-label="Copy the guard time command">Copy</button></p>
           <p class="prints">prints <code>17.321375002211425</code></p>
         </figcaption>
@@ -178,7 +180,7 @@ exit 0, wall 39593.5 ms</code></pre></div></li>
       <figure class="figure">
         <p class="big"><span class="value" data-count>8</span> <span class="unit">receipts</span></p>
         <figcaption>
-          <p>chain intact: the guard’s verdicts on the blocked edit and the corrected one, and the uphold, each linked to the one before.</p>
+          <p>chain intact: the guard’s verdicts on the blocked edit and the corrected one, and the uphold, each linked to the one before. Tamper-evident for edits and middle deletions, not truncation.</p>
           <p class="well"><code>knack receipts verify --path mockups/<wbr>fixtures/<wbr>one_story/<wbr>receipts.jsonl</code><button type="button" class="copy" hidden data-copy-text="knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl" aria-label="Copy the receipts verify command">Copy</button></p>
           <p class="prints">prints <code>8 receipts, chain intact</code></p>
         </figcaption>

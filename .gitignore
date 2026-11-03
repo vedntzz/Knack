@@ -27,3 +27,8 @@ skills-lock.json
 
 # self-checks quote model answers; a registry in the repo keeps them out of git
 data/registry/self_checks.jsonl
+
+# local secrets; the placeholder file stays tracked
+.env
+.env.*
+!.env.example

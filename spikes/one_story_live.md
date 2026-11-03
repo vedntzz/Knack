@@ -1,5 +1,7 @@
 # One story, live (KN-96b)
 
+Terminology: 'replayed' = recorded edit replay with real hook and model calls; 'self-repair' = model-assisted repair initiated by a person. See README › Meta models and provenance.
+
 `KNACK_STORY_MODELS=live scripts/one_story.sh`, run once on 2026-11-02 from 14:44:38Z to 14:45:07Z, with real Spark (`muse-spark-1.3`, api.meta.ai) and Spark Open (`meta-models/muse-spark-open-1026`, inference.baseten.co), in its sandbox HOME. No retries. The output is frozen, unchanged, in [`mockups/fixtures/one_story/`](../mockups/fixtures/one_story/).
 
 Each edit is replayed inside the captured Muse Code PreToolUse payload (`tests/hooks/fixtures/edit_event.json`), so every guard receipt and both rulings record the agent from its `model` field: `muse-spark-1.3-contributor`. Only `tool_input`, `cwd` and `session_id` (`one-story`) are replaced.

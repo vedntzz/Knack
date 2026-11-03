@@ -1,5 +1,7 @@
 # Self-repair, live (KN-97)
 
+Terminology: 'replayed' = recorded edit replay with real hook and model calls; 'self-repair' = model-assisted repair initiated by a person. See README › Meta models and provenance.
+
 One live repair of airflow-75025 on 2026-11-02, in one sandbox (`/var/folders/k9/5rtt8_bd2s5cjgmgzknpl3qc0000gn/T/knack-kn114.itVgOH`: its own HOME, KNACK_HOME and a temp copy of `data/`). The committed registry and `~/.knack` were never touched. Real Spark (`muse-spark-1.3`, api.meta.ai) and Spark Open (`meta-models/muse-spark-open-1026`, inference.baseten.co) made every model call. The output is frozen, unchanged, in [`mockups/fixtures/self_repair/`](../mockups/fixtures/self_repair/) (see its `SOURCES.md`).
 
 Plainly: **the first `knack confirm` was rolled back by the regression gate, and the second passed.** The rollback had nothing to do with this rule. On the gate's live re-read of #75774, Spark did not return that PR's rejected alternative verbatim, so the gate restored the registry and roots and exited 1. The confirm was retried once, with the gate, as the same person. That retry passed. `--no-gate` was never used.

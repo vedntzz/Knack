@@ -175,7 +175,7 @@ Persona flags: Alex has no key or copy action for the primary fix. Jordan sees t
    - The headline says "chose removal over aliasing", not "rejected", which matches it.
 6. **Hunk trimmed to fit 720.** Context rows 131–133 and 139–142 are not shown, so the diff starts at the removed line 134 and ends at 138. "1 line removed, 6 added" still counts the whole hunk.
 7. **The toggle shows #75025's change once,** captioned "public/dags.py line 132 and ui/dags.py line 139, the same line in both". The code only merges the two files when their lines are identical; otherwise it lists both.
-8. **The edit is a replay** of run 3's recorded diff through the real hook. **Argue goes nowhere** in this frame (unchanged from round 4).
+8. **The edit is a recorded edit replay** (real hook, no model calls) of run 3's recorded diff. **Argue goes nowhere** in this frame (unchanged from round 4).
 
 ## Captures, `shots/r5/final/`
 

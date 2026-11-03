@@ -54,7 +54,7 @@ These are reference mockups only. Nothing under `knack/` changed, and nothing is
 **Data gaps for the build phase:**
 1. **No receipt** for the miss, recompile or install.
 2. **No branch.**
-3. **No old/new rule version ids.** These are needed for "self-repair".
+3. **No old/new rule version ids.** These are needed to show a model-assisted repair.
 4. **The rule text isn't frozen.** `data/rules/fastapi/16062.yml` has a usable one-line `message:`; freeze the old and new ones.
 5. **No live retry.** At tier warn on an Inferred root, a live retry would warn, not deny.
 6. **No corrected edit passing.** A must-pass case for 16062 would supply it.
@@ -114,7 +114,7 @@ These are reference mockups only. Nothing under `knack/` changed, and nothing is
   - Muse Spark's jobs are each backed by a fixture trace (hold, escalate, recompile, extraction).
   - **Muse Code and Muse Spark Open are listed with your jobs, but "not recorded" where no trace exists.** No fixture names Muse Code, and none shows Spark Open running.
 - **Depth:**
-  - 8/8 and 0 false alarms → `bash scripts/reproduce.sh`, which regenerates the proof grid byte for byte.
+  - 8/8 and 0 false alarms (zero matches outside the PR's changed files in the scanned snapshots) → `bash scripts/reproduce.sh`, which regenerates the proof grid byte for byte.
   - 37 receipts → `knack receipts verify`.
 - **Two receipts:** the hero capture is its own run (5e8a44648bd0, 16.5 ms); the text figures come from block.js (80b311c17a39, 18.7 ms). The caption keeps them apart.
 - **Frame:** the content's edges now match the bar's.

@@ -409,8 +409,9 @@ def test_the_repair_counts_are_the_rule_diff() -> None:
     v1, v2 = rule_branches("v1"), rule_branches("v2")
     kept, dropped = sum(b in v2 for b in v1), sum(b not in v2 for b in v1)
     added = sum(b not in v1 for b in v2)
-    assert f"dropped {dropped}, kept {kept}, added {added}" in text_of(
-        article("repairs")
+    assert (
+        f"kept {kept} matcher branches, dropped {dropped} and added {added}"
+        in text_of(article("repairs"))
     )
 
 
