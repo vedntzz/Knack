@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from knack.bench.tickets import BenchTicket
 from knack.git import git_root
 from knack.miss.cases import CaseKind, EditCase
-from knack.receipts.chain import load_receipts, Receipt, RESOLVED_VERBS
+from knack.receipts.chain import load_receipts, Receipt, RESOLVED_VERBS, settled_by
 from knack.receipts.edits import EditSnapshot, load_edit
 
 RECEIPT_HASH = re.compile(r"[0-9a-f]{64}")
@@ -78,22 +78,23 @@ def case_from_receipt(digest: str, kind: CaseKind, places: Places) -> EditCase:
 
 
 def _disputed_receipt(path: Path, digest: str, kind: CaseKind) -> Receipt:
-    found = [r for r in load_receipts(path) if r.hash == digest]
+    chain = load_receipts(path)
+    found = [r for r in chain if r.hash == digest]
     if not found:
         raise MissSourceError(f"no receipt {digest[:12]} in {path}")
     if found[0].decision != DISPUTED[kind]:
         raise MissSourceError(_wrong_decision(found[0], kind))
-    _refuse_human_allow(found[0])
-    return found[0]
+    return _unsettled(chain, found[0])
 
 
-def _refuse_human_allow(receipt: Receipt) -> None:
-    # A person settled this deny after ESCALATE; recompiling around it would undo them.
-    done = receipt.resolution
-    if done is not None:
-        raise MissSourceError(
-            f"{receipt.hash[:12]} was {RESOLVED_VERBS[done.action]} by {done.by}, not missed"
-        )
+def _unsettled(chain: list[Receipt], receipt: Receipt) -> Receipt:
+    # A person's resolution, or a deny a person settled; recompiling around it would undo them.
+    done = receipt.resolution or settled_by(chain, receipt.hash)
+    if done is None:
+        return receipt
+    raise MissSourceError(
+        f"{receipt.hash[:12]} was {RESOLVED_VERBS[done.action]} by {done.by}, not missed"
+    )
 
 
 def _repo_relative(file: str) -> str:

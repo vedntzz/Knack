@@ -122,23 +122,53 @@ def resolution_receipt(deny: Receipt, resolution: Resolution, time: str) -> Json
     return kept | decided | {"resolution": resolution.model_dump()}
 
 
-def resolution_of(receipts: Path, deny_hash: str) -> Resolution | None:
-    found = (r.resolution for r in load_receipts(receipts) if r.resolution)
+class SettledError(Exception):
+    pass
+
+
+def settled_by(chain: list[Receipt], deny_hash: str) -> Resolution | None:
+    # The one rule for "is this deny settled": its first resolution wins; None while open.
+    found = (r.resolution for r in chain if r.resolution)
     return next((r for r in found if r.of == deny_hash), None)
 
 
+def resolution_of(receipts: Path, deny_hash: str) -> Resolution | None:
+    return settled_by(load_receipts(receipts), deny_hash)
+
+
 def human_allow(receipts: Path, rule_id: str, edit_sha256: str) -> Resolution | None:
-    # A person allowed this exact edit under this rule; a retire allows nothing by edit.
-    allowed = [r for r in load_receipts(receipts) if _allows(r, rule_id, edit_sha256)]
-    return allowed[-1].resolution if allowed else None
+    # A person allowed this exact edit, and that allow is what settled its deny.
+    chain = load_receipts(receipts)
+    allowed = [r.resolution for r in chain if _allows(r, rule_id, edit_sha256)]
+    settling = [a for a in allowed if a and settled_by(chain, a.of) == a]
+    return settling[-1] if settling else None
 
 
 def append_receipt(path: Path, fields: JsonDict) -> Receipt:
     # The lock spans read-last-hash and append, so parallel hooks never fork the chain.
     with _locked(path) as handle:
-        receipt = _chained(fields, _last_hash(handle))
-        line = fresh_line(handle) + receipt_line(receipt) + "\n"
-        handle.write(line.encode("utf-8"))
+        return _append_locked(handle, fields)
+
+
+def append_resolution(
+    path: Path, deny: Receipt, resolution: Resolution, time: str
+) -> Receipt:
+    # Settled-or-open is re-read under the chain lock, so one deny is settled once.
+    with _locked(path) as handle:
+        _refuse_settled(load_receipts(path), deny.hash)
+        return _append_locked(handle, resolution_receipt(deny, resolution, time))
+
+
+def _refuse_settled(chain: list[Receipt], deny_hash: str) -> None:
+    done = settled_by(chain, deny_hash)
+    if done is not None:
+        raise SettledError(f"{deny_hash} already resolved: {done.action} by {done.by}")
+
+
+def _append_locked(handle: BinaryIO, fields: JsonDict) -> Receipt:
+    receipt = _chained(fields, _last_hash(handle))
+    line = fresh_line(handle) + receipt_line(receipt) + "\n"
+    handle.write(line.encode("utf-8"))
     return receipt
 
 

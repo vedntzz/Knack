@@ -1,18 +1,24 @@
+import threading
 from datetime import datetime, timezone, tzinfo
 from pathlib import Path
 
 import pytest
-from knack.contracts.models import Verdict
+from knack.contracts.models import Root, Verdict
 from knack.day.when import moment
 from knack.miss.cases import case_path, cases_dir, EditCase, load_cases
 from knack.miss.provisional import load_provisional, save_provisional
 from knack.receipts.chain import (
     append_receipt,
+    append_resolution,
     guard_receipt,
     human_allow,
     load_receipts,
     Receipt,
     Resolution,
+    resolution_receipt,
+    ResolutionAction,
+    settled_by,
+    SettledError,
     verify_chain,
 )
 from knack.roots import resolve
@@ -439,3 +445,95 @@ def test_uphold_never_feeds_the_extract_few_shot(
 ) -> None:
     upheld(registry, log, receipts)
     assert recent_corrections(log) == []
+
+
+def late_allow(receipts: Path, deny: Receipt) -> Receipt:
+    # An allow that reached the chain after the deny was settled, as a lost race left one.
+    late = Resolution(of=deny.hash, action="allow", by="bo", reason="late")
+    return append_receipt(receipts, resolution_receipt(deny, late, NOW))
+
+
+def test_a_deny_is_settled_by_its_first_resolution(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, _ = upheld(registry, log, receipts)
+    late_allow(receipts, deny)
+    done = settled_by(load_receipts(receipts), deny.hash)
+    assert done is not None and (done.action, done.by) == ("uphold", "maria")
+
+
+def test_an_unresolved_deny_is_not_settled_by_another_denys_resolution(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, other = receipted(receipts), receipted(receipts, edit="f" * 64)
+    resolve_deny(receipts, other.hash, "allow", "ok", "maria", log, registry)
+    assert settled_by(load_receipts(receipts), deny.hash) is None
+
+
+def test_the_guard_ignores_an_allow_recorded_after_an_uphold(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, _ = upheld(registry, log, receipts)
+    late_allow(receipts, deny)
+    assert human_allow(receipts, "widgets-3", EDIT) is None
+
+
+def test_appending_a_resolution_refuses_a_settled_deny_under_the_lock(
+    registry: Path, log: Path, receipts: Path
+) -> None:
+    deny, _ = upheld(registry, log, receipts)
+    late = Resolution(of=deny.hash, action="allow", by="bo", reason="late")
+    with pytest.raises(SettledError, match="already resolved: uphold by maria"):
+        append_resolution(receipts, deny, late, NOW)
+    assert len(load_receipts(receipts)) == 2
+
+
+def raced(
+    receipts: Path, deny: Receipt, log: Path, registry: Path
+) -> list[tuple[str, str]]:
+    # maria allows and bob upholds the same deny at once; each records ok or refused.
+    outcomes: list[tuple[str, str]] = []
+    tries = [("allow", "maria"), ("uphold", "bob")]
+    args = [(receipts, deny, log, registry, a, by, outcomes) for a, by in tries]
+    runs = [threading.Thread(target=one_resolve, args=a) for a in args]
+    _ = [run.start() for run in runs] + [run.join() for run in runs]
+    return sorted(outcomes)
+
+
+def one_resolve(
+    receipts: Path,
+    deny: Receipt,
+    log: Path,
+    registry: Path,
+    action: ResolutionAction,
+    by: str,
+    outcomes: list[tuple[str, str]],
+) -> None:
+    try:
+        resolve_deny(receipts, deny.hash, action, "why", by, log, registry)
+        outcomes.append(("ok", by))
+    except ResolveError:
+        outcomes.append(("refused", by))
+
+
+def both_pass_the_open_check(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Each resolve waits for the other after its own open check, before writing anything.
+    gate = threading.Barrier(2, timeout=5)
+    real = resolve._correction  # pyright: ignore[reportPrivateUsage]
+
+    def waited(root: Root, resolution: Resolution) -> Correction:
+        gate.wait()
+        return real(root, resolution)
+
+    monkeypatch.setattr(resolve, "_correction", waited)
+
+
+def test_two_concurrent_resolves_of_one_deny_exactly_one_succeeds(
+    registry: Path, log: Path, receipts: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deny = receipted(receipts)
+    both_pass_the_open_check(monkeypatch)
+    outcomes = raced(receipts, deny, log, registry)
+    assert [kind for kind, _ in outcomes] == ["ok", "refused"]
+    assert len([r for r in load_receipts(receipts) if r.resolution]) == 1
+    assert len(logged(log)) == 1 and verify_chain(receipts).broken_line is None
