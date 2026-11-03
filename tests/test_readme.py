@@ -409,4 +409,4 @@ def test_env_example_holds_placeholders_only() -> None:
     text = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
     keys = ("MODEL_API_KEY", "BASETEN_API_KEY", "GITHUB_TOKEN")
     assert all(f"{k}=" in text for k in keys)
-    assert all(re.search(rf"^{k}=(<.*>)?$", text, re.M) for k in keys)
+    assert all(re.search(rf"^{k}=(\"\"|<.*>)?$", text, re.M) for k in keys)
