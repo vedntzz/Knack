@@ -6,11 +6,13 @@
   "decided_by": "stegololz",
   "source_url": "https://github.com/apache/airflow/pull/75774",
   "quote": "the sleep defer now has no deadline at all",
-  "status": "Inferred",
+  "status": "Confirmed",
   "rejected_alternative": "TimeDeltaTrigger sleep defer with no deadline",
   "seeded": false,
   "models": [
     "muse-spark-1.3"
   ],
-  "merged_at": "2026-10-28T16:53:52Z"
+  "merged_at": "2026-10-28T16:53:52Z",
+  "confirmed_by": "Vedant Srivastava",
+  "rule_sha": "1eba3b1931ed401fcb3fcd0ae259130d76858b0de50ae7f5576af0a09f70bb47"
 }
