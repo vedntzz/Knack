@@ -189,6 +189,7 @@ Each week's column fades in (opacity only), week n at n × 7 ms for 220 ms, ease
 
 ## Captures
 `mockups/shots/kn93/`: `day-1080p.png`, `day-720p.png`, `-hover` of each (Oct 19), and `day-720p-fade-150ms.png` (mid-fade). Served from a clone with origin apache/airflow, `bench/demo_block.receipts.jsonl` and `data/registry/airflow.json`; no GitHub token, so PRs read as not recorded.
+`day-1080p.png` and `day-720p.png` were shot again on fix/day-said-leak, after the note fix, from the test world in `test_day_page.py` (the 75025 fixture receipts, clock frozen Nov 2 12:00 UTC). The hover and fade shots are still the originals.
 
 ## KN-94: the recovery page (`/recovery/airflow-75025`)
 
@@ -218,7 +219,7 @@ The track fills top to bottom once: `scaleY` 0→1, 1680 ms after a 240 ms wait,
 
 ### Gaps (honest)
 - The run is one frozen run; the page names no other repair.
-- The day page's decision notes render `.said` as console.css's argue card (dark on paper). That predates this ticket and is left alone, since other pages' look must not change here.
+- The day page's decision notes rendered `.said` as console.css's argue card (dark on paper). Fixed on fix/day-said-leak: the note's text is `.words`, ink on paper.
 
 ### Captures
 `mockups/shots/kn94/`: 720p, 1080p, 720p reduced motion, 390 full page, four fill beats at 720p, and the day page with its "rule repaired" link.
