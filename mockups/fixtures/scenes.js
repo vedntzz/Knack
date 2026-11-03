@@ -1,25 +1,25 @@
 // Frozen by freeze.py; see mockups/SOURCES.md.
 window.KNACK = {
-  "captured_at": "2026-11-01T23:35:40+00:00",
+  "captured_at": "2026-11-03T05:11:09+00:00",
   "day": {
     "repo": "apache/airflow",
     "branch": "main",
-    "date": "2026-11-01",
+    "date": "2026-11-03",
     "events": [
       {
         "type": "commit",
-        "sha": "a2548563ebc5dcf888c738b9e3d2b12669e252a6",
+        "sha": "be49ca2f298f336273113b6791724a47c189c12f",
         "author": "knack demo",
         "message": "base",
-        "time": "2026-11-01T16:34:51-05:00"
+        "time": "2026-11-03T00:10:48-05:00"
       },
       {
         "type": "receipt",
         "kind": "block",
-        "time": "2026-11-01T21:34:52.285310+00:00",
+        "time": "2026-11-03T05:10:49.116471+00:00",
         "root_id": "airflow-75025-1",
         "decider": "Pushkal Gupta (author); approved and merged by bbovenzi",
-        "receipt_hash": "4be4607b22184423e2cf6c9506b5ed3a0b0a028f5390adfda3ae49747b11d066"
+        "receipt_hash": "84a074639ff58bb165f2cde02279afad5f720541c3aefd8410c1c9ca0d94b1f6"
       }
     ],
     "pulls_error": "GITHUB_TOKEN is not set",
@@ -27,14 +27,35 @@ window.KNACK = {
       {
         "root_id": "airflow-75025-1",
         "decided_by": "Pushkal Gupta (author); approved and merged by bbovenzi",
-        "confirmed_by": null,
+        "confirmed_by": "Vedant Srivastava",
         "pr": 75025,
         "merged_at": "2026-10-19T21:36:02Z"
       },
       {
+        "root_id": "airflow-75271-1",
+        "decided_by": "dabla",
+        "confirmed_by": "Vedant Srivastava",
+        "pr": 75271,
+        "merged_at": "2026-10-28T13:11:16Z"
+      },
+      {
+        "root_id": "airflow-75271-2",
+        "decided_by": "dabla",
+        "confirmed_by": "Vedant Srivastava",
+        "pr": 75271,
+        "merged_at": "2026-10-28T13:11:16Z"
+      },
+      {
         "root_id": "airflow-75774-1",
         "decided_by": "stegololz",
-        "confirmed_by": null,
+        "confirmed_by": "Vedant Srivastava",
+        "pr": 75774,
+        "merged_at": "2026-10-28T16:53:52Z"
+      },
+      {
+        "root_id": "airflow-75774-2",
+        "decided_by": "stegololz",
+        "confirmed_by": "Vedant Srivastava",
         "pr": 75774,
         "merged_at": "2026-10-28T16:53:52Z"
       }
@@ -48,12 +69,27 @@ window.KNACK = {
     "why": "The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one.",
     "decided_by": "Pushkal Gupta (author); approved and merged by bbovenzi",
     "source_url": "https://github.com/apache/airflow/pull/75025",
-    "quote": "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`.",
+    "quote": "I removed them rather than aliasing them onto `DagRun.state` and `DagRun.start_date`. The `last_run_*` spelling predates the refactor and already works, so a second name for the same sort felt worse than one. Happy to alias instead if you would rather keep the advertised names working.",
     "status": "Confirmed",
     "rejected_alternative": "Alias state and start_date onto DagRun.state and DagRun.start_date.",
     "seeded": false,
-    "models": [],
-    "merged_at": "2026-10-19T21:36:02Z"
+    "models": [
+      {
+        "model": "muse-spark-1.3",
+        "host": "api.meta.ai",
+        "trace_id": "resp_6ae89977e299b1a10ff94fd0",
+        "role": "extracted"
+      },
+      {
+        "model": "meta-models/muse-spark-open-1026",
+        "host": "inference.baseten.co",
+        "trace_id": "chatcmpl-616dba98bcf547e2a85055568a7919d3",
+        "role": "corroborated"
+      }
+    ],
+    "merged_at": "2026-10-19T21:36:02Z",
+    "confirmed_by": "Vedant Srivastava",
+    "rule_sha": "865e1a983ffe12941abd400da11efbe14e6a7ec97735455b61218abe464b2303"
   },
   "block": {
     "reason": {
