@@ -250,7 +250,13 @@ def decision(line: DecisionLine) -> str:
     confirmed = f"confirmed by {escape(by)}" if by else gap("Confirmer")
     who = f"<b>{escape(line.author)}</b> · {pr} · {merged} · {confirmed}"
     said = {"decision": escape(line.decision), "who": who + repaired(line)}
-    return partial("decision.html", **said)
+    return partial("decision.html", **said, offered=offered(line.offered))
+
+
+def offered(alternatives: list[str]) -> str:
+    # Each rejected alternative on its own line, as the block page says it.
+    said = '<p class="offered"><b>Offered, not taken:</b> {}</p>'
+    return "".join(said.format(escape(alternative)) for alternative in alternatives)
 
 
 def repaired(line: DecisionLine) -> str:
@@ -262,6 +268,7 @@ def today(found: DayPage) -> str:
     zone = f' <span class="zone">{escape(found.zone)}</span>' if found.zone else ""
     title = f"Today, {day_name(found.date)}{zone}"
     lines = [today_line(line) for line in found.today] + pulls_gap(found.pulls_error)
+    lines += elsewhere_gap(found)
     shown = "".join(lines) or "<li><p>Nothing yet today.</p></li>"
     return f'<h2 id="today">{title}</h2><ol class="events">{shown}</ol>'
 
@@ -272,6 +279,14 @@ def pulls_gap(error: str | None) -> list[str]:
         if error
         else []
     )
+
+
+def elsewhere_gap(found: DayPage) -> list[str]:
+    # Commits of a clone of another repo are left out, and the page says why.
+    if found.elsewhere is None:
+        return []
+    why = f"this console runs in a clone of {found.elsewhere}, not {found.repo or 'this repo'}"
+    return [f"<li><span></span><p>{gap('Commits')}: {escape(why)}</p></li>"]
 
 
 def today_line(line: TodayLine) -> str:

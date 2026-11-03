@@ -359,6 +359,8 @@ class DecisionLine(BaseModel):
     confirmed_by: str | None
     # The recovery page of the rule that keeps this decision, when a repair was kept.
     recovery: str | None = None
+    # Every alternative its roots rejected, each once, in root order.
+    offered: list[str] = []
 
 
 class ReceiptLine(BaseModel):
@@ -400,13 +402,15 @@ class DayPage(BaseModel):
     last: ReceiptLine | None
     pulls_error: str | None
     registry_error: str | None
+    # The clone's repo when it is not the registry's, so its commits are not shown.
+    elsewhere: str | None = None
 
 
 def day_page(memory: Memory, feed: DayFeed) -> DayPage:
     # Pure: the home page's facts from the registry, the chain and the day feed.
     roots = memory.roots
     confirmed = sum(root.status == "Confirmed" for root in roots)
-    found: dict[str, Any] = {"repo": memory.repo, "branch": feed.branch}
+    found: dict[str, Any] = {"repo": memory.repo}
     found |= {"known": memory.known, "total": len(roots), "confirmed": confirmed}
     found |= {"graph": graph(memory), "decisions": decision_lines(memory)}
     found |= {"today": today_lines(memory, feed), "last": last_receipt(memory)}
@@ -414,12 +418,21 @@ def day_page(memory: Memory, feed: DayFeed) -> DayPage:
 
 
 def feed_facts(memory: Memory, feed: DayFeed) -> dict[str, Any]:
-    # The day, the zone every time under today is shown in, and what could not be read.
+    # The day and zone; the clone's branch and PR error only when it is the registry's repo.
+    own = same_clone(memory, feed)
     found = {"date": feed.date, "zone": memory.now.tzname()}
-    return found | {
-        "pulls_error": feed.pulls_error,
-        "registry_error": memory.registry_error,
-    }
+    found |= {"branch": feed.branch if own else None, "elsewhere": elsewhere(own, feed)}
+    found |= {"pulls_error": feed.pulls_error if own else None}
+    return found | {"registry_error": memory.registry_error}
+
+
+def same_clone(memory: Memory, feed: DayFeed) -> bool:
+    # The console's clone is a clone of the repo the page is headed with, case aside.
+    return (memory.repo or "").lower() == (feed.repo or "").lower()
+
+
+def elsewhere(own: bool, feed: DayFeed) -> str | None:
+    return None if own else feed.repo or "no GitHub repo"
 
 
 def graph(memory: Memory) -> Graph:
@@ -491,15 +504,32 @@ def decision_lines(memory: Memory) -> list[DecisionLine]:
     # Confirmed roots only, the latest merge first; undated ones last.
     confirmed = [root for root in memory.roots if root.status == "Confirmed"]
     latest = sorted(confirmed, key=lambda root: root.merged_at or "", reverse=True)
-    return [decision_line(root, memory.repaired.get(root.id)) for root in latest]
+    return [decision_line(same, memory.repaired) for same in by_decision(latest)]
 
 
-def decision_line(root: Root, repaired: str | None = None) -> DecisionLine:
-    url = str(root.source_url)
+def by_decision(roots: list[Root]) -> list[list[Root]]:
+    # Roots of one PR with one decision text are one decision; first seen leads.
+    found: dict[tuple[str, str], list[Root]] = {}
+    for root in roots:
+        found.setdefault((root.decision, str(root.source_url)), []).append(root)
+    return list(found.values())
+
+
+def decision_line(roots: list[Root], repaired: dict[str, str]) -> DecisionLine:
+    root, url = roots[0], str(roots[0].source_url)
     found = {"decision": root.decision, "author": person(root.decided_by).author}
     found |= {"pr": pr_of(url), "url": url, "merged_on": day_of(root.merged_at)}
-    found |= {"recovery": f"/recovery/{repaired}" if repaired else None}
+    found |= {"recovery": recovery_of(roots, repaired), "offered": offered_by(roots)}
     return DecisionLine.model_validate(found | {"confirmed_by": root.confirmed_by})
+
+
+def recovery_of(roots: list[Root], repaired: dict[str, str]) -> str | None:
+    rule = next((repaired[r.id] for r in roots if r.id in repaired), None)
+    return f"/recovery/{rule}" if rule else None
+
+
+def offered_by(roots: list[Root]) -> list[str]:
+    return unique(root.rejected_alternative for root in roots)
 
 
 def last_receipt(memory: Memory) -> ReceiptLine | None:
@@ -520,7 +550,9 @@ def cited(roots: list[Root], receipt: Receipt) -> dict[str, Any]:
 
 def today_lines(memory: Memory, feed: DayFeed) -> list[TodayLine]:
     # The feed's commits and PRs, and today's blocks and resolutions from the chain.
-    work = [work_line(e) for e in feed.events if not isinstance(e, ReceiptEvent)]
+    # Another repo's commits and PRs never sit under this repo's name.
+    own = [] if not same_clone(memory, feed) else feed.events
+    work = [work_line(e) for e in own if not isinstance(e, ReceiptEvent)]
     today = by_day(memory.chain, lambda r: r.time, memory.now).get(
         memory.now.date(), []
     )
