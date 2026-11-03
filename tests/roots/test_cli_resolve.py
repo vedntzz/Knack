@@ -205,3 +205,15 @@ def test_resolve_uphold_names_the_held_case_it_closed(
     out = capsys.readouterr().out
     assert "held case closed, no case added for widgets-3" in out
     assert "must-pass" not in out
+
+
+def test_a_value_error_in_resolve_is_one_plain_line_and_no_traceback(
+    home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def broken(*args: object) -> None:
+        raise ValueError("no whole receipt in the chain to extend\nsecond line")
+
+    monkeypatch.setattr(cli, "resolve_deny", broken)
+    assert cli.main(["resolve", "a" * 64, "allow", "--reason", "ok"]) != 0
+    err = capsys.readouterr().err
+    assert err == "knack resolve: no whole receipt in the chain to extend\n"

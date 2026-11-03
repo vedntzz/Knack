@@ -19,6 +19,7 @@ from knack.contracts.models import Root, Verdict
 from knack.day.feed import day_json, local_day
 from knack.dispute.argue import ask_spark
 from knack.dispute.latest import (
+    AlreadySettled,
     disputed,
     Disputed,
     NothingToDispute,
@@ -365,12 +366,17 @@ def _resolve_command(args: argparse.Namespace) -> int:
     named = (receipts_path(), args.receipt, args.action, args.reason, _by(args))
     try:
         done = resolve_deny(*named, corrections_path(), args.registry)
-    except (ResolveError, RootStoreError, ValidationError, OSError) as error:
-        return _loop_refused("resolve", str(error), 2)
+    except (ResolveError, RootStoreError, ValueError, OSError) as error:
+        return _loop_refused("resolve", _first_line(error), 2)
     print(
         "\n".join([_resolved_line(done), *_promoted_lines(done), *_closed_lines(done)])
     )
     return 0
+
+
+def _first_line(error: Exception) -> str:
+    # One plain line: pydantic and other ValueErrors can span several.
+    return (str(error).strip().splitlines() or [type(error).__name__])[0]
 
 
 def _run_by_a_person(args: argparse.Namespace) -> bool:
@@ -619,9 +625,11 @@ def _add_argue_arguments(argue: argparse.ArgumentParser) -> None:
 
 
 def _argue_command(args: argparse.Namespace) -> int:
-    # Hold and escalate both exit 0; nothing to dispute is operator error, exit 2.
+    # Hold, escalate and an already-settled deny exit 0; nothing to dispute is exit 2.
     try:
         done = disputed(args.objection, Path.cwd(), receipts_path(), ask_spark)
+    except AlreadySettled as settled:
+        return _printed(str(settled))
     except (NothingToDispute, OSError, ValidationError) as error:
         return _argue_failed(error)
     print(ruling_text(done.record))
@@ -676,6 +684,11 @@ def _record_ruling(ruling: RulingRecord) -> int:
         append_ruling(rulings_path(), ruling)
     except OSError as error:
         return _argue_failed(error)
+    return 0
+
+
+def _printed(text: str) -> int:
+    print(text)
     return 0
 
 

@@ -14,18 +14,24 @@ from knack.dispute.rulings import (
 )
 from knack.hooks.pretool_guard import rule_name
 from knack.hooks.scope import hook_registry_path, scoped_registry
-from knack.receipts.chain import load_receipts, Receipt
+from knack.receipts.chain import load_receipts, Receipt, RESOLVED_VERBS
 from knack.roots.store import load_roots
 from knack.walk.registry import Registry
 
 NO_CLONE = "{cwd} is not a clone with a knack registry; nothing to dispute"
 NO_DENY = "no deny receipt for this clone in {path}; nothing to dispute"
+# A settled deny is answered from the record: who settled it, when, and why.
+SETTLED = "{hash}: already {verb} by {by} at {time}: {reason}. Nothing to argue."
 HELD = "ESCALATE: held for a person"
 # The agent is told where a person settles it, never the command itself.
 FOR_A_PERSON = "Held for a person. A person finds the command on the console's held page: {url} (open with: knack console)"
 
 
 class NothingToDispute(Exception):
+    pass
+
+
+class AlreadySettled(Exception):
     pass
 
 
@@ -46,7 +52,7 @@ def dispute(objection: str, cwd: Path, receipts: Path, ask: Ask) -> RulingRecord
 def disputed(objection: str, cwd: Path, receipts: Path, ask: Ask) -> Disputed:
     # The clone's latest deny names the rule; its roots answer the objection.
     path, (registry, root) = _clone_registry(cwd)
-    denied = latest_deny(receipts, registry.repo, root)
+    denied = _still_open(receipts, latest_deny(receipts, registry.repo, root))
     asked: list[tuple[str, str | None]] = []
     roots = rule_roots(registry, denied.rule_id)
     ruling = argue(objection, roots, ask=_noting_asks(ask, asked))
@@ -80,6 +86,27 @@ def latest_deny(receipts: Path, repo: str, root: Path) -> Receipt:
     if not mine:
         raise NothingToDispute(NO_DENY.format(path=receipts))
     return mine[-1]
+
+
+def _still_open(receipts: Path, denied: Receipt) -> Receipt:
+    # A person's allow, uphold or retire ends the dispute before any model is asked.
+    chain = load_receipts(receipts)
+    settling = next((r for r in chain if _settles(r, denied.hash)), None)
+    if settling is not None:
+        raise AlreadySettled(_settled_line(denied, settling))
+    return denied
+
+
+def _settles(receipt: Receipt, deny_hash: str) -> bool:
+    # The first resolution of a deny settles it, as the chain's settled_by reads it.
+    return receipt.resolution is not None and receipt.resolution.of == deny_hash
+
+
+def _settled_line(denied: Receipt, settling: Receipt) -> str:
+    done = settling.resolution
+    assert done is not None
+    verb, named = RESOLVED_VERBS[done.action], {"by": done.by, "reason": done.reason}
+    return SETTLED.format(hash=denied.hash[:12], verb=verb, time=settling.time, **named)
 
 
 def rule_roots(registry: Registry, rule_id: str) -> list[Root]:

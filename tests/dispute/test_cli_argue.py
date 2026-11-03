@@ -432,3 +432,50 @@ def test_an_uphold_is_never_the_latest_deny_to_argue(tmp_path: Path) -> None:
     )
     found = latest_deny(receipts, "apache/airflow", tmp_path / "clone")
     assert found == blocked
+
+
+SETTLED_AT = "2026-11-02T09:30:00+00:00"
+
+
+def settle(clone: Path, action: str) -> Receipt:
+    # A person already settled the clone's latest deny.
+    home, receipts = home_of(clone), home_of(clone) / ".knack" / "verdicts.jsonl"
+    blocked = receipt(home, clone / "dags.py", "airflow-75025")
+    resolution = Resolution.model_validate(
+        {"of": blocked.hash, "action": action, "by": "maria", "reason": "decided"}
+    )
+    append_receipt(receipts, resolution_receipt(blocked, resolution, SETTLED_AT))
+    return blocked
+
+
+@pytest.mark.parametrize(
+    ("action", "verb"),
+    [("allow", "allowed"), ("uphold", "upheld"), ("retire", "retired")],
+)
+def test_a_settled_deny_names_who_settled_it_and_when_and_asks_no_model(
+    clone: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    action: str,
+    verb: str,
+) -> None:
+    prompts = spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
+    blocked = settle(clone, action)
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith(
+        f"{blocked.hash[:12]}: already {verb} by maria at {SETTLED_AT}"
+    )
+    assert (prompts, rulings_file(clone).exists()) == ([], False)
+
+
+def test_a_settled_deny_never_reaches_spark_open(
+    clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The CLI swallows a Spark Open failure, so the call itself is recorded.
+    asked: list[Path] = []
+    monkeypatch.setattr(cli, "_second_ports", asked.append)
+    spark_says(monkeypatch, "escalate", "no", [])
+    settle(clone, "uphold")
+    assert cli.main(["argue", RESTATES_REJECTED]) == 0
+    assert asked == []

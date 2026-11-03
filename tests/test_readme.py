@@ -316,3 +316,18 @@ def test_readme_names_what_keeps_an_agent_from_allowing_itself() -> None:
     text = " ".join(README.read_text(encoding="utf-8").split())
     assert ONLY_A_PERSON in text
     assert '"matcher": "write_file|edit_file|bash"' in text
+
+
+SELF_ALLOW_FLOOR = (
+    "The PreToolUse guard reduces agent self-allow; it does not eliminate it."
+    " An agent can still hide or route around the command, for example inside a"
+    " script, an alias or another program it runs. The CI guard"
+    " ([`.github/workflows/knack-guard.yml`](.github/workflows/knack-guard.yml))"
+    " is the floor: it checks every pull request's changed files and reads no"
+    " local receipts, so a local allow never passes it."
+)
+
+
+def test_readme_says_the_self_allow_guard_reduces_and_ci_is_the_floor() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert ONLY_A_PERSON + " " + SELF_ALLOW_FLOOR in text
