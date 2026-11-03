@@ -8,7 +8,7 @@
 #   scripts/e2e_console.sh --live    the real models; needs MODEL_API_KEY
 #
 # A sandbox HOME and clone every run; the real knack home and Muse settings are never touched.
-# The console is started on its fixed port, 7655, and stopped on exit. Prints one line per step
+# The console is started on its fixed port, 7655, and stopped on exit, Ctrl-C or kill included. Prints one line per step
 # and nothing measured, so every run prints the same; the last line is E2E: PASS or
 # E2E: FAIL (<step>), with exit 0 or 1 to match.
 set -u -o pipefail
@@ -19,8 +19,12 @@ CONSOLE_PID=""
 LISTENER_PID=""
 WORK=""
 
+# fd 3: the run's own stdout, so a trap that fires inside a step still prints there.
+exec 3>&1
+
 # failed STEP [WHY]: the step's own output, then the verdict line; stops the run.
 failed() {
+  exec >&3
   echo "FAIL  $1"
   [ -n "${2:-}" ] && echo "    $2"
   [ -n "$WORK" ] && [ -f "$WORK/step.log" ] && sed 's/^/    /' "$WORK/step.log"
@@ -47,14 +51,24 @@ if [ "$MODELS" = live ] && ! printenv MODEL_API_KEY >/dev/null; then
   failed preflight "--live needs MODEL_API_KEY"
 fi
 
-# stop: the console and listener this run started, then the sandbox.
+# halt PID: TERM, up to 5 s to exit, then KILL; a stuck child never hangs the run.
+halt() {
+  kill "$1" 2>/dev/null || return 0
+  for _ in $(seq 50); do kill -0 "$1" 2>/dev/null || break; sleep 0.1; done
+  kill -KILL "$1" 2>/dev/null
+  wait "$1" 2>/dev/null
+}
+
+# stop: the listener first (an open /events stream holds the console), the console, the sandbox.
 stop() {
-  for pid in $LISTENER_PID $CONSOLE_PID; do kill "$pid" 2>/dev/null && wait "$pid" 2>/dev/null; done
+  for pid in $LISTENER_PID $CONSOLE_PID; do halt "$pid"; done
   rm -rf "$WORK"
 }
 
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/knack-e2e-console.XXXXXX")"
 trap stop EXIT
+# Ctrl-C or a kill fails the run by name; the EXIT trap still stops everything.
+trap 'failed interrupted' INT TERM
 # A sandbox HOME: the real knack home and Muse settings are never read or written.
 export HOME="$WORK/home"
 export KNACK_HOME="$HOME/.knack"
@@ -77,7 +91,8 @@ start_console() {
 
 # block: listens on /events first, then sends the alias edit through the installed hook.
 block() {
-  helper listen >"$WORK/listener.log" 2>&1 &
+  # exec, so $! is the listener's own PID and stop() can kill it, not a wrapper subshell's.
+  (exec "$PY" "$ROOT/scripts/e2e_console.py" listen "$WORK") >"$WORK/listener.log" 2>&1 &
   LISTENER_PID=$!
   for _ in $(seq 100); do [ -f "$WORK/listening" ] && break; sleep 0.1; done
   [ -f "$WORK/listening" ] || { cat "$WORK/listener.log"; return 1; }

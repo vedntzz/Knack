@@ -72,3 +72,9 @@ def test_live_v2_allows_the_corrected_edit() -> None:
 def test_live_v2_dropped_only_v1s_dict_comprehension_branch() -> None:
     dropped = [b for b in branches("v1") if b not in branches("v2")]
     assert [b["all"][0] for b in dropped] == [{"kind": "dictionary_comprehension"}]
+
+
+def test_the_committed_75025_rule_is_the_live_v2_byte_for_byte() -> None:
+    committed = REPO / "data" / "rules" / "airflow" / "75025.yml"
+    assert committed.read_bytes() == (LIVE / "rule" / "v2.yml").read_bytes()
+    assert hashlib.sha256(committed.read_bytes()).hexdigest() == V2_SHA

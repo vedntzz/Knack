@@ -1,6 +1,10 @@
+import itertools
+import os
+import signal
 import socket
 import subprocess
 import sys
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -8,6 +12,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "e2e_console.sh"
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import e2e_console  # noqa: E402
+
 # Every step the story drives, in order; each prints "ok  <step>" when its check passed.
 STEPS = [
     "install",
@@ -126,3 +133,64 @@ def test_the_readme_console_section_names_the_script() -> None:
     start = text.index("\n## See it in the console\n")
     section = text[start : text.index("\n## ", start + 1)]
     assert "`bash scripts/e2e_console.sh`" in section
+
+
+def start_e2e(home: Path, temp: Path) -> subprocess.Popen[str]:
+    # Its own session, so every process the run starts shares its process group.
+    env = {"HOME": str(home), "PATH": "/usr/bin:/bin", "PYTHON": sys.executable}
+    home.mkdir(parents=True, exist_ok=True)
+    env["TMPDIR"] = str(temp)
+    piped = {"stdout": subprocess.PIPE, "text": True, "env": env}
+    return subprocess.Popen(["bash", str(SCRIPT)], start_new_session=True, **piped)
+
+
+def wait_for_listener(temp: Path) -> None:
+    # The block step's listener is connected to /events once it touches "listening".
+    deadline = time.monotonic() + 60
+    while not list(temp.glob("knack-e2e-console.*/listening")):
+        assert time.monotonic() < deadline, "the listener never connected"
+        time.sleep(0.005)
+
+
+def left_running(group: int) -> list[str]:
+    # Every process still in the run's process group, orphans included.
+    listed = subprocess.run(["ps", "-ax", "-o", "pgid=,command="], capture_output=True, text=True)
+    rows = [line.split(None, 1) for line in listed.stdout.splitlines()]
+    return [row[1] for row in rows if len(row) == 2 and row[0] == str(group)]
+
+
+def finished(run: subprocess.Popen[str]) -> str:
+    # The run's stdout; a run still going after 30 s is a hang, killed so it leaves nothing.
+    try:
+        return run.communicate(timeout=30)[0]
+    except subprocess.TimeoutExpired:
+        os.killpg(run.pid, signal.SIGKILL)
+        pytest.fail("the interrupted run hung:\n" + run.communicate()[0])
+
+
+@pytest.mark.parametrize("sent", [signal.SIGTERM, signal.SIGINT])
+def test_an_interrupted_run_exits_and_leaves_no_process_behind(
+    tmp_path: Path, sent: signal.Signals
+) -> None:
+    temp = tmp_path / "tmp"
+    temp.mkdir()
+    run = start_e2e(tmp_path / "home", temp)
+    wait_for_listener(temp)
+    run.send_signal(sent)
+    stdout = finished(run)
+    assert run.returncode == 1, stdout
+    assert stdout.splitlines()[-1] == "E2E: FAIL (interrupted)"
+    assert left_running(run.pid) == []
+    assert not answers(CONSOLE)
+    assert list(temp.iterdir()) == []
+
+
+def test_the_listener_gives_up_when_no_deny_comes() -> None:
+    # Keepalives arrive forever; past its deadline the listener stops and heard nothing.
+    keepalives = itertools.repeat(": still here\n")
+    assert e2e_console.denied(keepalives, time.monotonic() - 1) == ""
+
+
+def test_the_listener_reads_the_first_deny_before_its_deadline() -> None:
+    lines = [": still here\n", "event: deny\n", "data: abc123\n"]
+    assert e2e_console.denied(lines, time.monotonic() + 30) == "abc123"

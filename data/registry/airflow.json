@@ -78,7 +78,7 @@
         },
         "not_run": {},
         "rule_sha": "d76cc8de2e19904a26f70af0af8a25e34a711c3ed7ec63ac07fdc2bd08550749",
-        "reproved_at": "2026-10-31T23:17:23Z"
+        "reproved_at": "2026-11-03T00:39:25Z"
       }
     },
     {
@@ -156,8 +156,8 @@
           }
         },
         "not_run": {},
-        "rule_sha": "ecf207d0e1efce2759eb92b2beba21e9576eaf0c5d832ca4acdfca1079a4b0d5",
-        "reproved_at": "2026-10-31T23:17:23Z"
+        "rule_sha": "865e1a983ffe12941abd400da11efbe14e6a7ec97735455b61218abe464b2303",
+        "reproved_at": "2026-11-03T00:39:25Z"
       }
     },
     {
@@ -237,7 +237,7 @@
         },
         "not_run": {},
         "rule_sha": "a7949850fa0f3bef58cbad93d2d6b6a791ea68a3eac311feab0b57b8107e3b94",
-        "reproved_at": "2026-10-31T23:17:23Z"
+        "reproved_at": "2026-11-03T00:39:25Z"
       }
     },
     {
@@ -316,7 +316,7 @@
         },
         "not_run": {},
         "rule_sha": "25babfa2fb51afc275f7dcb62998ecb723b27f0f664421d321863397890fd3de",
-        "reproved_at": "2026-10-31T23:17:23Z"
+        "reproved_at": "2026-11-03T00:39:25Z"
       }
     },
     {
@@ -396,7 +396,7 @@
         },
         "not_run": {},
         "rule_sha": "1eba3b1931ed401fcb3fcd0ae259130d76858b0de50ae7f5576af0a09f70bb47",
-        "reproved_at": "2026-10-31T23:17:23Z"
+        "reproved_at": "2026-11-03T00:39:25Z"
       }
     }
   ]
