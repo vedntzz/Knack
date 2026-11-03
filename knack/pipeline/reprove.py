@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from knack.atomic import write_atomically
 from knack.contracts.models import RuleProof
 from knack.hooks.pretool_guard import rule_name
 from knack.pipeline.heldout import HeldOut, score_heldout
@@ -240,4 +241,4 @@ def _write_proofs(path: Path, proofs: list[RuleProof | None]) -> None:
     pairs = zip(raw.rules, proofs)
     rules = [e if p is None else e.model_copy(update={"proof": p}) for e, p in pairs]
     text = raw.model_copy(update={"rules": rules}).model_dump_json(indent=2)
-    path.write_text(text + "\n", encoding="utf-8")
+    write_atomically(path, text + "\n")

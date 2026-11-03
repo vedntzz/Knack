@@ -29,13 +29,24 @@ class RefusedCredentials(MissingCredentials):
 
 # Reads a key by its env var name; by default from the environment only.
 Key = Callable[[str], str]
+UNUSABLE_KEY = (
+    "{where} holds more than one line, a space or a control character; "
+    "put only the key there, on one line"
+)
 
 
 def required_env(name: str) -> str:
-    value = os.environ.get(name)
+    value = os.environ.get(name, "").strip()
     if not value:
         raise MissingCredentials(f"{name} is not set")
-    return value
+    return usable_key(value, name)
+
+
+def usable_key(key: str, where: str) -> str:
+    # Whitespace or a control character would reach an HTTP header; only where is named.
+    if any(char.isspace() or not char.isprintable() for char in key):
+        raise RefusedCredentials(UNUSABLE_KEY.format(where=where))
+    return key
 
 
 def live_clients(

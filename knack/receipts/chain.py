@@ -167,7 +167,7 @@ def _refuse_settled(chain: list[Receipt], deny_hash: str) -> None:
 
 def _append_locked(handle: BinaryIO, fields: JsonDict) -> Receipt:
     receipt = _chained(fields, _last_hash(handle))
-    line = _fresh_line(handle) + receipt_line(receipt) + "\n"
+    line = fresh_line(handle) + receipt_line(receipt) + "\n"
     handle.write(line.encode("utf-8"))
     return receipt
 
@@ -239,7 +239,7 @@ def _last_receipt(handle: BinaryIO, limit: int | None) -> Receipt | None:
     return next(filter(None, map(_receipt_or_none, reversed(lines))), None)
 
 
-def _fresh_line(handle: BinaryIO) -> str:
+def fresh_line(handle: BinaryIO) -> str:
     # A torn last line has no newline; the next receipt starts a line of its own.
     size = handle.seek(0, os.SEEK_END)
     if size == 0:

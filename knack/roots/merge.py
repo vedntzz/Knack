@@ -1,7 +1,7 @@
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from knack.atomic import write_atomically
 from knack.pipeline.roots import reviewed_roots
 from knack.roots.store import find_root, load_roots, write_root
 from knack.walk.registry import (
@@ -103,8 +103,7 @@ def _without(entry: RegistryEntry, root_ids: set[str]) -> RegistryEntry:
 def _copied(entry: RegistryEntry, home_dir: Path) -> RegistryEntry:
     # The rule file moves into home, so the entry no longer points at the source.
     target = home_dir / HOME_RULES / entry.rule.name
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(entry.rule, target)
+    write_atomically(target, entry.rule.read_text(encoding="utf-8"))
     return entry.model_copy(update={"rule": HOME_RULES / entry.rule.name})
 
 
@@ -112,7 +111,6 @@ def _write(
     home: Path, current: Registry, added: list[RegistryEntry], roots: tuple[int, int]
 ) -> Imported:
     rules = [*current.rules, *added]
-    home.parent.mkdir(parents=True, exist_ok=True)
     text = current.model_copy(update={"rules": rules}).model_dump_json(indent=2)
-    home.write_text(text + "\n", encoding="utf-8")
+    write_atomically(home, text + "\n")
     return Imported(current.repo, home, len(added), len(rules), *roots)

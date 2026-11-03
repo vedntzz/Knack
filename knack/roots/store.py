@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from knack.atomic import write_atomically
 from knack.contracts.models import Root
 
 
@@ -27,8 +28,7 @@ def root_files(directory: Path) -> list[tuple[Path, Root]]:
 
 
 def write_root(root: Root, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(root.model_dump_json(indent=2, exclude_none=True) + "\n")
+    write_atomically(path, root.model_dump_json(indent=2, exclude_none=True) + "\n")
 
 
 def _load_root_file(path: Path) -> Root:

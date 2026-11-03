@@ -11,9 +11,12 @@ from fastapi.testclient import TestClient
 from knack import cli
 from knack.console.app import create_app
 from knack.console.events import all_news
+from knack.dispute.rulings import append_ruling, load_rulings
 from knack.guard.check import GUARD_ERROR_REASON
 from knack.hooks import pretool_guard
 from knack.hooks.pretool_guard import decide
+from knack.miss.cases import ModelAnswer
+from knack.miss.selfcheck import load_checks, SelfCheck
 from knack.pipeline.clients import MissingCredentials, RefusedCredentials
 from knack.receipts.chain import append_receipt, load_receipts, TAIL_BYTES, verify_chain
 from knack.walk.registry import Registry
@@ -21,6 +24,7 @@ from knack.watch import hook
 from knack.watch.credentials import key_path, watch_key
 from tests.console.test_argue_held_pages import BLOCK, ESCALATE, HOLD, Story
 from tests.console.test_verdict_page import HTML
+from tests.dispute.test_rulings import record
 from tests.hooks.test_pretool import (
     make_clone,
     make_registry,
@@ -437,3 +441,63 @@ def test_a_receipt_longer_than_the_tail_never_stops_the_next_one(
     second = append_receipt(receipts, base)
     assert second.prev == first.hash
     assert verify_chain(receipts).problem is None
+
+
+# Leftovers from the review: torn self-checks, a ruling after a torn tail, an early crash.
+
+
+def a_self_check() -> SelfCheck:
+    answer = ModelAnswer(model="m", yes=False, answer="no", prompt_sha256="0" * 64)
+    fields: Json = {"time": "t", "trigger": "watch", "question": "q", "rule_id": "r"}
+    fields |= {"source": "s", "file": "a.py", "answers": [answer], "case_key": None}
+    return SelfCheck.model_validate(fields)
+
+
+def test_a_self_checks_line_torn_inside_a_utf8_character_is_skipped(
+    tmp_path: Path,
+) -> None:
+    checks = tmp_path / "self_checks.jsonl"
+    whole = a_self_check()
+    checks.write_bytes((whole.model_dump_json() + "\n").encode() + TORN_TAIL)
+    assert load_checks(checks) == [whole]
+
+
+def test_a_ruling_after_a_torn_tail_starts_a_line_of_its_own(tmp_path: Path) -> None:
+    rulings = tmp_path / "rulings.jsonl"
+    rulings.write_bytes(TORN_TAIL)
+    kept = record()
+    append_ruling(rulings, kept)
+    append_ruling(rulings, kept)
+    assert load_rulings(rulings) == [kept, kept]
+
+
+def test_a_crash_before_any_rule_runs_still_writes_a_guard_error_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pretool_guard, "load_roots", raise_error(OSError("disk")))
+    event = violating_write_event("new_dags.py", tmp_path)
+    receipts = tmp_path / "verdicts.jsonl"
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", receipts) is None
+    [receipt] = load_receipts(receipts)
+    assert receipt.decision == GUARD_ERROR_REASON
+    assert receipt.file == str(tmp_path / "new_dags.py")
+    assert verify_chain(receipts).problem is None
+
+
+def test_a_crash_with_no_readable_target_still_writes_a_guard_error_receipt(
+    tmp_path: Path,
+) -> None:
+    receipts = tmp_path / "verdicts.jsonl"
+    event: Json = {"tool_name": "write_file", "cwd": str(tmp_path)}
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", receipts) is None
+    [receipt] = load_receipts(receipts)
+    assert receipt.decision == GUARD_ERROR_REASON
+
+
+def test_a_crash_with_no_receipts_kept_writes_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pretool_guard, "load_roots", raise_error(OSError("disk")))
+    event = violating_write_event("new_dags.py", tmp_path)
+    assert decide(event, make_registry(tmp_path), tmp_path / "log", None) is None
+    assert list(tmp_path.glob("*.jsonl")) == []
