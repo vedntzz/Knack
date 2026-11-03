@@ -63,7 +63,7 @@ Then open:
 |---|---|---|
 | 17 of 101 PRs yield 31 rejected alternatives, all verbatim | [`spikes/batch/apache-airflow/decisions.jsonl`](spikes/batch/apache-airflow/decisions.jsonl), [`spikes/batch/fastapi-fastapi/decisions.jsonl`](spikes/batch/fastapi-fastapi/decisions.jsonl) | `python -m knack.reproduce extraction` prints the 31; `jq -s '[.[]\|select([.decisions[]?.rejected_alternatives[]?]\|length>0)]\|length' spikes/batch/*/decisions.jsonl` prints the 17 |
 | 13 held-out outcomes per side: 8 pass, 3 no rule, 2 fail held-out | [`data/heldout/`](data/heldout/), [`spikes/rule_quality.md`](spikes/rule_quality.md) | `python -m knack.reproduce heldout` |
-| Only 2 of 22 roots are Confirmed, and none is seeded | [`data/roots/`](data/roots/) | `grep -h '"status"\|"seeded"' data/roots/*/*.json \| sort \| uniq -c` |
+| Only 3 of 22 roots are Confirmed, and none is seeded | [`data/roots/`](data/roots/) | `grep -h '"status"\|"seeded"' data/roots/*/*.json \| sort \| uniq -c` |
 | The guard's one real block was on fastapi #16049, the ticket excluded from the primary bench | [`bench/AUDIT-1030c.md`](bench/AUDIT-1030c.md) | search it for `16049--veto--1` |
 | The bench report regenerates byte for byte from the committed runs | [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md), [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) | `bash scripts/reproduce.sh` (the bench step diffs them) |
 
@@ -91,7 +91,7 @@ Every decision carries one honest label, plus a `seeded` flag:
 
 Only AST-checkable, human-confirmed rules can block: the root must be Confirmed and must have an installed ast-grep rule.
 
-Confirming pins the sha256 of the rule file. If the rule is recompiled later, it only advises until someone runs `knack confirm` again, which re-pins it. Roots confirmed before pins existed carry no pin and keep blocking. Of the 2 committed Confirmed roots, `airflow-75025-1` is pinned to the sha256 of `data/rules/airflow/75025.yml`, and `airflow-75774-1` was confirmed before pins existed and carries no pin.
+Confirming pins the sha256 of the rule file. If the rule is recompiled later, it only advises until someone runs `knack confirm` again, which re-pins it. Roots confirmed before pins existed carry no pin and keep blocking. Of the 3 committed Confirmed roots, `airflow-75025-1` is pinned to the sha256 of `data/rules/airflow/75025.yml`, and `airflow-75774-1` and `airflow-75774-2` are pinned to the sha256 of `data/rules/airflow/75774.yml`.
 
 `seeded` is true when a root was marked Confirmed by a script rather than a person. All 22 committed roots have `seeded=false`. The bench is different: its guard arms mark every root Confirmed with `seeded=true`, so every bench block was on a seeded root, not a human-reviewed one.
 
@@ -177,7 +177,7 @@ The script reads only committed files. It uses no network, no model and no home 
 ### Breadth [breadth]
 
 - Repositories: 2 (apache/airflow, fastapi/fastapi). PRs read: 101. Decisions extracted: 107. 17 of the 101 PRs yield 31 rejected alternatives, all verbatim (the per-PR count of 17 is read from the decisions files, not printed by the script).
-- Roots: 22. **2 are Confirmed** and 20 are Inferred, with 0 Unknown. Only those 2 roots can block anything today.
+- Roots: 22. **3 are Confirmed** and 19 are Inferred, with 0 Unknown. Only those 3 roots can block anything today.
 - Installed rules: 12. Held-out PRs: 13. Bench: 9 tickets, 81 runs.
 
 ### Extraction [extraction]
@@ -265,7 +265,7 @@ Repairs add to the old rule: the candidate is the old rule's branches, kept verb
 
 - The diffs and exports were written to a temp folder that no longer exists. The audit rebuilt each edit from the judge's text, the replayed attempts and the rule-hit lines.
 - The intervals overlap. No difference between arms is claimed.
-- There are only 2 repos and 9 tickets, and only 2 roots are Confirmed.
+- There are only 2 repos and 9 tickets, and only 3 roots are Confirmed.
 - The recompiled #15937 rule catches the renamed subclass. It still misses a `**` splat (`StreamingResponse(..., media_type="application/jsonl", **{"status_code": sc})` gets 0 matches), because it skips any call containing `**`. It also misses a media-type constant (`media_type=SSE`).
 - The recompiled #16062 rule has a broad branch: any integer of 4097 or more in a module that names the cached helpers is denied. A probe line `TIMEOUT_MS = 30000` in that module is blocked. It has 0 matches on the default branch and release 0.140.0 today, but unrelated constants in `fastapi/dependencies/models.py` can trip it.
 - The scorer counts moved code as a new match. The attempt replay does not. They disagree on `16062--warn+veto--0`.

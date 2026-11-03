@@ -101,7 +101,7 @@ def test_reproduce_prints_every_number_beside_its_command(tmp_path: Path) -> Non
         "generality (same-model held-out pass): 8/13 PRs",
         "cross-model held-out pass: 8/13 PRs",
         "bench report matches bench/REPORT-1030c.md: yes",
-        "roots: 22 (2 Confirmed, 0 Corroborated, 20 Inferred, 0 Uncorroborated, 0 Unknown)",
+        "roots: 22 (3 Confirmed, 0 Corroborated, 19 Inferred, 0 Uncorroborated, 0 Unknown)",
         "decisions hunted: 12 (every installed rule)",
         "repeat commits: 0 (0 human, 0 bot)",
         "e2e steps passed: 26/26",
