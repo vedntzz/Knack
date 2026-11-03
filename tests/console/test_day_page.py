@@ -130,7 +130,7 @@ def test_graph_counts_every_root_on_the_day_its_pr_merged(world: DayConsole) -> 
     assert graph["repo"] == "apache/airflow" and graph["today"] == "2026-11-02"
     assert split(graph, "2026-10-19") == (1, 0)
     assert split(graph, "2026-10-27") == (0, 2)
-    assert split(graph, "2026-10-28") == (1, 5)
+    assert split(graph, "2026-10-28") == (2, 4)
     merged = sum(day["confirmed"] + day["advisory"] for day in graph["days"])
     assert merged == len(list(DATA_ROOTS.glob("*.json"))) == 9
 
@@ -177,7 +177,7 @@ def test_headline_counts_every_root_and_splits_confirmed_from_advisory(
 ) -> None:
     text = visible(world.page())
     assert "apache/airflow remembers 9 decisions." in text
-    assert "2 confirmed to block · 7 advise only" in text
+    assert "3 confirmed to block · 6 advise only" in text
 
 
 def test_a_block_day_carries_the_red_dot(world: DayConsole) -> None:
@@ -215,7 +215,8 @@ def test_confirmed_decisions_read_as_plain_lines_with_who_and_when(
     assert "the latest run is sorted only as last_run_state" in text
     for said in ("Pushkal Gupta", "#75025", "Oct 19 2026", "Vedant Srivastava"):
         assert said in text
-    assert "Confirmer not recorded" in text
+    assert "Confirmer not recorded" not in text
+    assert "#75774 · merged Oct 28 2026 · confirmed by Vedant Srivastava" in text
     assert "raising AirflowSensorTimeout past the deadline" in text
     assert "dabla" not in text.split("Confirmed decisions")[1].split("Today")[0]
 

@@ -130,7 +130,7 @@ def test_breadth_names_repos_prs_decisions_roots_rules_and_bench() -> None:
         "repos: 2",
         "PRs read: 101",
         "decisions extracted: 107",
-        "roots: 22 (2 Confirmed, 0 Corroborated, 20 Inferred, 0 Uncorroborated, 0 Unknown)",
+        "roots: 22 (3 Confirmed, 0 Corroborated, 19 Inferred, 0 Uncorroborated, 0 Unknown)",
         "installed rules: 12",
         "held-out PRs: 13",
         "bench tickets: 9",
