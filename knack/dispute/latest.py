@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from knack.console.links import held_url
 from knack.contracts.models import Root, Ruling
 from knack.dispute.argue import argue, Ask
 from knack.dispute.rulings import (
@@ -20,7 +21,8 @@ from knack.walk.registry import Registry
 NO_CLONE = "{cwd} is not a clone with a knack registry; nothing to dispute"
 NO_DENY = "no deny receipt for this clone in {path}; nothing to dispute"
 HELD = "ESCALATE: held for a person"
-RESOLVE_HINT = 'To resolve: knack resolve {hash} allow|retire|uphold --reason "<why>"'
+# The agent is told where a person settles it, never the command itself.
+FOR_A_PERSON = "Held for a person. A person finds the command on the console's held page: {url} (open with: knack console)"
 
 
 class NothingToDispute(Exception):
@@ -67,10 +69,10 @@ def ruling_text(ruling: RulingRecord) -> str:
 
 
 def _resolve_hint(ruling: RulingRecord) -> list[str]:
-    # Only an escalation waits on a person, so only it names the human path.
+    # Only an escalation waits on a person, so only it names the held page.
     if ruling.decision == "hold":
         return []
-    return [RESOLVE_HINT.format(hash=ruling.receipt_hash)]
+    return [FOR_A_PERSON.format(url=held_url(ruling.receipt_hash))]
 
 
 def latest_deny(receipts: Path, repo: str, root: Path) -> Receipt:

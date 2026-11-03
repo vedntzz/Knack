@@ -300,3 +300,19 @@ def test_readme_names_the_three_resolve_choices_under_argue() -> None:
     lines = README.read_text(encoding="utf-8").splitlines()
     argue = next(i for i, line in enumerate(lines) if "(`knack argue`)" in line)
     assert THREE_CHOICES in lines[argue + 1 : argue + 3]
+
+
+ONLY_A_PERSON = (
+    "Only a person can allow, and three things keep an agent out:"
+    " `knack argue` never prints the resolve command, only where a person finds it"
+    " (the console's held page); the PreToolUse guard denies any agent shell command"
+    " that runs `knack resolve`, `knack confirm`, `knack false-block` or `knack retire`;"
+    " and `knack resolve` refuses to run without an interactive terminal unless"
+    " `--by` is given and the person sets `KNACK_HUMAN=1`."
+)
+
+
+def test_readme_names_what_keeps_an_agent_from_allowing_itself() -> None:
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert ONLY_A_PERSON in text
+    assert '"matcher": "write_file|edit_file|bash"' in text

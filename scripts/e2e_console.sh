@@ -39,6 +39,8 @@ step() {
 }
 
 helper() { "$PY" "$ROOT/scripts/e2e_console.py" "$1" "$WORK" "${@:2}"; }
+# person: a step a person runs; resolve has no terminal here, so the person sets KNACK_HUMAN=1.
+person() { KNACK_HUMAN=1 "$@"; }
 story() { "$PY" "$ROOT/scripts/one_story.py" "$1" "$WORK" "${@:2}"; }
 
 case "${1:-}" in
@@ -119,7 +121,7 @@ step "argue covered" helper argue covered
 step "argue page" helper page argue
 step "argue uncovered" helper argue uncovered
 step "argue links held" helper page "argue links held"
-step "resolve uphold" helper resolve
+step "resolve uphold" person helper resolve
 step "held page" helper page held
 step corrected story hook corrected
 step "day page" helper page day

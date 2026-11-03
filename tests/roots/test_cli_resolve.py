@@ -1,3 +1,4 @@
+import io
 from pathlib import Path
 
 import pytest
@@ -13,11 +14,70 @@ from registry_fixture import make_registry, raw_entries, root
 NOW = "2026-10-31T09:00:00+00:00"
 
 
+class Stdin(io.StringIO):
+    # A stand-in stdin that is, or is not, an interactive terminal.
+    def __init__(self, tty: bool) -> None:
+        super().__init__()
+        self.tty = tty
+
+    def isatty(self) -> bool:
+        return self.tty
+
+
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    # A person at a terminal, unless a test says otherwise.
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.delenv("KNACK_HOME", raising=False)
+    monkeypatch.delenv("KNACK_HUMAN", raising=False)
+    monkeypatch.setattr("sys.stdin", Stdin(tty=True))
     return tmp_path / "home"
+
+
+def no_terminal(monkeypatch: pytest.MonkeyPatch, human: str | None) -> None:
+    # An agent's shell: stdin is a pipe; KNACK_HUMAN only if given.
+    monkeypatch.setattr("sys.stdin", Stdin(tty=False))
+    if human is not None:
+        monkeypatch.setenv("KNACK_HUMAN", human)
+
+
+REFUSED = (
+    "knack resolve: only a person can resolve a deny: run it in an interactive"
+    " terminal, or pass --by <your name> with KNACK_HUMAN=1 set by you"
+)
+
+
+@pytest.mark.parametrize(
+    ("human", "by"), [(None, ["--by", "maria"]), ("1", []), ("0", ["--by", "maria"])]
+)
+def test_resolve_without_a_terminal_is_refused_and_writes_nothing(
+    home: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    human: str | None,
+    by: list[str],
+) -> None:
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    no_terminal(monkeypatch, human)
+    args = ["resolve", deny.hash, "allow", "--reason", "ok", *by]
+    assert cli.main([*args, "--registry", str(registry)]) == 2
+    assert REFUSED in capsys.readouterr().err
+    assert not (home / ".knack" / "corrections.jsonl").exists()
+    assert load_receipts(home / ".knack" / "verdicts.jsonl") == [deny]
+
+
+def test_resolve_without_a_terminal_runs_with_by_and_knack_human(
+    home: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    registry, deny = make_registry(tmp_path / "reg"), denied(home)
+    no_terminal(monkeypatch, "1")
+    args = ["resolve", deny.hash, "allow", "--reason", "ok", "--by", "maria"]
+    assert cli.main([*args, "--registry", str(registry)]) == 0
+    assert f"{deny.hash[:12]}: allowed by maria" in capsys.readouterr().out
 
 
 def denied(home: Path) -> Receipt:

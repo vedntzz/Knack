@@ -36,7 +36,7 @@ NOT_ALIASES = "lines 135-136 of the blocked edit are not the state/start_date al
 # The real Muse Code PreToolUse payload each edit is replayed inside; its model names the agent.
 CAPTURED_EVENT = ROOT / "tests" / "hooks" / "fixtures" / "edit_event.json"
 PRETOOL = " -m knack.hooks.pretool || true"
-MATCHER = "write_file|edit_file"
+MATCHER = "write_file|edit_file|bash"
 # What a hook step must do: the alias edit is denied, the corrected one allowed.
 EXPECTED = {"block": "deny", "corrected": "allow"}
 KEPT = (("receipts.jsonl", "verdicts.jsonl"), ("rulings.jsonl", "rulings.jsonl"))
@@ -100,7 +100,7 @@ def installed_rule(rule: Path, out: Path) -> str:
 
 
 def hook_settings() -> Json:
-    # As demo_block.sh installs it: every write_file/edit_file goes through knack.hooks.pretool.
+    # As demo_block.sh installs it: every write_file/edit_file/bash call goes through knack.hooks.pretool.
     command = f"sh -c {shlex.quote(shlex.quote(sys.executable) + PRETOOL)}"
     entry = {"matcher": MATCHER, "hooks": [{"type": "command", "command": command}]}
     return {"schema_version": 1, "hooks": {"PreToolUse": [entry]}}

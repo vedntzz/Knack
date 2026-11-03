@@ -747,3 +747,58 @@ def test_a_rule_recompiled_after_confirmation_only_advises(tmp_path: Path) -> No
     assert decide(event, registry, tmp_path / "log", receipts) is None
     [receipt] = receipt_lines(receipts)
     assert (receipt["decision"], receipt["root_ids"]) == ("allow", ["root-75025"])
+
+
+PERSON_ONLY = [
+    "knack resolve abc123 allow --reason ok --by maria",
+    "cd /w && KNACK_HUMAN=1 knack resolve abc123 allow --reason ok --by maria",
+    ".venv/bin/knack confirm airflow-75025-1",
+    "uv run knack false-block airflow-75025 dags.py",
+    "knack retire airflow-75025",
+    "sh -c 'python -m knack.cli resolve abc123 uphold --reason ok'",
+]
+
+
+def shell_event(command: str, cwd: Path) -> dict[str, Any]:
+    # A Muse Code shell call, shaped as in tests/pipeline/fixtures/ptb_shell.json.
+    event = load_event("write_event.json")
+    event.update(tool_name="bash", cwd=str(cwd))
+    event["tool_input"] = {"command": command, "description": "Run a command"}
+    return event
+
+
+@pytest.mark.parametrize("command", PERSON_ONLY)
+def test_an_agent_running_a_person_only_command_is_denied(
+    tmp_path: Path, command: str
+) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    done = run_pretool(json.dumps(shell_event(command, clone)), clone, env)
+    reason = deny_reason(hook_stdout_json(done))
+    assert done.returncode == 0 and "for a person" in reason
+    assert "knack resolve, knack confirm, knack false-block and knack retire" in reason
+
+
+def test_a_person_only_command_is_denied_outside_any_clone(tmp_path: Path) -> None:
+    # Receipts live in the home folder, so a resolve from anywhere settles them.
+    (tmp_path / "plain").mkdir()
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    event = shell_event(PERSON_ONLY[0], tmp_path / "plain")
+    done = run_pretool(json.dumps(event), tmp_path / "plain", env)
+    assert "for a person" in deny_reason(hook_stdout_json(done))
+
+
+@pytest.mark.parametrize("command", ['knack argue "a pinned client"', "pytest -q"])
+def test_other_shell_commands_stay_silent(tmp_path: Path, command: str) -> None:
+    clone = make_clone(tmp_path / "airflow", AIRFLOW_URL)
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    done = run_pretool(json.dumps(shell_event(command, clone)), clone, env)
+    assert (done.returncode, done.stdout) == (0, b"")
+
+
+def test_a_shell_call_with_no_command_text_stays_silent(tmp_path: Path) -> None:
+    event = shell_event("", tmp_path)
+    event["tool_input"]["command"] = ["knack", "resolve"]
+    env = hook_env(write_registry_file(tmp_path), tmp_path / "home")
+    done = run_pretool(json.dumps(event), tmp_path, env)
+    assert (done.returncode, done.stdout) == (0, b"")

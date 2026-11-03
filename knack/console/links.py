@@ -6,3 +6,8 @@ CONSOLE_URL = f"http://{CONSOLE_HOST}:{CONSOLE_PORT}"
 
 def verdict_url(receipt_hash: str) -> str:
     return f"{CONSOLE_URL}/verdict/{receipt_hash}"
+
+
+def held_url(receipt_hash: str) -> str:
+    # Where a person finds the resolve command; the agent is only told this page.
+    return f"{verdict_url(receipt_hash)}/held"

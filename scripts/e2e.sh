@@ -184,7 +184,9 @@ argue_escalate() {
   out="$(in_clone faked argue "$ESCALATING" 2>&1)" || return 1
   echo "$out"
   says "$out" "ESCALATE: held for a person" || return 1
-  says "$out" "knack resolve [0-9a-f]{64} allow\|retire" || return 1
+  # The agent is pointed at the held page, never handed the resolve command.
+  says "$out" "console's held page: http://127.0.0.1:7655/verdict/[0-9a-f]{64}/held" || return 1
+  must test -z "$(printf '%s' "$out" | grep 'knack resolve')" || return 1
   # argue names the model that answered: here the fake, never muse-spark-1.3.
   says "$out" "fake-spark yes, fake-spark-open no; logged only" || return 1
   must test ! -d "$REGISTRY_DIR/cases" || return 1
@@ -193,7 +195,7 @@ argue_escalate() {
 
 resolve_allow() {
   local out
-  out="$(in_clone knack resolve "$(latest_deny)" allow --reason "frontend migration needs one release" --by "e2e lead")" || return 1
+  out="$(KNACK_HUMAN=1 in_clone knack resolve "$(latest_deny)" allow --reason "frontend migration needs one release" --by "e2e lead")" || return 1
   echo "$out"
   says "$out" "allowed by e2e lead \(airflow-75025, $ROOT_ID\)" || return 1
   last_receipt "r['resolution']['action'] == 'allow' and r['decision'] == 'allow'"
@@ -219,7 +221,7 @@ resolve_retire() {
   other_alias || return 1
   out="$(edit_event "$WORK/other_alias.json" | pretool)" || return 1
   denied "$out" || return 1
-  out="$(in_clone knack resolve "$(latest_deny)" retire --reason "sort aliases are back by design" --by "e2e lead")" || return 1
+  out="$(KNACK_HUMAN=1 in_clone knack resolve "$(latest_deny)" retire --reason "sort aliases are back by design" --by "e2e lead")" || return 1
   echo "$out"
   says "$out" "retired by e2e lead" || return 1
   holds "$REGISTRY" "not any('75025' in e['rule'] for e in d['rules'])"

@@ -1,11 +1,12 @@
 import json
+import re
 import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from knack.console.links import verdict_url
 from knack.contracts.models import NOT_RECORDED, Root, Verdict
@@ -40,6 +41,15 @@ DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
 OPEN_CONSOLE = "(open with: knack console)"
 # Muse Code's PreToolUse payload names the agent's model here (tests/hooks/fixtures).
 AGENT_KEY = "model"
+# Commands that settle or change what blocks; an agent must never run them on itself.
+PERSON_ONLY = re.compile(
+    r"\bknack(?:\.cli)?\s+(?:resolve|confirm|false-block|retire)\b"
+)
+FOR_A_PERSON = (
+    "knack resolve, knack confirm, knack false-block and knack retire are for a person,"
+    " not an agent: ask a person to run it in their own terminal."
+    " The console's held page shows them the command."
+)
 # The rule a guard-error receipt names when the hook failed before any rule ran.
 NO_RULE_RAN = "no rule ran"
 
@@ -60,12 +70,22 @@ class Trail:
 
 
 def run_hook(stdin_text: str) -> JsonDict | None:
-    # Silent unless the event cwd is a clone of the registry's repo.
+    # A person-only command is denied anywhere; else silent outside the registry's clones.
     event = json.loads(stdin_text)
+    if runs_person_only(event):
+        return _envelope(FOR_A_PERSON)
     scoped = scoped_quietly(event)
     if scoped is None:
         return None
     return decide(event, scoped[0], home_error_log(), receipts_path(), scoped[1])
+
+
+def runs_person_only(event: JsonDict) -> bool:
+    # Any tool whose input carries shell text: Muse Code's bash or an equivalent.
+    tool_input = event.get("tool_input")
+    inputs = cast(JsonDict, tool_input) if isinstance(tool_input, dict) else {}
+    command = inputs.get("command")
+    return isinstance(command, str) and PERSON_ONLY.search(command) is not None
 
 
 def decide(
@@ -365,10 +385,14 @@ def _rule_id(rule_path: Path) -> str:
 
 
 def _deny(reason: str, receipt: Receipt | None) -> JsonDict:
+    link = f"Console: {verdict_url(receipt.hash)} {OPEN_CONSOLE}\n" if receipt else ""
+    return _envelope(f"{reason}\n{link}{DISPUTE_LINE}")
+
+
+def _envelope(reason: str) -> JsonDict:
     # Muse Code only honors this exact deny envelope, exit 0.
     inner = {"hookEventName": "PreToolUse", "permissionDecision": "deny"}
-    link = f"Console: {verdict_url(receipt.hash)} {OPEN_CONSOLE}\n" if receipt else ""
-    inner["permissionDecisionReason"] = f"{reason}\n{link}{DISPUTE_LINE}"
+    inner["permissionDecisionReason"] = reason
     return {"hookSpecificOutput": inner}
 
 
