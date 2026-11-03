@@ -41,6 +41,14 @@ def test_the_recovery_page_fits_one_16_9_screen(
 
 
 @needs_browser
+@pytest.mark.parametrize("width,height", [(1280, 720), (1920, 1080)])
+def test_the_verify_command_is_never_cut_off(
+    recovery: str, width: int, height: int
+) -> None:
+    assert extent(recovery, width, height)["clipped"] == 0
+
+
+@needs_browser
 def test_the_recovery_page_reads_on_a_390_phone(recovery: str) -> None:
     found = extent(recovery, 390, 844)
     assert found["width"] == 390 and found["verifyRight"] <= 390, found

@@ -1,4 +1,4 @@
-// Opens a console page at one size and prints how far it runs: {height, width, verifyRight, hidden, smallest} in CSS px.
+// Opens a console page at one size and prints how far it runs: {height, width, verifyRight, hidden, smallest, clipped} in CSS px.
 // fit <url> <width> <height>. Driven by test_argue_held_fit.py.
 const { chromium } = await import(process.env.PLAYWRIGHT);
 const [url, width, height] = process.argv.slice(2);
@@ -11,7 +11,10 @@ function extent() {
   const hidden = Math.max(0, ...[...document.querySelectorAll(".exchange, .rail, .steps")].map((n) => n.scrollHeight - n.clientHeight));
   // The smallest text drawn, so a phone layout never shrinks below the type floor.
   const sizes = [...document.querySelectorAll("body *")].filter((n) => n.childNodes.length && [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map((n) => parseFloat(getComputedStyle(n).fontSize));
-  return { height: page.scrollHeight, width: page.scrollWidth, verifyRight: Math.max(...rights), hidden, smallest: Math.min(...sizes) };
+  // Verify text cut off with no scroll of its own: wider than its box and not scrollable.
+  const clippedIn = (n) => n.scrollWidth > n.clientWidth && !["auto", "scroll"].includes(getComputedStyle(n).overflowX);
+  const clipped = [...document.querySelectorAll(".verify code")].filter(clippedIn).length;
+  return { height: page.scrollHeight, width: page.scrollWidth, verifyRight: Math.max(...rights), hidden, smallest: Math.min(...sizes), clipped };
 }
 
 const browser = await chromium.launch();

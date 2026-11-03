@@ -113,6 +113,11 @@ class FastapiDayConsole(DayConsole):
     data_registry, data_roots = FASTAPI_REGISTRY, FASTAPI_ROOTS
 
 
+class KnackCloneDayConsole(DayConsole):
+    # The airflow registry read from a clone of Knack itself, as KNACK_REGISTRY allows.
+    origin = "https://github.com/vedntzz/Knack.git"
+
+
 @pytest.fixture
 def world(tmp_path: Path) -> DayConsole:
     return DayConsole(tmp_path)
@@ -268,6 +273,31 @@ def test_today_lists_the_clones_commits_and_says_why_prs_are_missing(
     assert "Sort runs by last_run_state" in text
     assert "Pull requests not recorded: GITHUB_TOKEN is not set" in text
     assert "Blocked an edit against airflow-75025-1" in text
+
+
+def test_today_shows_no_commits_from_a_clone_of_another_repo(tmp_path: Path) -> None:
+    text = visible(KnackCloneDayConsole(tmp_path).page())
+    assert "apache/airflow remembers" in text
+    assert "Sort runs by last_run_state" not in text
+    assert "Pull requests not recorded" not in text
+    said = "Commits not recorded: this console runs in a clone of vedntzz/knack"
+    assert said in text
+
+
+def test_the_bar_names_no_branch_from_a_clone_of_another_repo(tmp_path: Path) -> None:
+    html = KnackCloneDayConsole(tmp_path).page()
+    assert "Branch not recorded" in visible(html) and "/ main" not in visible(html)
+
+
+def test_75774_reads_once_with_both_rejected_alternatives(world: DayConsole) -> None:
+    text = visible(world.page())
+    confirmed = text.split("Confirmed decisions")[1].split("Today")[0]
+    assert confirmed.count("#75774") == 1
+    for offered in (
+        "sliding re-defer timeout that put timeout=self.timeout",
+        "TimeDeltaTrigger sleep defer with no deadline",
+    ):
+        assert offered in confirmed
 
 
 def test_the_last_receipt_and_the_verify_command_each_copy(world: DayConsole) -> None:
