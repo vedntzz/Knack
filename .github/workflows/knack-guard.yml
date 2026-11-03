@@ -24,23 +24,15 @@ jobs:
       # Same .venv as ci.yml, from uv.lock, so the guard runs exactly as the hook does.
       - name: Install
         run: uv sync --frozen --extra dev --python 3.11
-      - name: List changed .py files
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        # Deleted files are skipped; fixtures (scripts/fixtures/, tests/**/fixtures/) violate the rule on purpose.
-        run: |
-          git diff --name-only --diff-filter=d "$BASE_SHA...$HEAD_SHA" -- '*.py' \
-            | grep -Ev '^(scripts/fixtures/|tests/(.*/)?fixtures/)' > changed_py.txt || true
-          cat changed_py.txt
+      # Every Confirmed root in data/registry/*.json whose rule still matches its pin,
+      # run on the PR's changed .py files (fixtures excluded). Committed files only:
+      # nothing from a developer's machine, so a local exception cannot satisfy it.
       - name: Knack guard check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          mapfile -t files < changed_py.txt
-          bash .github/scripts/guard_changed.sh \
-            knack/guard/rules/no-alias-sort-keys.yml \
-            tests/guard/fixtures/replay/root_75025.json \
-            "${files[@]}"
+          .venv/bin/python scripts/ci_guard.py \
+            --base "$BASE_SHA" --head "$HEAD_SHA" --registry-dir data/registry

@@ -338,10 +338,17 @@ SELF_ALLOW_FLOOR = (
     " `KNACK_HUMAN=1` itself and hide the command in a variable, a script or"
     " `python -c` (see the limits under the audit). The CI guard"
     " ([`.github/workflows/knack-guard.yml`](.github/workflows/knack-guard.yml))"
-    " is the backstop, narrower than the local hook: the shipped workflow checks"
-    " one rule/root pair, `no-alias-sort-keys.yml` with `root_75025`, on every"
-    " pull request's changed `.py` files. The CI check reads no local receipts,"
-    " so a local exception cannot satisfy it."
+    " is the backstop: `scripts/ci_guard.py` reads `data/registry/*.json` and runs"
+    " every rule whose Confirmed roots are pinned to its current sha256 on each"
+    " pull request's changed `.py` files (today 5 rules, 7 Confirmed roots, across"
+    " airflow and fastapi). A Confirmed root that is unpinned, or whose rule"
+    " changed by one byte since it was confirmed, is skipped and listed in the log,"
+    " not enforced. A match fails the job and prints the rule, root, decider, quote"
+    " and file:line. The CI check reads committed files only, no local receipts, so"
+    " a local exception cannot satisfy it. Its limits: it checks the whole changed"
+    " file, not only the new lines; it skips fixtures, `data/` and `spikes/`; and"
+    " every registry's rules run on this repository's own code, whichever upstream"
+    " they came from."
 )
 
 
@@ -369,8 +376,8 @@ EVASIONS_LIMIT = (
     " `echo … | base64 -d | sh` and `bash ./approve.sh`, and an agent can set"
     ' `KNACK_HUMAN=1` and `--by` itself. Quoted words (`knack "resolve"`,'
     " `knack re''solve`) are now denied. The CI check reads no local receipts, so a"
-    " local exception cannot satisfy it; it runs one rule/root pair"
-    " (`no-alias-sort-keys.yml`, `root_75025`)."
+    " local exception cannot satisfy it; it runs every pinned Confirmed root in"
+    " `data/registry` (5 rules, 7 roots) over whole changed `.py` files."
 )
 
 
