@@ -31,7 +31,7 @@ def check_file(
 
 def fail_open(error: Exception, log_path: Path, started: float) -> Verdict:
     log_error_quietly(log_path, error)
-    return _guard_error_verdict(error, started)
+    return guard_error_verdict(error, started)
 
 
 def new_matches(
@@ -59,7 +59,7 @@ def _elapsed_ms(started: float) -> float:
     return (time.perf_counter() - started) * 1000
 
 
-def _guard_error_verdict(error: Exception, started: float) -> Verdict:
+def guard_error_verdict(error: Exception, started: float) -> Verdict:
     reason = f"{GUARD_ERROR_REASON}: {type(error).__name__}"
     return Verdict(allowed=True, reason=reason, latency_ms=_elapsed_ms(started))
 

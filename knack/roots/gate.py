@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from knack.atomic import write_atomically
 from knack.contracts.models import Root
 from knack.pipeline.corroborate import same_alternative
 from knack.pipeline.extract import extract_pr
@@ -141,7 +142,7 @@ def _roll_back(
 ) -> None:
     # The log line, the registry rules a reject dropped, then the root as it was.
     remove_correction(correction, log)
-    registry_path.write_text(saved, encoding="utf-8")
+    write_atomically(registry_path, saved)
     found = find_root(load_registry(registry_path).roots_dir, correction.root_id)
     if found is not None:
         write_root(correction.before, found[0])

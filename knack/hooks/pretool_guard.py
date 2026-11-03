@@ -8,9 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from knack.console.links import verdict_url
-from knack.contracts.models import Root, Verdict
+from knack.contracts.models import NOT_RECORDED, Root, Verdict
 from knack.git import current_branch
-from knack.guard.check import check_file, fail_open, log_error_quietly
+from knack.guard.check import (
+    check_file,
+    fail_open,
+    guard_error_verdict,
+    log_error_quietly,
+)
 from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
 from knack.receipts.chain import (
     append_receipt,
@@ -35,6 +40,8 @@ DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
 OPEN_CONSOLE = "(open with: knack console)"
 # Muse Code's PreToolUse payload names the agent's model here (tests/hooks/fixtures).
 AGENT_KEY = "model"
+# The rule a guard-error receipt names when the hook failed before any rule ran.
+NO_RULE_RAN = "no rule ran"
 
 
 @dataclass(frozen=True)
@@ -73,7 +80,40 @@ def decide(
         return _decide_inner(event, registry, log_path, receipts, root)
     except Exception as error:
         log_error_quietly(log_path, error)
+        _crash_receipt_quietly(event, registry, receipts, log_path, error)
         return None
+
+
+def _crash_receipt_quietly(
+    event: JsonDict,
+    registry: Registry,
+    receipts: Path | None,
+    log: Path,
+    error: Exception,
+) -> None:
+    # A crash before any rule ran still leaves a guard-error receipt; best effort.
+    if receipts is None:
+        return
+    try:
+        append_receipt(receipts, _crash_fields(event, registry.repo, error))
+    except Exception as failure:
+        log_error_quietly(log, failure)
+
+
+def _crash_fields(event: JsonDict, repo: str, error: Exception) -> JsonDict:
+    verdict = guard_error_verdict(error, time.perf_counter())
+    now = datetime.now(timezone.utc).isoformat()
+    return guard_receipt(
+        repo, _target_or_unknown(event), NO_RULE_RAN, None, verdict, now
+    )
+
+
+def _target_or_unknown(event: JsonDict) -> str:
+    # The crash may be the payload itself, so a target that cannot be read is not guessed.
+    try:
+        return _target(event, event_cwd(event))
+    except Exception:
+        return NOT_RECORDED
 
 
 def _decide_inner(
