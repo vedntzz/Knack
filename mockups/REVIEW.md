@@ -77,8 +77,8 @@ These are reference mockups only. Nothing under `knack/` changed, and nothing is
 ## Day (`mockups/day/`)
 
 **Rubric changes:**
-- **Impact:** the headline and its secondary line share one baseline: "apache/airflow remembers 2 decisions. Last block today, 21:34:52 UTC."
-- **Squint test:** it leaves the headline, two light squares at the year's right end and one red dot.
+- **Impact:** the headline and its secondary line share one baseline. With the regenerated fixture (commit `19cbec9`, Nov 3) they read "apache/airflow remembers 5 decisions. Last block today, 05:10:49 UTC." (at review time, Nov 1: 2 decisions, 21:34:52 UTC).
+- **Squint test:** it leaves the headline, two shaded squares at the year's right end (Oct 19 with 1 decision, Oct 28 with 4) and one red dot.
 - **DESIGN.md over the brief, two places:**
   - The "person resolved a held edit" mark is a paper dot, not gold, because gold means only the quote-to-code link.
   - The confirmed decisions are dark rows, not paper, because `root.decision` is Knack's restatement, not a person's words.
@@ -98,10 +98,10 @@ These are reference mockups only. Nothing under `knack/` changed, and nothing is
 **Data gaps for the build phase:**
 1. **Earlier blocks:** `knack day` returns today's receipts only.
 2. **No resolve receipts.**
-3. **#75774:** no decision text or proof is frozen; only the 75025 root and grid are in `scenes.js`.
+3. **#75271 and #75774:** no decision text or proof is frozen; only the 75025 root and grid are in `scenes.js`.
 4. **The 7 Inferred airflow roots** are not frozen. Whether Inferred roots belong on the graph is a product call.
 5. **No PRs** (`GITHUB_TOKEN is not set`).
-6. **Unproven chain:** the day receipt `4be4607b` isn't shown to be in the "37 receipts" chain.
+6. **Unproven chain:** the day receipt `84a07463` (regenerated; `4be4607b` at review time) isn't shown to be in the "37 receipts" chain.
 
 ## Landing (`mockups/landing/`)
 
@@ -137,6 +137,6 @@ These are reference mockups only. Nothing under `knack/` changed, and nothing is
 
 ## Across all six pages
 
-- **Five different receipts appear across the six pages:** block 5e8a4464, argue 13f19d15, held 1983f52b (plus the block's 80b311c1), day 4be4607b, and block.js 80b311c1. Each page labels its own, and none merges them. One demo run that blocks, argues, escalates and resolves the same edit, frozen once, would let every page tell one story with one receipt.
+- **Five different receipts appear across the six pages:** block 5e8a4464, argue 13f19d15, held 1983f52b (plus the block's 80b311c1), day 84a07463 (regenerated Nov 3; 4be4607b at review time), and block.js 80b311c1. Each page labels its own, and none merges them. One demo run that blocks, argues, escalates and resolves the same edit, frozen once, would let every page tell one story with one receipt.
 - **Every page keeps the 16 px floor, DESIGN.md's tokens, red only for "Blocked" and gold only for the quote-to-code link.** Day's person mark is paper.
 - **Hallmark FAIL 20 (no stamp) is open on every page, on purpose.**
