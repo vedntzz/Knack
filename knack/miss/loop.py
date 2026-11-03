@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.atomic import write_atomically
 from knack.contracts.models import Root
 from knack.home import knack_home
 from knack.hooks.pretool_guard import rule_name
@@ -392,7 +393,7 @@ def _not_run(name: str, error: Exception) -> GateResult:
 
 def _install(target: Target, rule: str) -> None:
     text = with_rule_id(rule, target.rule_id) + "\n"
-    target.rule_path.write_text(text, encoding="utf-8")
+    write_atomically(target.rule_path, text)
 
 
 def _recompiled_at(target: Target, candidate: Path) -> dict[str, Any]:

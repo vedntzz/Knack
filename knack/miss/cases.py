@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from knack.atomic import write_atomically
+
 # must-fail: an edit the guard should have denied; must-pass: one it should have allowed.
 CaseKind = Literal["must-fail", "must-pass"]
 CASES_DIR = "cases"
@@ -59,8 +61,7 @@ def case_path(folder: Path, case: EditCase) -> Path:
 
 def save_case(folder: Path, case: EditCase) -> Path:
     path = case_path(folder, case)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(case.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    write_atomically(path, case.model_dump_json(indent=2) + "\n")
     return path
 
 

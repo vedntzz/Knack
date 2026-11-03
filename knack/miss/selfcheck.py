@@ -102,7 +102,8 @@ def load_checks(path: Path) -> list[SelfCheck]:
     # A missing file has no checks; a torn line is skipped.
     if not path.exists():
         return []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    # A line cut mid-character reads as U+FFFD and is skipped like any torn line.
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     return [check for check in map(_check_or_none, lines) if check]
 
 
