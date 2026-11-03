@@ -61,7 +61,7 @@
           <p>“<code>bool | Any</code> or <code>Any</code> would also be honest, but a union with <code>Any</code> switches type checking off for the argument, so <code>durable="yes"</code> would pass.”</p>
           <footer><b>dabla</b> · apache/airflow #75271</footer>
         </blockquote>
-        <p class="decided" data-root="data/roots/airflow/75271-1.json">Decision, Inferred: Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None</p>
+        <p class="decided" data-root="data/roots/airflow/75271-1.json">Decision, Confirmed: Type the durable default of the common.compat ResumableJobMixin stand-in as bool | None</p>
         <pre class="log" data-source="spikes/self_improving.md"><code>$ git merge --ff-only pr-75271
 knack watch apache/airflow: 1 merged PR: #75271
 [1/5] select   1 PRs read, 1 kept
@@ -76,7 +76,7 @@ knack watch apache/airflow: 1 merged PR: #75271
       </div>
       <div class="rail">
         <p>A merge of #75271 into a watched clone ran the post-merge hook that <code>knack watch</code> installed. Spark extracted the decision, Spark Open wrote code to break it and code to follow it, and the rule was proven and installed. No one typed anything between the merge and the install.</p>
-        <p class="limit">Its two roots are Inferred, so the new rule advises and does not block until a person confirms it.</p>
+        <p class="limit">Its two roots were Inferred when the rule installed, so it only advised. A person has since run <code>knack confirm</code> on both, so it now blocks.</p>
         <p><a href="https://github.com/vedntzz/Knack/blob/main/spikes/self_improving.md">The run: <code>spikes/self_improving.md</code></a></p>
       </div>
     </article>

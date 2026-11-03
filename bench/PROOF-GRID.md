@@ -12,12 +12,12 @@ pinned to this rule or confirmed before pins existed) or warn (anything else).
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | apache/airflow #74150 | airflow-74150-1 | warn | PASS | PASS | PASS | PASS | FAIL | FAIL | PASS | FAIL | knack reprove 2026-11-03 |
 | apache/airflow #75025 | airflow-75025-1 | block | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-11-03 |
-| apache/airflow #75271 | airflow-75271-1, airflow-75271-2 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-11-03 |
+| apache/airflow #75271 | airflow-75271-1, airflow-75271-2 | block | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-11-03 |
 | apache/airflow #75734 | airflow-75734-1 | warn | PASS | PASS | PASS | PASS | PASS | FAIL | PASS | FAIL | knack reprove 2026-11-03 |
 | apache/airflow #75774 | airflow-75774-1, airflow-75774-2 | block | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-11-03 |
-| fastapi/fastapi #14884 | fastapi-14884-1 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-10-31 |
+| fastapi/fastapi #14884 | fastapi-14884-1 | block | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-10-31 |
 | fastapi/fastapi #15139 | fastapi-15139-1 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | FAIL | knack reprove 2026-10-31 |
-| fastapi/fastapi #15515 | fastapi-15515-1, fastapi-15515-2 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-10-31 |
+| fastapi/fastapi #15515 | fastapi-15515-1, fastapi-15515-2 | block | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-10-31 |
 | fastapi/fastapi #15937 | fastapi-15937-1 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | FAIL | knack reprove 2026-10-31 |
 | fastapi/fastapi #15967 | fastapi-15967-1 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | FAIL | knack reprove 2026-10-31 |
 | fastapi/fastapi #16049 | fastapi-16049-1 | warn | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | knack reprove 2026-10-31 |

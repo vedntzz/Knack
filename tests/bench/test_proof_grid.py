@@ -264,7 +264,13 @@ def test_the_committed_grid_has_one_row_per_installed_rule() -> None:
     rows = grid_rows(REGISTRIES, {}, log_attempts(COMPILE_LOGS))
     assert len(rows) == 12
     blocking = sorted(f"{row.repo} #{row.pr}" for row in rows if row.tier == "block")
-    assert blocking == ["apache/airflow #75025", "apache/airflow #75774"]
+    assert blocking == [
+        "apache/airflow #75025",
+        "apache/airflow #75271",
+        "apache/airflow #75774",
+        "fastapi/fastapi #14884",
+        "fastapi/fastapi #15515",
+    ]
 
 
 def test_every_committed_rule_was_reproved_and_every_not_run_is_explained() -> None:

@@ -28,6 +28,8 @@ TEMPLATES = REPO_ROOT / "knack" / "console" / "templates"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "console_75025"
 DATA_REGISTRY = REPO_ROOT / "data" / "registry" / "airflow.json"
 DATA_ROOTS = REPO_ROOT / "data" / "roots" / "airflow"
+FASTAPI_REGISTRY = REPO_ROOT / "data" / "registry" / "fastapi.json"
+FASTAPI_ROOTS = REPO_ROOT / "data" / "roots" / "fastapi"
 # The fixture's deny landed at 02:06 UTC on Nov 2; the page is read later that day.
 NOW = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
 DENY = "08a2c39bcceddafae995781163b6e8ea17ab0f02c2cb4e48a65bf3cc3a097f3c"
@@ -38,13 +40,17 @@ POLL = 0.02
 
 class DayConsole:
     # An apache/airflow clone, the airflow registry and roots, and the 75025 receipts.
+    origin = "https://github.com/apache/airflow.git"
+    data_registry, data_roots = DATA_REGISTRY, DATA_ROOTS
+
     def __init__(self, base: Path) -> None:
         shutil.copytree(FIXTURE, base / "knack")
         self.receipts = base / "knack" / "verdicts.jsonl"
         self.roots = base / "roots"
-        shutil.copytree(DATA_ROOTS, self.roots)
+        shutil.copytree(self.data_roots, self.roots)
         self.registry: Path | None = base / "registry.json"
-        body = json.loads(DATA_REGISTRY.read_text()) | {"roots_dir": str(self.roots)}
+        body = json.loads(self.data_registry.read_text())
+        body |= {"roots_dir": str(self.roots)}
         self.registry.write_text(json.dumps(body))
         self.clone = base / "airflow"
         self.init_clone()
@@ -52,7 +58,7 @@ class DayConsole:
     def init_clone(self) -> None:
         self.clone.mkdir()
         self.git("init", "-q", "-b", "main")
-        self.git("remote", "add", "origin", "https://github.com/apache/airflow.git")
+        self.git("remote", "add", "origin", self.origin)
         self.git("commit", "-q", "--allow-empty", "-m", "Sort runs by last_run_state")
 
     def git(self, *args: str) -> None:
@@ -101,9 +107,20 @@ class DayConsole:
         return response.json()
 
 
+class FastapiDayConsole(DayConsole):
+    # The same console on a fastapi/fastapi clone with the fastapi registry and roots.
+    origin = "https://github.com/fastapi/fastapi.git"
+    data_registry, data_roots = FASTAPI_REGISTRY, FASTAPI_ROOTS
+
+
 @pytest.fixture
 def world(tmp_path: Path) -> DayConsole:
     return DayConsole(tmp_path)
+
+
+@pytest.fixture
+def fastapi_world(tmp_path: Path) -> DayConsole:
+    return FastapiDayConsole(tmp_path)
 
 
 def on(graph: dict[str, Any], date: str) -> dict[str, Any]:
@@ -130,7 +147,7 @@ def test_graph_counts_every_root_on_the_day_its_pr_merged(world: DayConsole) -> 
     assert graph["repo"] == "apache/airflow" and graph["today"] == "2026-11-02"
     assert split(graph, "2026-10-19") == (1, 0)
     assert split(graph, "2026-10-27") == (0, 2)
-    assert split(graph, "2026-10-28") == (2, 4)
+    assert split(graph, "2026-10-28") == (4, 2)
     merged = sum(day["confirmed"] + day["advisory"] for day in graph["days"])
     assert merged == len(list(DATA_ROOTS.glob("*.json"))) == 9
 
@@ -177,7 +194,7 @@ def test_headline_counts_every_root_and_splits_confirmed_from_advisory(
 ) -> None:
     text = visible(world.page())
     assert "apache/airflow remembers 9 decisions." in text
-    assert "3 confirmed to block · 6 advise only" in text
+    assert "5 confirmed to block · 4 advise only" in text
 
 
 def test_a_block_day_carries_the_red_dot(world: DayConsole) -> None:
@@ -218,7 +235,30 @@ def test_confirmed_decisions_read_as_plain_lines_with_who_and_when(
     assert "Confirmer not recorded" not in text
     assert "#75774 · merged Oct 28 2026 · confirmed by Vedant Srivastava" in text
     assert "raising AirflowSensorTimeout past the deadline" in text
-    assert "dabla" not in text.split("Confirmed decisions")[1].split("Today")[0]
+    assert (
+        "dabla · #75271 · merged Oct 28 2026 · confirmed by Vedant Srivastava" in text
+    )
+    assert "ResumableJobMixin stand-in as bool | None" in text
+
+
+def test_fastapi_confirmed_decisions_name_the_decider_and_the_confirmer(
+    fastapi_world: DayConsole,
+) -> None:
+    text = visible(fastapi_world.page())
+    confirmed = text.split("Confirmed decisions")[1].split("Today")[0]
+    for line in (
+        "tiangolo · #14884 · merged Feb 10 2026 · confirmed by Vedant Srivastava",
+        "Zawwarsami16 · #15515 · merged Jul 28 2026 · confirmed by Vedant Srivastava",
+    ):
+        assert line in confirmed
+
+
+def test_fastapi_headline_splits_its_two_confirmed_from_advisory(
+    fastapi_world: DayConsole,
+) -> None:
+    text = visible(fastapi_world.page())
+    assert "fastapi/fastapi remembers 13 decisions." in text
+    assert "2 confirmed to block · 11 advise only" in text
 
 
 def test_today_lists_the_clones_commits_and_says_why_prs_are_missing(

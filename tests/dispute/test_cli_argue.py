@@ -190,8 +190,8 @@ def test_a_rule_with_no_confirmed_root_escalates_without_spark(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     prompts = spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
-    receipt(home_of(clone), clone / "pool.py", "airflow-75271")
-    assert cli.main(["argue", "Any is fine here."]) == 0
+    receipt(home_of(clone), clone / "hook.py", "airflow-74150")
+    assert cli.main(["argue", "A thread pool is fine here."]) == 0
     assert capsys.readouterr().out.splitlines()[0] == "ESCALATE: held for a person"
     assert prompts == []
 
@@ -227,8 +227,8 @@ def test_an_escalation_spark_never_saw_records_no_model(
     clone: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
-    denied = receipt(home_of(clone), clone / "pool.py", "airflow-75271")
-    assert cli.main(["argue", "Any is fine here."]) == 0
+    denied = receipt(home_of(clone), clone / "hook.py", "airflow-74150")
+    assert cli.main(["argue", "A thread pool is fine here."]) == 0
     [ruling] = load_rulings(rulings_file(clone))
     assert (ruling.receipt_hash, ruling.decision) == (denied.hash, "escalate")
     assert (ruling.model, ruling.cited_quotes) == (None, [])
@@ -281,8 +281,8 @@ def test_a_ruling_no_model_answered_lists_no_models(
     clone: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     traced_spark_says(monkeypatch, "hold", "no", [QUOTE_75025])
-    receipt(home_of(clone), clone / "pool.py", "airflow-75271")
-    cli.main(["argue", "Any is fine here."])
+    receipt(home_of(clone), clone / "hook.py", "airflow-74150")
+    cli.main(["argue", "A thread pool is fine here."])
     [ruling] = load_rulings(rulings_file(clone))
     assert ruling.models == []
 
