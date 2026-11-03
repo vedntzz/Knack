@@ -21,9 +21,9 @@ jobs:
         with:
           python-version: "3.11"
       - uses: astral-sh/setup-uv@v6
-      # Same .venv as ci.yml, so the guard runs exactly as the hook does.
+      # Same .venv as ci.yml, from uv.lock, so the guard runs exactly as the hook does.
       - name: Install
-        run: uv venv && uv pip install -e ".[dev]"
+        run: uv sync --frozen --extra dev --python 3.11
       - name: List changed .py files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
