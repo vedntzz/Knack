@@ -69,7 +69,8 @@ def load_rulings(path: Path) -> list[RulingRecord]:
     # A missing file has no rulings; a torn or foreign line is skipped.
     if not path.exists():
         return []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    # A line cut mid-character reads as U+FFFD and is skipped like any torn line.
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     return [record for record in map(_ruling_or_none, lines) if record]
 
 

@@ -21,6 +21,8 @@ GENESIS = "0" * 64
 TAIL_BYTES = 64 * 1024
 PREV_BROKEN = "prev does not match the hash of the line before"
 HASH_BROKEN = "hash does not match the record"
+# The file holds no whole receipt to chain on: never extended from a guess.
+NO_WHOLE_RECEIPT = "no whole receipt in the chain to extend"
 # Fields added after the first receipts: left off the line, and the hash, when unset.
 LATER_FIELDS = ("branch", "session_id", "matched", "edit_sha256", "resolution", "agent")
 # What a person decided about a deny after ESCALATE: allow that edit, retire, or uphold the decision.
@@ -135,7 +137,8 @@ def append_receipt(path: Path, fields: JsonDict) -> Receipt:
     # The lock spans read-last-hash and append, so parallel hooks never fork the chain.
     with _locked(path) as handle:
         receipt = _chained(fields, _last_hash(handle))
-        handle.write((receipt_line(receipt) + "\n").encode("utf-8"))
+        line = _fresh_line(handle) + receipt_line(receipt) + "\n"
+        handle.write(line.encode("utf-8"))
     return receipt
 
 
@@ -191,18 +194,35 @@ def _locked(path: Path) -> Generator[BinaryIO, None, None]:
 
 
 def _last_hash(handle: BinaryIO) -> str:
-    # A torn or foreign last line raises: the chain is never extended from a guess.
+    # The last whole receipt; a torn line after it is skipped, and verify names it.
+    found = _last_receipt(handle, TAIL_BYTES) or _last_receipt(handle, None)
+    if found is None and handle.seek(0, os.SEEK_END):
+        raise ValueError(NO_WHOLE_RECEIPT)
+    return found.hash if found else GENESIS
+
+
+def _last_receipt(handle: BinaryIO, limit: int | None) -> Receipt | None:
+    # The tail, or the whole file when one receipt outgrows the tail; bad bytes read as U+FFFD.
     size = handle.seek(0, os.SEEK_END)
-    handle.seek(max(0, size - TAIL_BYTES))
-    tail = handle.read().splitlines()
-    return Receipt.model_validate_json(tail[-1]).hash if tail else GENESIS
+    handle.seek(max(0, size - limit) if limit else 0)
+    lines = handle.read().decode("utf-8", errors="replace").splitlines()
+    return next(filter(None, map(_receipt_or_none, reversed(lines))), None)
+
+
+def _fresh_line(handle: BinaryIO) -> str:
+    # A torn last line has no newline; the next receipt starts a line of its own.
+    size = handle.seek(0, os.SEEK_END)
+    if size == 0:
+        return ""
+    handle.seek(size - 1)
+    return "" if handle.read(1) == b"\n" else "\n"
 
 
 def _lines(path: Path) -> list[str]:
-    # A missing file is an empty chain; any other read failure propagates.
+    # A missing file is an empty chain; a line cut mid-character reads as U+FFFD, never raises.
     if not path.exists():
         return []
-    return path.read_text(encoding="utf-8").splitlines()
+    return path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
 def _link_problem(line: str, prev: str) -> str | None:

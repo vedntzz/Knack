@@ -19,9 +19,9 @@ SETTLES = (("block", "of"), ("action", "action"))
 
 
 def _lines(path: Path) -> list[str]:
-    # A missing or unreadable file has no news; a line being written is skipped later.
+    # A missing or unreadable file has no news; a torn line, even mid-character, is skipped.
     try:
-        return path.read_text(encoding="utf-8").splitlines()
+        return path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
 
