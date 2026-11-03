@@ -154,7 +154,9 @@ def wait_for_listener(temp: Path) -> None:
 
 def left_running(group: int) -> list[str]:
     # Every process still in the run's process group, orphans included.
-    listed = subprocess.run(["ps", "-ax", "-o", "pgid=,command="], capture_output=True, text=True)
+    listed = subprocess.run(
+        ["ps", "-ax", "-o", "pgid=,command="], capture_output=True, text=True
+    )
     rows = [line.split(None, 1) for line in listed.stdout.splitlines()]
     return [row[1] for row in rows if len(row) == 2 and row[0] == str(group)]
 
