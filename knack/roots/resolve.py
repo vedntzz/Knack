@@ -5,13 +5,13 @@ from pathlib import Path
 from knack.contracts.models import Root
 from knack.miss.provisional import close_provisional, promote_provisional
 from knack.receipts.chain import (
-    append_receipt,
+    append_resolution,
     load_receipts,
     Receipt,
     Resolution,
     resolution_of,
-    resolution_receipt,
     ResolutionAction,
+    SettledError,
 )
 from knack.roots.correct import drop_from_registry
 from knack.roots.corrections import append_correction, Correction
@@ -48,11 +48,19 @@ def resolve_deny(
     registry = registry_path or home_registry_dir(deny.repo) / "registry.json"
     resolution = Resolution(of=deny.hash, action=action, by=by, reason=reason)
     correction = _correction(_cited_root(registry, deny), resolution)
+    receipt = _settled(receipts, deny, resolution, correction.at)
     _apply(registry, correction, log)
-    receipt = append_receipt(
-        receipts, resolution_receipt(deny, resolution, correction.at)
-    )
     return Resolved(correction, receipt, *_held_case(registry, resolution))
+
+
+def _settled(
+    receipts: Path, deny: Receipt, resolution: Resolution, time: str
+) -> Receipt:
+    # The receipt lands first, under the lock: a resolve that loses the race changes nothing.
+    try:
+        return append_resolution(receipts, deny, resolution, time)
+    except SettledError as error:
+        raise ResolveError(str(error)) from error
 
 
 def _held_case(

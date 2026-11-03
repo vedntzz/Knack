@@ -6,7 +6,13 @@ import pytest
 from conftest import BASE
 from knack.miss.cases import CaseKind, EditCase, load_cases, save_case
 from knack.miss.sources import MissSourceError, Places, resolve_source
-from knack.receipts.chain import append_receipt
+from knack.receipts.chain import (
+    append_receipt,
+    load_receipts,
+    Resolution,
+    resolution_receipt,
+    ResolutionAction,
+)
 from knack.receipts.edits import EditSnapshot, save_edit
 
 SHA = "a" * 40
@@ -229,3 +235,25 @@ def test_saved_cases_load_back_by_rule(tmp_path: Path) -> None:
     save_case(tmp_path, case)
     assert load_cases(tmp_path, "widgets-9") == [case]
     assert load_cases(tmp_path, "widgets-8") == []
+
+
+def settle(tmp_path: Path, digest: str, action: ResolutionAction) -> None:
+    # maria settles the deny after ESCALATE, as knack resolve records it.
+    path = places(tmp_path).receipts
+    deny = next(r for r in load_receipts(path) if r.hash == digest)
+    done = Resolution(of=digest, action=action, by="maria", reason="decided")
+    append_receipt(path, resolution_receipt(deny, done, "t2"))
+
+
+@pytest.mark.parametrize(
+    ("action", "verb"),
+    [("uphold", "upheld"), ("retire", "retired"), ("allow", "allowed")],
+)
+def test_a_false_block_on_a_settled_deny_is_refused(
+    tmp_path: Path, action: ResolutionAction, verb: str
+) -> None:
+    # A person already settled this deny; loosening the rule around it would undo them.
+    digest = receipt(tmp_path, "deny", snapshot(tmp_path))
+    settle(tmp_path, digest, action)
+    with pytest.raises(MissSourceError, match=f"{verb} by maria"):
+        resolve(tmp_path, digest, "must-pass")
