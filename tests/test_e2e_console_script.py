@@ -1,3 +1,4 @@
+import importlib.util
 import itertools
 import os
 import signal
@@ -5,15 +6,30 @@ import socket
 import subprocess
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
 REPO_ROOT = Path(__file__).parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "e2e_console.sh"
+# e2e_console.py imports its sibling one_story, so scripts/ stays importable.
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
-import e2e_console  # noqa: E402
+
+
+def load_script(path: Path) -> ModuleType:
+    # A scripts/ module loaded from its path; scripts/ is not a package.
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+denied: Callable[[Iterable[str], float], str] = load_script(
+    REPO_ROOT / "scripts" / "e2e_console.py"
+).denied
 
 # Every step the story drives, in order; each prints "ok  <step>" when its check passed.
 STEPS = [
@@ -140,8 +156,13 @@ def start_e2e(home: Path, temp: Path) -> subprocess.Popen[str]:
     env = {"HOME": str(home), "PATH": "/usr/bin:/bin", "PYTHON": sys.executable}
     home.mkdir(parents=True, exist_ok=True)
     env["TMPDIR"] = str(temp)
-    piped = {"stdout": subprocess.PIPE, "text": True, "env": env}
-    return subprocess.Popen(["bash", str(SCRIPT)], start_new_session=True, **piped)
+    return subprocess.Popen(
+        ["bash", str(SCRIPT)],
+        start_new_session=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
 
 
 def wait_for_listener(temp: Path) -> None:
@@ -190,9 +211,9 @@ def test_an_interrupted_run_exits_and_leaves_no_process_behind(
 def test_the_listener_gives_up_when_no_deny_comes() -> None:
     # Keepalives arrive forever; past its deadline the listener stops and heard nothing.
     keepalives = itertools.repeat(": still here\n")
-    assert e2e_console.denied(keepalives, time.monotonic() - 1) == ""
+    assert denied(keepalives, time.monotonic() - 1) == ""
 
 
 def test_the_listener_reads_the_first_deny_before_its_deadline() -> None:
     lines = [": still here\n", "event: deny\n", "data: abc123\n"]
-    assert e2e_console.denied(lines, time.monotonic() + 30) == "abc123"
+    assert denied(lines, time.monotonic() + 30) == "abc123"
