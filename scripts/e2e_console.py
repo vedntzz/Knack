@@ -140,13 +140,16 @@ def listen(work: Path) -> None:
     stream = urllib.request.urlopen(CONSOLE_URL + "/events", timeout=WAIT_SECONDS)
     stream.readline()
     (work / "listening").touch()
-    (work / "heard").write_text(denied(map(bytes.decode, stream)))
+    deadline = time.monotonic() + WAIT_SECONDS
+    (work / "heard").write_text(denied(map(bytes.decode, stream), deadline))
 
 
-def denied(lines: Iterable[str]) -> str:
-    # The data line after the first "event: deny".
+def denied(lines: Iterable[str], deadline: float) -> str:
+    # The data line after the first "event: deny"; keepalives never hold it past the deadline.
     found = iter(lines)
     for line in found:
+        if time.monotonic() > deadline:
+            return ""
         if line.strip() == "event: deny":
             return next(found).removeprefix("data: ").strip()
     return ""
