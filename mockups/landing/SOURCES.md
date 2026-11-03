@@ -35,7 +35,7 @@
 | 0 false alarms on Airflow's current tree and release 3.3.2 | `K.proof.fp`, `K.proof.old_release` | |
 | 37 receipts, chain intact | `K.receipts_verify`, split at the first comma | |
 | `knack receipts verify` + Copy | the command whose output `K.receipts_verify` freezes | As on argue and held |
-| Install: the five lines from `git clone https://github.com/vedntzz/Knack.git` to `bash scripts/reproduce.sh`, + Copy | `R.install`: README.md lines 29–33, the `sh` block under “Get it running” | Verbatim; Copy copies all five lines |
-| `https://github.com/vedntzz/Knack.git` (bar, footer) | `R.repo`: README.md line 29, the `git clone` URL | Verbatim, `.git` kept |
+| Install: the five lines from `git clone https://github.com/vedntzz/Knack.git` to `bash scripts/reproduce.sh`, + Copy | `R.install`: README.md lines 27–31, the `sh` block under “Get it running” | Verbatim; Copy copies all five lines |
+| `https://github.com/vedntzz/Knack.git` (bar, footer) | `R.repo`: README.md line 27, the `git clone` URL | Verbatim, `.git` kept |
 | Demo video slot | the brief's slot | Nothing recorded |
 | fonts IBM Plex, SIL Open Font License | `knack/console/static/fonts/OFL.txt` | Credit line, not data |

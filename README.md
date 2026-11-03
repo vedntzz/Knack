@@ -1,6 +1,6 @@
 # Knack
 
-Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.<br><br>**The funnel:** 101 PRs → 107 decisions → 22 roots → 12 installed rules → 5 that block. 15 of the 22 roots have an installed rule that warns or blocks; the other 7 have none. The 12 rules each passed the base, head and false-positive gates; only 7 pass both held-out sets, and the other 5 only warn. Only AST-checkable, proven decisions that a named person confirmed in Knack can block, because a block overrides an agent and needs a mechanical check, a recorded proof and a person who answers for it. PyTorch: Spark and Spark Open disagreed on every PR, so nothing met the corroboration bar and no rule shipped. No PyTorch output is committed, so `reproduce.sh` does not check that line.
+Knack blocks AI coding agents from edits that contradict a team's recorded decisions, and cites who decided, why, and the verbatim source.
 
 This is what the agent reads when the hook denies its edit to apache/airflow's Dag list routes. It is the block receipt `0e7ab6083866` from the one-story run (recorded edit replay; real hook, real model calls: [`mockups/fixtures/one_story/`](mockups/fixtures/one_story/)), printed by today's guard rerun on that receipt's saved edit; `tests/test_readme.py` checks it still matches:
 
@@ -19,8 +19,6 @@ To dispute: knack argue "<your reason>"
 
 To open that Console link on a fresh clone, run the command in [See it in the console](#see-it-in-the-console).
 
-Problem statement: Build for Your World, because the world an agent works in is a team's own codebase, and that world's rules are the decisions the team already argued out in review, which the agent has never read.
-
 ## Get it running
 
 Prerequisites: git, [uv](https://docs.astral.sh/uv/), jq (one check in the table below uses it) and Python 3.11. If Python 3.11 is not installed, `uv sync --frozen --extra dev --python 3.11` downloads it, which needs network once. ast-grep comes from the pinned `ast-grep-cli==0.51.0` dependency, so there is nothing else to install. `uv sync --frozen --extra dev --python 3.11` installs the exact versions pinned in the committed `uv.lock` into `.venv`, including pytest, which `reproduce.sh` needs; without `--extra dev` its e2e step fails.
@@ -34,6 +32,12 @@ bash scripts/reproduce.sh
 ```
 
 The last command checks every claim below and takes about 70–80 s once installed, ending `PROOF: PASS`. A cold first install takes longer, because `uv sync --frozen --extra dev --python 3.11` may download Python 3.11 first. The commands below assume the venv is active, so `python` is the venv's.
+
+`bash scripts/demo_block.sh` is a recorded edit replay; real hook, no model calls: it replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network.
+
+```sh
+bash scripts/demo_block.sh
+```
 
 ## See it in the console
 
@@ -55,19 +59,13 @@ Then open:
 
 `bash scripts/e2e_console.sh` runs the whole story live against a running console in a sandbox HOME, with fake models unless you pass `--live`, checks every page over HTTP and ends `E2E: PASS` (it needs port 7655 free).
 
-## Verify any claim: reproduce.sh runs in 80 s
-
-`bash scripts/reproduce.sh` checks every row below in one run. It took 80 s of wall time on an Apple M5 Pro on 2026-11-01, ending `PROOF: PASS`.
-
-| Claim | Artifact | Check |
-|---|---|---|
-| 17 of 101 PRs yield 31 rejected alternatives, all verbatim | [`spikes/batch/apache-airflow/decisions.jsonl`](spikes/batch/apache-airflow/decisions.jsonl), [`spikes/batch/fastapi-fastapi/decisions.jsonl`](spikes/batch/fastapi-fastapi/decisions.jsonl) | `python -m knack.reproduce extraction` prints the 31; `jq -s '[.[]\|select([.decisions[]?.rejected_alternatives[]?]\|length>0)]\|length' spikes/batch/*/decisions.jsonl` prints the 17 |
-| 13 held-out outcomes per side: 8 pass, 3 no rule, 2 fail held-out; 7 PRs pass both sides | [`data/heldout/`](data/heldout/), [`spikes/rule_quality.md`](spikes/rule_quality.md) | `python -m knack.reproduce heldout` |
-| 7 of 22 roots are Confirmed, across Airflow and FastAPI, and none is seeded | [`data/roots/`](data/roots/) | `grep -h '"status"\|"seeded"' data/roots/*/*.json \| sort \| uniq -c` |
-| The guard's one real block was on fastapi #16049, the ticket excluded from the primary bench | [`bench/AUDIT-1030c.md`](bench/AUDIT-1030c.md) | search it for `16049--veto--1` |
-| The bench report regenerates byte for byte from the committed runs | [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md), [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) | `bash scripts/reproduce.sh` (the bench step diffs them) |
-
 ## How it works
+
+```mermaid
+flowchart TD
+  A["PR thread"] --> B["Spark extracts"] --> C["rule"] --> D["Spark Open attacks"] --> E["four gates"] --> F["install (advisory)"]
+  F --> G["person confirms"] --> H["hook blocks"] --> I["agent argues"] --> J["Spark / Spark Open"] --> K["person resolves"]
+```
 
 **Spark proposes.** Muse Spark reads a repository's merged PRs. It extracts each decision, the alternative the team rejected, who decided, and the verbatim quote. It then compiles the decision into an ast-grep rule.
 
@@ -95,87 +93,19 @@ Confirming pins the sha256 of the rule file. If the rule is recompiled later, it
 
 `seeded` is true when a root was marked Confirmed by a script rather than a person. All 22 committed roots have `seeded=false`. The bench is different: its guard arms mark every root Confirmed with `seeded=true`, so every bench block was on a seeded root, not a human-reviewed one.
 
-Every committed run is on public repos (apache/airflow, fastapi/fastapi); on a private repo, `knack init` and `knack watch` would send PR text to Meta (Spark) and Baseten (Spark Open), while the guard hook stays local and uses no network.
+## Verify any claim: reproduce.sh runs in 80 s
 
-## Muse Code setup
+**The funnel:** 101 PRs → 107 decisions → 22 roots → 12 installed rules → 5 that block. 15 of the 22 roots have an installed rule that warns or blocks; the other 7 have none. The 12 rules each passed the base, head and false-positive gates; only 7 pass both held-out sets, and the other 5 only warn. Only AST-checkable, proven decisions that a named person confirmed in Knack can block, because a block overrides an agent and needs a mechanical check, a recorded proof and a person who answers for it. PyTorch: Spark and Spark Open disagreed on every PR, so nothing met the corroboration bar and no rule shipped. No PyTorch output is committed, so `reproduce.sh` does not check that line.
 
-Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. These are the two guard entries. `/abs/path/to/Knack/.venv/bin/python` stands for the absolute path of your clone's venv Python.
+`bash scripts/reproduce.sh` checks every row below in one run. It took 80 s of wall time on an Apple M5 Pro on 2026-11-01, ending `PROOF: PASS`.
 
-```json
-{
-  "schema_version": 1,
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "write_file|edit_file|bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.pretool || true'"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.warn || true'"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file`, `edit_file` or `bash` call goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule, and a shell command that runs one of the person-only commands, spelled directly or with quoted words. It does not catch one hidden in a variable, a script or `python -c`.
-- `UserPromptSubmit` is not written by `demo_block.sh`. It is the entry the bench's `warn+veto` arm writes ([`knack/bench/arms.py`](knack/bench/arms.py)), in the same shape and with no matcher. `knack.hooks.warn` puts a Confirmed decision and its quote into the agent's context when a prompt names it. The bench adds a `KNACK_REGISTRY=<bench registry>` prefix to point it at its seeded registry. Without that prefix, the hook finds the home registry from `git remote get-url origin`.
-- `|| true` makes a crashed hook exit 0 with no output, and Muse Code then allows the edit. The guard fails open.
-
-`knack watch` adds two more hooks. It puts a `PostToolBatch` entry in the same file (`sh -c '... -m knack.watch.hook tool-batch --registry <registry> || true'`), which fires after an agent's tool batch, including a local merge made in the session; it does not fire on a GitHub merge event. It also installs a git `post-merge` hook in the clone (`.git/hooks/post-merge`, or under `core.hooksPath`). `--muse-settings` points it at a different settings file.
-
-Put watch's keys in files, each `chmod 600`: a read-only GitHub token at `~/.knack/github_token`, the Spark key at `~/.knack/model_api_key` and the Spark Open key at `~/.knack/baseten_api_key` (under `$KNACK_HOME` if set). Hooks don't inherit your shell's environment, so watch reads each file when `GITHUB_TOKEN`, `MODEL_API_KEY` or `BASETEN_API_KEY` is not set, and refuses a file others can read.
-
-## Runs unattended
-
-Once `knack watch` is installed, these steps run with no person involved:
-
-- **After a local merge.** The `post-merge` hook fires after a merge in the clone, and the `PostToolBatch` hook fires after an agent's tool batch that included a local merge. Neither fires on a GitHub merge event. Either runs the pipeline on the PRs merged since the last run. Spark extracts each decision and compiles it into an ast-grep rule. The rule is proven against the PR's sides, variants and held-out sets, and installed only if it passes ([`knack/watch/run.py`](knack/watch/run.py), [`knack/pipeline/stages.py`](knack/pipeline/stages.py)). When `BASETEN_API_KEY` is set, or `~/.knack/baseten_api_key` holds it, Spark Open writes the variants and the held-out set, as in `knack init`. Without the key, watch prints `knack watch: Spark Open did not run: BASETEN_API_KEY is not set and $KNACK_HOME/baseten_api_key does not exist; Spark writes and grades its own held-out variants`, and `work/<pr>/writers.json` in the registry's folder records `Spark Open did not run`. With `--no-corroborate`, Spark Open does not run at all. Then the Spark Open self-check runs: for every Confirmed rule the merge did not trip, Spark and Spark Open are each asked, blind, whether the change takes the rejected path. If both say yes, the change is recorded as a case on the spot ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)). The self-check is on by default when `BASETEN_API_KEY` is set and off with `--no-corroborate`. What main shows live: the `post-merge` path ran once with real models and installed a rule with no person involved ([`spikes/self_improving.md`](spikes/self_improving.md)). The `PostToolBatch` path did the same in the KN-113 rerun: the hook fired inside Muse Code, and watch, reading its keys from `$KNACK_HOME` files, installed `rules/75271.yml` with no person involved. Its root was Inferred, so the rule only advised. Vedant Srivastava has since run `knack confirm` on `airflow-75271-1` and `airflow-75271-2`, pinning both to that rule, so it now blocks ([`spikes/posttoolbatch_live.md`](spikes/posttoolbatch_live.md)). Those two spikes are the evidence for reading on its own: each is the committed log of one live run, not a frozen fixture like the one-story and self-repair runs.
-- **The miss loop.** A recorded case recompiles its rule ([`knack/miss/loop.py`](knack/miss/loop.py)). The candidate replaces the installed rule only if it passes every gate in [the miss loop](#miss-loop-not-in-reproducesh). If any gate fails, the candidate is saved for review and the old rule stays installed. The rollback belongs to a different gate, the correction regression gate ([`knack/roots/gate.py`](knack/roots/gate.py)). If a correction makes the extractor lose a root it used to find, the gate restores the registry and roots and exits 1. A root counts as lost only if two separate re-reads of its PR both miss it; after a miss the gate prints "re-read twice". The e2e step "regression gate rolls back a bad correction" checks this. What main proves about the repair loop today: the unattended path, from a self-check case through the recompile to the install, runs only with fake Spark and Spark Open, in the e2e steps "self-check records a case only when both models agree" and "miss recorded, recompiled, re-proved, installed". The real-model repairs in [the miss loop](#miss-loop-not-in-reproducesh) were started by hand with `knack miss`, before the self-check existed. One live model-assisted repair is in the repo, and a person initiated it ([`spikes/self_repair_live.md`](spikes/self_repair_live.md); recorded edit replay; real hook, real model calls). In one sandbox, airflow-75025 v1 allowed a `dict(...)` evasion, which a script recorded as a missed edit, and denied `compliant_3.py`, a file Spark Open had written to follow the decision. Spark Open's file exposed the false alarm; Spark recompiled; every gate re-proved; a person ran `knack false-block`, which started the recompile, and both confirms. The recompile kept 6 matcher branches, dropped 1 (the dict-comprehension branch) and added 5, and every gate passed. The person's first `knack confirm` was rolled back by the regression gate, which then read each PR only once: Spark's live re-read of #75774 lost a rejected alternative. The retry passed. Then v2 denied the evasion and allowed the compliant file and the corrected edit. The compliant file is now a permanent must-pass case. The unattended path still runs only with fakes. No live unattended repair is in the repo yet. Where this README says repair, it means this model-assisted loop with a person in it.
-- **The guard.** At edit time the `PreToolUse` hook denies a matching edit, cites the decision and writes a receipt. No person and no model is involved.
-
-One step always waits for a person. When an agent disputes a deny with `knack argue` and both Spark and Spark Open escalate, the edit is held for a person as a provisional must-pass case. It becomes a case only after `knack resolve <receipt> allow --reason "<why>"` ([`knack/dispute/second.py`](knack/dispute/second.py)). Whether a decision can block at all is also meant to be a person's call: only `knack confirm` makes a root Confirmed, and it has the same person check as `knack resolve`. A determined agent running as you can get around that check too (see the limits under the audit).
-
-## Open weights
-
-Muse Spark Open is an open-weights Meta model, served on Baseten as `meta-models/muse-spark-open-1026` ([`knack/pipeline/spark_open.py`](knack/pipeline/spark_open.py)). It is the second model in every place where Knack wants a check that Spark did not write:
-
-- **Corroborating extractor:** it reads the same PRs, and a decision both models find is Corroborated ([`knack/pipeline/corroborate.py`](knack/pipeline/corroborate.py), `--corroborate`).
-- **Held-out variant writer:** when `BASETEN_API_KEY` is set, it writes the violating and compliant variants that a rule must pass before install, in `knack init` and `knack watch`, and Spark never sees them; without the key Spark writes them and the run says so ([`knack/pipeline/variants.py`](knack/pipeline/variants.py), [`knack/pipeline/heldout.py`](knack/pipeline/heldout.py)).
-- **Watch self-check:** it judges each merge blind, alongside Spark ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)).
-- **Argue second opinion:** it is asked independently when Spark escalates an objection ([`knack/dispute/second.py`](knack/dispute/second.py)).
-- **RejectBench blind judge:** it labels each bench diff without seeing the guard's verdict ([`knack/bench/blind.py`](knack/bench/blind.py), [`knack/bench/run.py`](knack/bench/run.py)).
-
-Neither model is in the verdict path.
-
-Limit: Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
-
-## Meta models and provenance
-
-| Model | Hooks / jobs | Where it runs | Recorded output that shows it was called |
-|---|---|---|---|
-| Muse Code 1.4.14 | Hooks: `PreToolUse`, `UserPromptSubmit`, `PostToolBatch` | On your machine; hooks in `~/.config/muse/settings.json` | `PreToolUse` and `UserPromptSubmit`: the 81 real agent sessions in [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) and [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md); [`spikes/warn_hook_probe.log`](spikes/warn_hook_probe.log). `PostToolBatch`: the `hook_run_terminal` event in [`spikes/posttoolbatch_live.md`](spikes/posttoolbatch_live.md) |
-| Muse Spark (`muse-spark-1.3`) | Extract, compile, argue | Hosted, api.meta.ai | Extract: [`spikes/batch/*/decisions.jsonl`](spikes/batch/). Compile: [`spikes/compile_run*.log`](spikes/). Argue: `models[]` (name, host, trace id) in [`mockups/fixtures/one_story/rulings.jsonl`](mockups/fixtures/one_story/rulings.jsonl); the Spark calls in [`mockups/fixtures/self_repair/models.jsonl`](mockups/fixtures/self_repair/models.jsonl) |
-| Muse Spark Open (`meta-models/muse-spark-open-1026`) | Corroborate, variants, second opinion | Hosted, Baseten (`inference.baseten.co`) | Variants: Spark Open's held-out sets in `data/heldout/*/*/cross/`, and `writers.json` in [`spikes/self_improving.md`](spikes/self_improving.md). Second opinion: the Baseten trace id on the escalate ruling in `rulings.jsonl`. Corroborate: no committed root is labelled Corroborated (0 of 22), so no committed output shows a corroborated root |
-
-Replayed, not live:
-
-- Edits in the one-story run, the repair run and `scripts/demo_block.sh` are inserted into a captured `PreToolUse` payload (`tests/hooks/fixtures/edit_event.json`). Label: recorded edit replay; real hook, real model calls (no model calls in `demo_block.sh`). The `agent` field in those receipts is copied from the captured payload, not from a live agent.
-- `scripts/e2e.sh` uses fake GitHub, Spark and Spark Open clients. The unattended watch-to-repair path has run only there.
-
-The block path and `reproduce.sh` call no model. At edit time the `PreToolUse` guard is plain code (ast-grep and a diff check) with no network, and `reproduce.sh` reads only committed files.
+| Claim | Artifact | Check |
+|---|---|---|
+| 17 of 101 PRs yield 31 rejected alternatives, all verbatim | [`spikes/batch/apache-airflow/decisions.jsonl`](spikes/batch/apache-airflow/decisions.jsonl), [`spikes/batch/fastapi-fastapi/decisions.jsonl`](spikes/batch/fastapi-fastapi/decisions.jsonl) | `python -m knack.reproduce extraction` prints the 31; `jq -s '[.[]\|select([.decisions[]?.rejected_alternatives[]?]\|length>0)]\|length' spikes/batch/*/decisions.jsonl` prints the 17 |
+| 13 held-out outcomes per side: 8 pass, 3 no rule, 2 fail held-out; 7 PRs pass both sides | [`data/heldout/`](data/heldout/), [`spikes/rule_quality.md`](spikes/rule_quality.md) | `python -m knack.reproduce heldout` |
+| 7 of 22 roots are Confirmed, across Airflow and FastAPI, and none is seeded | [`data/roots/`](data/roots/) | `grep -h '"status"\|"seeded"' data/roots/*/*.json \| sort \| uniq -c` |
+| The guard's one real block was on fastapi #16049, the ticket excluded from the primary bench | [`bench/AUDIT-1030c.md`](bench/AUDIT-1030c.md) | search it for `16049--veto--1` |
+| The bench report regenerates byte for byte from the committed runs | [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md), [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) | `bash scripts/reproduce.sh` (the bench step diffs them) |
 
 ## Reproduce every number
 
@@ -253,7 +183,7 @@ e2e steps passed: 26/26 (`scripts/e2e.sh`). The test runs against an airflow fix
 
 ### The block, timed (not in `reproduce.sh`)
 
-`bash scripts/demo_block.sh` is a recorded edit replay; real hook, no model calls: it replays run 3's recorded edit to #75025's routes through the real user-level PreToolUse hook, in a sandbox HOME and clone, with no model and no network. The committed log is [`bench/demo_block.log`](bench/demo_block.log). Timings come from one place, [`spikes/one_story_live.md`](spikes/one_story_live.md): in this run (the one-story run, 2026-11-02: recorded edit replay; real hook, real model calls in the argue steps, none in the block), the numbers are 171 ms hook round trip; 17.3 ms rule evaluation. The round trip is `sh -c`, Python start to the deny envelope, as Muse Code runs it. The rule evaluation is the ast-grep scan, from the deny receipt, and sits inside the 171 ms; it is not the time to stop an agent. Both are in the run's committed `latency.json`: `jq .block.guard_ms mockups/fixtures/one_story/latency.json` prints the first, and `jq .wall_ms.block mockups/fixtures/one_story/latency.json` prints the second. `knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl` checks the run's receipt chain. Across today's three live runs, including this one, the spike quotes 16.3–18.4 ms for rule evaluation and 163–256 ms for the hook round trip; the two earlier runs' outputs are not in the repo, so no command regenerates those ranges. The timings and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
+The committed log is [`bench/demo_block.log`](bench/demo_block.log). Timings come from one place, [`spikes/one_story_live.md`](spikes/one_story_live.md): in this run (the one-story run, 2026-11-02: recorded edit replay; real hook, real model calls in the argue steps, none in the block), the numbers are 171 ms hook round trip; 17.3 ms rule evaluation. The round trip is `sh -c`, Python start to the deny envelope, as Muse Code runs it. The rule evaluation is the ast-grep scan, from the deny receipt, and sits inside the 171 ms; it is not the time to stop an agent. Both are in the run's committed `latency.json`: `jq .block.guard_ms mockups/fixtures/one_story/latency.json` prints the first, and `jq .wall_ms.block mockups/fixtures/one_story/latency.json` prints the second. `knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl` checks the run's receipt chain. Across today's three live runs, including this one, the spike quotes 16.3–18.4 ms for rule evaluation and 163–256 ms for the hook round trip; the two earlier runs' outputs are not in the repo, so no command regenerates those ranges. The timings and the receipt hash in the Console link change on every run. The test suite checks that the rest of the output is identical from run to run.
 
 ### Miss loop (not in `reproduce.sh`)
 
@@ -269,6 +199,96 @@ Repairs add to the old rule: the candidate is the old rule's branches, kept verb
 - Cases live in `data/registry/cases/`. Both edits are reconstructions, not the agent's bytes. The #16062 diff was lost with its temp folder and rebuilt from the audit. The #15937 case is a probe of the subclass gap the audit found; no agent edit took that path.
 - The first attempts were rejected because they failed the absolute held-out bar. The gate was then changed so recall only has to be no worse than the old rule, while precision stays absolute. Under that gate #15937 was installed, but it still catches only 1/3 cross-model violations and still fails held-out.
 - The held-out table above is unchanged by the loop.
+
+## Meta models and provenance
+
+| Model | Hooks / jobs | Where it runs | Recorded output that shows it was called |
+|---|---|---|---|
+| Muse Code 1.4.14 | Hooks: `PreToolUse`, `UserPromptSubmit`, `PostToolBatch` | On your machine; hooks in `~/.config/muse/settings.json` | `PreToolUse` and `UserPromptSubmit`: the 81 real agent sessions in [`bench/runs-1030c.jsonl`](bench/runs-1030c.jsonl) and [`bench/REPORT-1030c.md`](bench/REPORT-1030c.md); [`spikes/warn_hook_probe.log`](spikes/warn_hook_probe.log). `PostToolBatch`: the `hook_run_terminal` event in [`spikes/posttoolbatch_live.md`](spikes/posttoolbatch_live.md) |
+| Muse Spark (`muse-spark-1.3`) | Extract, compile, argue | Hosted, api.meta.ai | Extract: [`spikes/batch/*/decisions.jsonl`](spikes/batch/). Compile: [`spikes/compile_run*.log`](spikes/). Argue: `models[]` (name, host, trace id) in [`mockups/fixtures/one_story/rulings.jsonl`](mockups/fixtures/one_story/rulings.jsonl); the Spark calls in [`mockups/fixtures/self_repair/models.jsonl`](mockups/fixtures/self_repair/models.jsonl) |
+| Muse Spark Open (`meta-models/muse-spark-open-1026`) | Corroborate, variants, second opinion | Hosted, Baseten (`inference.baseten.co`) | Variants: Spark Open's held-out sets in `data/heldout/*/*/cross/`, and `writers.json` in [`spikes/self_improving.md`](spikes/self_improving.md). Second opinion: the Baseten trace id on the escalate ruling in `rulings.jsonl`. Corroborate: no committed root is labelled Corroborated (0 of 22), so no committed output shows a corroborated root |
+
+Replayed, not live:
+
+- Edits in the one-story run, the repair run and `scripts/demo_block.sh` are inserted into a captured `PreToolUse` payload (`tests/hooks/fixtures/edit_event.json`). Label: recorded edit replay; real hook, real model calls (no model calls in `demo_block.sh`). The `agent` field in those receipts is copied from the captured payload, not from a live agent.
+- `scripts/e2e.sh` uses fake GitHub, Spark and Spark Open clients. The unattended watch-to-repair path has run only there.
+
+The block path and `reproduce.sh` call no model. At edit time the `PreToolUse` guard is plain code (ast-grep and a diff check) with no network, and `reproduce.sh` reads only committed files.
+
+## Open weights
+
+Muse Spark Open is an open-weights Meta model, served on Baseten as `meta-models/muse-spark-open-1026` ([`knack/pipeline/spark_open.py`](knack/pipeline/spark_open.py)). It is the second model in every place where Knack wants a check that Spark did not write:
+
+- **Corroborating extractor:** it reads the same PRs, and a decision both models find is Corroborated ([`knack/pipeline/corroborate.py`](knack/pipeline/corroborate.py), `--corroborate`).
+- **Held-out variant writer:** when `BASETEN_API_KEY` is set, it writes the violating and compliant variants that a rule must pass before install, in `knack init` and `knack watch`, and Spark never sees them; without the key Spark writes them and the run says so ([`knack/pipeline/variants.py`](knack/pipeline/variants.py), [`knack/pipeline/heldout.py`](knack/pipeline/heldout.py)).
+- **Watch self-check:** it judges each merge blind, alongside Spark ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)).
+- **Argue second opinion:** it is asked independently when Spark escalates an objection ([`knack/dispute/second.py`](knack/dispute/second.py)).
+- **RejectBench blind judge:** it labels each bench diff without seeing the guard's verdict ([`knack/bench/blind.py`](knack/bench/blind.py), [`knack/bench/run.py`](knack/bench/run.py)).
+
+Neither model is in the verdict path.
+
+Limit: Token confidence is not exposed by the hosted endpoint; corroboration is the brake. See [spike/kn-73-open-weights](spikes/open_weights.md).
+
+## Using it on your repo
+
+Knack keeps its per-user files in `~/.knack`, or in `$KNACK_HOME` when `KNACK_HOME` is set: the home registries, `verdicts.jsonl`, `warns.jsonl`, `rulings.jsonl`, `corrections.jsonl`, `guard_errors.log` and caches. The test suite points `HOME` and `KNACK_HOME` at a temp folder for every test.
+
+Each repo has one home registry: `~/.knack/registries/<owner-name>/registry.json`. `knack init` and `knack watch` write it. The hooks, `walk`, `confirm` and `reject` read it. `knack import --registry data/registry/airflow.json` merges an existing registry in without overwriting reviewed roots, and `KNACK_REGISTRY` overrides the registry path. The hooks stay silent unless `git remote get-url origin` has a home registry.
+
+No outside login is needed to clone, install, run `bash scripts/reproduce.sh` or open the console: the repo is public, `uv sync` fetches packages without an account, and those steps read no key. Keys matter only for live runs of `knack init`, `knack watch` and `knack argue`. [`.env.example`](.env.example) lists them with placeholder values (`MODEL_API_KEY` for Spark, `BASETEN_API_KEY` for Spark Open, `GITHUB_TOKEN`, read-only); Knack does not read that file, so export them or put each in its `~/.knack` file as in [Muse Code setup](#muse-code-setup).
+
+Every committed run is on public repos (apache/airflow, fastapi/fastapi); on a private repo, `knack init` and `knack watch` would send PR text to Meta (Spark) and Baseten (Spark Open), while the guard hook stays local and uses no network.
+
+## Muse Code setup
+
+Muse Code reads its hooks from the user-level `~/.config/muse/settings.json`. These are the two guard entries. `/abs/path/to/Knack/.venv/bin/python` stands for the absolute path of your clone's venv Python.
+
+```json
+{
+  "schema_version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file|bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.pretool || true'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '/abs/path/to/Knack/.venv/bin/python -m knack.hooks.warn || true'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- `PreToolUse` is the entry `scripts/demo_block.sh` writes, byte for byte apart from that path. The demo writes it into a sandbox copy of the file, because its `HOME` is a temp folder. Every `write_file`, `edit_file` or `bash` call goes through `knack.hooks.pretool`, which denies an edit that adds a match for a Confirmed rule, and a shell command that runs one of the person-only commands, spelled directly or with quoted words. It does not catch one hidden in a variable, a script or `python -c`.
+- `UserPromptSubmit` is not written by `demo_block.sh`. It is the entry the bench's `warn+veto` arm writes ([`knack/bench/arms.py`](knack/bench/arms.py)), in the same shape and with no matcher. `knack.hooks.warn` puts a Confirmed decision and its quote into the agent's context when a prompt names it. The bench adds a `KNACK_REGISTRY=<bench registry>` prefix to point it at its seeded registry. Without that prefix, the hook finds the home registry from `git remote get-url origin`.
+- `|| true` makes a crashed hook exit 0 with no output, and Muse Code then allows the edit. The guard fails open.
+
+`knack watch` adds two more hooks. It puts a `PostToolBatch` entry in the same file (`sh -c '... -m knack.watch.hook tool-batch --registry <registry> || true'`), which fires after an agent's tool batch, including a local merge made in the session; it does not fire on a GitHub merge event. It also installs a git `post-merge` hook in the clone (`.git/hooks/post-merge`, or under `core.hooksPath`). `--muse-settings` points it at a different settings file.
+
+Put watch's keys in files, each `chmod 600`: a read-only GitHub token at `~/.knack/github_token`, the Spark key at `~/.knack/model_api_key` and the Spark Open key at `~/.knack/baseten_api_key` (under `$KNACK_HOME` if set). Hooks don't inherit your shell's environment, so watch reads each file when `GITHUB_TOKEN`, `MODEL_API_KEY` or `BASETEN_API_KEY` is not set, and refuses a file others can read.
+
+## Runs unattended
+
+Once `knack watch` is installed, these steps run with no person involved:
+
+- **After a local merge.** The `post-merge` hook fires after a merge in the clone, and the `PostToolBatch` hook fires after an agent's tool batch that included a local merge. Neither fires on a GitHub merge event. Either runs the pipeline on the PRs merged since the last run. Spark extracts each decision and compiles it into an ast-grep rule. The rule is proven against the PR's sides, variants and held-out sets, and installed only if it passes ([`knack/watch/run.py`](knack/watch/run.py), [`knack/pipeline/stages.py`](knack/pipeline/stages.py)). When `BASETEN_API_KEY` is set, or `~/.knack/baseten_api_key` holds it, Spark Open writes the variants and the held-out set, as in `knack init`. Without the key, watch prints `knack watch: Spark Open did not run: BASETEN_API_KEY is not set and $KNACK_HOME/baseten_api_key does not exist; Spark writes and grades its own held-out variants`, and `work/<pr>/writers.json` in the registry's folder records `Spark Open did not run`. With `--no-corroborate`, Spark Open does not run at all. Then the Spark Open self-check runs: for every Confirmed rule the merge did not trip, Spark and Spark Open are each asked, blind, whether the change takes the rejected path. If both say yes, the change is recorded as a case on the spot ([`knack/watch/selfcheck.py`](knack/watch/selfcheck.py)). The self-check is on by default when `BASETEN_API_KEY` is set and off with `--no-corroborate`. What main shows live: the `post-merge` path ran once with real models and installed a rule with no person involved ([`spikes/self_improving.md`](spikes/self_improving.md)). The `PostToolBatch` path did the same in the KN-113 rerun: the hook fired inside Muse Code, and watch, reading its keys from `$KNACK_HOME` files, installed `rules/75271.yml` with no person involved. Its root was Inferred, so the rule only advised. Vedant Srivastava has since run `knack confirm` on `airflow-75271-1` and `airflow-75271-2`, pinning both to that rule, so it now blocks ([`spikes/posttoolbatch_live.md`](spikes/posttoolbatch_live.md)). Those two spikes are the evidence for reading on its own: each is the committed log of one live run, not a frozen fixture like the one-story and self-repair runs.
+- **The miss loop.** A recorded case recompiles its rule ([`knack/miss/loop.py`](knack/miss/loop.py)). The candidate replaces the installed rule only if it passes every gate in [the miss loop](#miss-loop-not-in-reproducesh). If any gate fails, the candidate is saved for review and the old rule stays installed. The rollback belongs to a different gate, the correction regression gate ([`knack/roots/gate.py`](knack/roots/gate.py)). If a correction makes the extractor lose a root it used to find, the gate restores the registry and roots and exits 1. A root counts as lost only if two separate re-reads of its PR both miss it; after a miss the gate prints "re-read twice". The e2e step "regression gate rolls back a bad correction" checks this. What main proves about the repair loop today: the unattended path, from a self-check case through the recompile to the install, runs only with fake Spark and Spark Open, in the e2e steps "self-check records a case only when both models agree" and "miss recorded, recompiled, re-proved, installed". The real-model repairs in [the miss loop](#miss-loop-not-in-reproducesh) were started by hand with `knack miss`, before the self-check existed. One live model-assisted repair is in the repo, and a person initiated it ([`spikes/self_repair_live.md`](spikes/self_repair_live.md); recorded edit replay; real hook, real model calls). In one sandbox, airflow-75025 v1 allowed a `dict(...)` evasion, which a script recorded as a missed edit, and denied `compliant_3.py`, a file Spark Open had written to follow the decision. Spark Open's file exposed the false alarm; Spark recompiled; every gate re-proved; a person ran `knack false-block`, which started the recompile, and both confirms. The recompile kept 6 matcher branches, dropped 1 (the dict-comprehension branch) and added 5, and every gate passed. The person's first `knack confirm` was rolled back by the regression gate, which then read each PR only once: Spark's live re-read of #75774 lost a rejected alternative. The retry passed. Then v2 denied the evasion and allowed the compliant file and the corrected edit. The compliant file is now a permanent must-pass case. The unattended path still runs only with fakes. No live unattended repair is in the repo yet. Where this README says repair, it means this model-assisted loop with a person in it.
+- **The guard.** At edit time the `PreToolUse` hook denies a matching edit, cites the decision and writes a receipt. No person and no model is involved.
+
+One step always waits for a person. When an agent disputes a deny with `knack argue` and both Spark and Spark Open escalate, the edit is held for a person as a provisional must-pass case. It becomes a case only after `knack resolve <receipt> allow --reason "<why>"` ([`knack/dispute/second.py`](knack/dispute/second.py)). Whether a decision can block at all is also meant to be a person's call: only `knack confirm` makes a root Confirmed, and it has the same person check as `knack resolve`. A determined agent running as you can get around that check too (see the limits under the audit).
 
 ## The audit: findings and limits
 
@@ -315,15 +335,9 @@ These are not built yet:
 - **Review queue:** Inferred and Corroborated roots queued for `knack confirm` / `knack reject`, so more than 7 roots can block.
 - **Status:** `knack status`, showing what is guarded in this clone, each root's label, and its last held-out score.
 
-## Setup
-
-Knack keeps its per-user files in `~/.knack`, or in `$KNACK_HOME` when `KNACK_HOME` is set: the home registries, `verdicts.jsonl`, `warns.jsonl`, `rulings.jsonl`, `corrections.jsonl`, `guard_errors.log` and caches. The test suite points `HOME` and `KNACK_HOME` at a temp folder for every test.
-
-Each repo has one home registry: `~/.knack/registries/<owner-name>/registry.json`. `knack init` and `knack watch` write it. The hooks, `walk`, `confirm` and `reject` read it. `knack import --registry data/registry/airflow.json` merges an existing registry in without overwriting reviewed roots, and `KNACK_REGISTRY` overrides the registry path. The hooks stay silent unless `git remote get-url origin` has a home registry.
-
-No outside login is needed to clone, install, run `bash scripts/reproduce.sh` or open the console: the repo is public, `uv sync` fetches packages without an account, and those steps read no key. Keys matter only for live runs of `knack init`, `knack watch` and `knack argue`. [`.env.example`](.env.example) lists them with placeholder values (`MODEL_API_KEY` for Spark, `BASETEN_API_KEY` for Spark Open, `GITHUB_TOKEN`, read-only); Knack does not read that file, so export them or put each in its `~/.knack` file as in [Muse Code setup](#muse-code-setup).
-
 ## Built during the hackathon (Oct 26 – Nov 4, 2026)
+
+Problem statement: Build for Your World, because the world an agent works in is a team's own codebase, and that world's rules are the decisions the team already argued out in review, which the agent has never read.
 
 Repo created Oct 26, 2026; all work done during the event. All code in this repository was written during the event, from Oct 26, 2026. The exception is prior research, done before the event and rebuilt from scratch here: the PRD, the demo-chain analysis of apache/airflow PR #75025, a prototype ast-grep rule, the Oct 25 unscripted agent test, and the Muse Code hook-contract test.
 
