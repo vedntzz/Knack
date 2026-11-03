@@ -1,10 +1,6 @@
-import re
-import subprocess
-from pathlib import Path
+from knack.ci_guard import guarded_path
 
-WORKFLOW = Path(__file__).parents[1] / ".github/workflows/knack-guard.yml"
-# The changed-file filter: grep -Ev '<pattern>' on the PR's changed .py list.
-FILTER = re.compile(r"grep -Ev '([^']+)'")
+# The CI guard's changed-file filter: fixtures violate the rules on purpose.
 FIXTURES = [
     "scripts/fixtures/75025/base/airflow-core/src/airflow/api_fastapi/core_api/routes/public/dags.py",
     "tests/guard/fixtures/violating.py",
@@ -23,14 +19,7 @@ REAL_CODE = [
 
 
 def kept(paths: list[str]) -> list[str]:
-    # The workflow's own pattern, run through grep as the workflow runs it.
-    match = FILTER.search(WORKFLOW.read_text(encoding="utf-8"))
-    assert match, "no grep -Ev filter in the workflow"
-    lines = "".join(f"{p}\n" for p in paths)
-    done = subprocess.run(
-        ["grep", "-Ev", match.group(1)], input=lines, capture_output=True, text=True
-    )
-    return done.stdout.splitlines()
+    return [path for path in paths if guarded_path(path)]
 
 
 def test_fixture_paths_are_not_guarded() -> None:

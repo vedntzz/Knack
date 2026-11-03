@@ -13,7 +13,7 @@ REQUIRED = [
     "uv sync --frozen --extra dev --python 3.11",
     "No model output can allow a block",
     "an agent running as you can still get around it (a variable, a script, `python -c`)",
-    "the CI knack-guard checks one rule/root pair (no-alias-sort-keys.yml with root_75025) and reads no local receipts, so a local exception cannot satisfy it",
+    "the CI knack-guard checks every pinned Confirmed root (5 rules, 7 roots) and reads no local receipts, so a local exception cannot satisfy it",
     "8 of 13 PRs pass each held-out evaluation (same-model and cross-model); 7 pass both",
     "171 ms hook round trip; 17.3 ms rule evaluation",
 ]

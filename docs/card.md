@@ -13,7 +13,7 @@ In this run (2026-11-02; recorded edit replay, real hook, real model calls in th
 - **Muse Spark** (Meta) extracts decisions from merged PRs and compiles each into an ast-grep rule.
 - **Muse Spark Open**, a second, separately run Meta model, extracts the same PRs again and writes held-out variants that Spark never sees.
 - Neither model is in the verdict path. Only AST-checkable rules on a Confirmed root can block.
-- No model output can allow a block. The guard denies an agent's direct and quoted `knack resolve` and `knack confirm`, but an agent running as you can still get around it (a variable, a script, `python -c`); the CI knack-guard checks one rule/root pair (no-alias-sort-keys.yml with root_75025) and reads no local receipts, so a local exception cannot satisfy it.
+- No model output can allow a block. The guard denies an agent's direct and quoted `knack resolve` and `knack confirm`, but an agent running as you can still get around it (a variable, a script, `python -c`); the CI knack-guard checks every pinned Confirmed root (5 rules, 7 roots) and reads no local receipts, so a local exception cannot satisfy it.
 
 ## The numbers
 
