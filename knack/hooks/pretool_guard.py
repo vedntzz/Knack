@@ -1,5 +1,6 @@
 import json
 import re
+import shlex
 import tempfile
 import time
 from collections.abc import Callable
@@ -85,7 +86,17 @@ def runs_person_only(event: JsonDict) -> bool:
     tool_input = event.get("tool_input")
     inputs = cast(JsonDict, tool_input) if isinstance(tool_input, dict) else {}
     command = inputs.get("command")
-    return isinstance(command, str) and PERSON_ONLY.search(command) is not None
+    if not isinstance(command, str):
+        return False
+    return any(PERSON_ONLY.search(text) for text in (command, _dequoted(command)))
+
+
+def _dequoted(command: str) -> str:
+    # The words as the shell reads them, so knack "resolve" reads as knack resolve.
+    try:
+        return " ".join(shlex.split(command))
+    except ValueError:
+        return command
 
 
 def decide(

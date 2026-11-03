@@ -3,6 +3,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
 from knack.dispute.argue import SPARK_MODEL
 from knack.dispute.rulings import ModelCall, RulingRecord
 from knack.hooks.pretool_guard import OPEN_CONSOLE, rerun_deny
@@ -18,7 +19,7 @@ REQUIRED_LINES = [
     "a second, separately run Meta model",
     "13 outcomes",
     "17 of the 101 PRs yield 31 rejected alternatives",
-    "Only AST-checkable, human-confirmed rules can block",
+    "Only AST-checkable rules on a Confirmed root can block",
     "Token confidence is not exposed by the hosted endpoint; corroboration is the brake.",
 ]
 # The KN-73 spike that found no logprobs on the hosted Spark Open endpoint.
@@ -303,12 +304,14 @@ def test_readme_names_the_three_resolve_choices_under_argue() -> None:
 
 
 ONLY_A_PERSON = (
-    "Only a person can allow, and three things keep an agent out:"
+    "No model output can allow: Spark can only hold or escalate, and an allow is a"
+    " `knack resolve` run. Three things stand between an agent and that command:"
     " `knack argue` never prints the resolve command, only where a person finds it"
-    " (the console's held page); the PreToolUse guard denies any agent shell command"
-    " that runs `knack resolve`, `knack confirm`, `knack false-block` or `knack retire`;"
-    " and `knack resolve` refuses to run without an interactive terminal unless"
-    " `--by` is given and the person sets `KNACK_HUMAN=1`."
+    " (the console's held page); the PreToolUse guard denies an agent shell command"
+    " that runs `knack resolve`, `knack confirm`, `knack false-block` or `knack retire`,"
+    " spelled directly or with quoted words (`knack \"resolve\"`, `'knack' confirm`);"
+    " and `knack resolve` and `knack confirm` refuse to run without an interactive"
+    " terminal unless `--by` is given and `KNACK_HUMAN=1` is set."
 )
 
 
@@ -319,15 +322,69 @@ def test_readme_names_what_keeps_an_agent_from_allowing_itself() -> None:
 
 
 SELF_ALLOW_FLOOR = (
-    "The PreToolUse guard reduces agent self-allow; it does not eliminate it."
-    " An agent can still hide or route around the command, for example inside a"
-    " script, an alias or another program it runs. The CI guard"
+    "None of this stops a determined agent running as you: it can set"
+    " `KNACK_HUMAN=1` itself and hide the command in a variable, a script or"
+    " `python -c` (see the limits under the audit). The CI guard"
     " ([`.github/workflows/knack-guard.yml`](.github/workflows/knack-guard.yml))"
     " is the floor: it checks every pull request's changed files and reads no"
-    " local receipts, so a local allow never passes it."
+    " local receipts, so a local allow never passes a pull request."
 )
 
 
-def test_readme_says_the_self_allow_guard_reduces_and_ci_is_the_floor() -> None:
+def test_readme_says_a_determined_agent_gets_around_it_and_ci_is_the_floor() -> None:
     text = " ".join(README.read_text(encoding="utf-8").split())
     assert ONLY_A_PERSON + " " + SELF_ALLOW_FLOOR in text
+
+
+GUARD_BULLET = (
+    "and a shell command that runs one of the person-only commands, spelled directly"
+    " or with quoted words. It does not catch one hidden in a variable, a script or"
+    " `python -c`."
+)
+CONFIRM_IS_A_PERSON_STEP = (
+    "Whether a decision can block at all is also meant to be a person's call: only"
+    " `knack confirm` makes a root Confirmed, and it has the same person check as"
+    " `knack resolve`. A determined agent running as you can get around that check"
+    " too (see the limits under the audit)."
+)
+EVASIONS_LIMIT = (
+    "- The person-only gate is not a sandbox. The final audit"
+    " ([`spikes/final_audit.md`](spikes/final_audit.md), BLOCKER 1) got past the"
+    " PreToolUse guard with `k=knack; $k resolve …`,"
+    " `python -c \"from knack.cli import main; main(['resolve', …])\"`,"
+    " `echo … | base64 -d | sh` and `bash ./approve.sh`, and an agent can set"
+    ' `KNACK_HUMAN=1` and `--by` itself. Quoted words (`knack "resolve"`,'
+    " `knack re''solve`) are now denied. A local allow still never passes a pull"
+    " request: the CI guard reads no local receipts."
+)
+
+
+@pytest.mark.parametrize(
+    "honest", [GUARD_BULLET, CONFIRM_IS_A_PERSON_STEP, EVASIONS_LIMIT]
+)
+def test_readme_scopes_the_person_only_gate(honest: str) -> None:
+    assert honest in " ".join(README.read_text(encoding="utf-8").split())
+
+
+# Wording that says an agent cannot allow its own block or confirm a root.
+OVERCLAIMS = [
+    "Only a person can allow",
+    "keep an agent out",
+    "reduces agent self-allow",
+    "block at all is also a person's call",
+    "human-confirmed rules can block",
+]
+HONESTY_SURFACES = [
+    README,
+    REPO_ROOT / "spikes" / "claims.md",
+    REPO_ROOT / "docs" / "card.md",
+    *sorted((REPO_ROOT / "site").glob("*.*")),
+]
+
+
+@pytest.mark.parametrize(
+    "surface", [p for p in HONESTY_SURFACES if p.suffix in {".md", ".html", ".js"}]
+)
+def test_no_surface_claims_an_agent_cannot_allow_or_confirm(surface: Path) -> None:
+    text = " ".join(surface.read_text(encoding="utf-8").split())
+    assert [claim for claim in OVERCLAIMS if claim in text] == []

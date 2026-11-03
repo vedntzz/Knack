@@ -8,13 +8,17 @@ from knack.pipeline.clients import MissingCredentials
 from knack.roots.corrections import Correction
 from knack.roots.pin import rule_sha
 from knack.walk.registry import home_registry_dir
+from person_stdin import Stdin
 from registry_fixture import make_registry, raw_entries, status_on_disk
 
 
 @pytest.fixture
 def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    # A person at a terminal, unless a test says otherwise.
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.delenv("KNACK_HOME", raising=False)
+    monkeypatch.delenv("KNACK_HUMAN", raising=False)
+    monkeypatch.setattr("sys.stdin", Stdin(tty=True))
     return tmp_path / "home"
 
 
@@ -48,6 +52,44 @@ def test_confirm_flips_the_root_and_logs_to_home(
     assert "widgets-4-1: Inferred -> Confirmed" in out
     sha = rule_sha(registry.parent / "rules" / "4.yml")
     assert f"pinned to rule {sha[:12]}" in out
+
+
+CONFIRM_REFUSED = (
+    "knack confirm: only a person can confirm a root: run it in an interactive"
+    " terminal, or pass --by <your name> with KNACK_HUMAN=1 set by you"
+)
+
+
+@pytest.mark.parametrize(
+    ("human", "by"), [(None, ["--by", "maria"]), ("1", []), ("0", ["--by", "maria"])]
+)
+def test_confirm_without_a_terminal_is_refused_and_changes_nothing(
+    home: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    human: str | None,
+    by: list[str],
+) -> None:
+    registry = make_registry(tmp_path / "reg")
+    monkeypatch.setattr("sys.stdin", Stdin(tty=False))
+    if human is not None:
+        monkeypatch.setenv("KNACK_HUMAN", human)
+    assert cli.main(["confirm", "widgets-4-1", "--registry", str(registry), *by]) == 2
+    assert capsys.readouterr().err.strip() == CONFIRM_REFUSED
+    assert status_on_disk(registry, "widgets-4-1") == "Inferred"
+    assert not (home / ".knack" / "corrections.jsonl").exists()
+
+
+def test_confirm_without_a_terminal_runs_with_by_and_knack_human(
+    home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = make_registry(tmp_path / "reg")
+    monkeypatch.setattr("sys.stdin", Stdin(tty=False))
+    monkeypatch.setenv("KNACK_HUMAN", "1")
+    args = ["confirm", "widgets-4-1", "--registry", str(registry), "--by", "maria"]
+    assert cli.main(args) == 0
+    assert status_on_disk(registry, "widgets-4-1") == "Confirmed"
 
 
 def test_reject_unknowns_the_root_drops_its_rule_and_logs_the_reason(

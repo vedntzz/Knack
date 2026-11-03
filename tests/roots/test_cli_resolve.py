@@ -1,4 +1,3 @@
-import io
 from pathlib import Path
 
 import pytest
@@ -9,19 +8,10 @@ from knack.miss.provisional import save_provisional
 from knack.receipts.chain import append_receipt, guard_receipt, load_receipts, Receipt
 from knack.roots.corrections import Correction
 from knack.walk.registry import home_registry_dir
+from person_stdin import Stdin
 from registry_fixture import make_registry, raw_entries, root
 
 NOW = "2026-10-31T09:00:00+00:00"
-
-
-class Stdin(io.StringIO):
-    # A stand-in stdin that is, or is not, an interactive terminal.
-    def __init__(self, tty: bool) -> None:
-        super().__init__()
-        self.tty = tty
-
-    def isatty(self) -> bool:
-        return self.tty
 
 
 @pytest.fixture

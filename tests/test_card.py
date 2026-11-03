@@ -11,6 +11,9 @@ REQUIRED = [
     "a second, separately run Meta model",
     "bash scripts/reproduce.sh",
     "uv sync --frozen --extra dev --python 3.11",
+    "No model output can allow a block",
+    "an agent running as you can still get around it (a variable, a script, `python -c`)",
+    "the CI knack-guard is the floor: it reads no local receipts, so a local allow never passes a pull request",
 ]
 
 

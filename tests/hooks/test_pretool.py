@@ -756,6 +756,14 @@ PERSON_ONLY = [
     "uv run knack false-block airflow-75025 dags.py",
     "knack retire airflow-75025",
     "sh -c 'python -m knack.cli resolve abc123 uphold --reason ok'",
+    # Quoting a word hides it from a raw-text match; shlex reads it as the shell does.
+    'knack "resolve" abc123 allow --reason ok --by maria',
+    "'knack' confirm airflow-75025-1 --by maria",
+    "KNACK_HUMAN=1 \"knack\" 'false-block' airflow-75025 dags.py",
+    "cd /w && knack re''tire airflow-75025",
+    "knack \\resolve abc123 allow --reason ok",
+    # Unbalanced quotes do not parse: the raw text is still matched.
+    'knack resolve abc123 allow --reason "unclosed',
 ]
 
 
