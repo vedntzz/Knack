@@ -6,11 +6,13 @@
   "decided_by": "dabla",
   "source_url": "https://github.com/apache/airflow/pull/75271",
   "quote": "`bool | Any` or `Any` would also be honest, but a union with `Any` switches type checking off for the argument, so `durable=\"yes\"` would pass.",
-  "status": "Inferred",
+  "status": "Confirmed",
   "rejected_alternative": "Any",
   "seeded": false,
   "models": [
     "muse-spark-1.3"
   ],
-  "merged_at": "2026-10-28T13:11:16Z"
+  "merged_at": "2026-10-28T13:11:16Z",
+  "confirmed_by": "Vedant Srivastava",
+  "rule_sha": "a7949850fa0f3bef58cbad93d2d6b6a791ea68a3eac311feab0b57b8107e3b94"
 }
