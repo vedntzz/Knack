@@ -21,6 +21,13 @@ REQUIRED_LINES = [
     "17 of the 101 PRs yield 31 rejected alternatives",
     "Only AST-checkable rules on a Confirmed root can block",
     "Token confidence is not exposed by the hosted endpoint; corroboration is the brake.",
+    "101 PRs → 107 decisions → 22 roots → 12 installed rules → 5 that block",
+    "8 of 13 PRs pass each held-out evaluation (same-model and cross-model); 7 pass both.",
+    "recorded edit replay; real hook, real model calls",
+    "The block path and `reproduce.sh` call no model.",
+    "Repo created Oct 26, 2026; all work done during the event.",
+    "171 ms hook round trip; 17.3 ms rule evaluation.",
+    "does not fire on a GitHub merge event",
 ]
 # The KN-73 spike that found no logprobs on the hosted Spark Open endpoint.
 SPIKE_LINK = "[spike/kn-73-open-weights](spikes/open_weights.md)"
@@ -245,7 +252,12 @@ def test_the_demo_logs_latencies_are_labelled_as_this_machines() -> None:
 
 
 # Group B: prize-facing sections.
-PRIZE_HEADINGS = ["## Muse Code setup", "## Runs unattended", "## Open weights"]
+PRIZE_HEADINGS = [
+    "## Muse Code setup",
+    "## Runs unattended",
+    "## Open weights",
+    "## Meta models and provenance",
+]
 
 
 def test_readme_carries_the_prize_headings() -> None:
@@ -326,8 +338,10 @@ SELF_ALLOW_FLOOR = (
     " `KNACK_HUMAN=1` itself and hide the command in a variable, a script or"
     " `python -c` (see the limits under the audit). The CI guard"
     " ([`.github/workflows/knack-guard.yml`](.github/workflows/knack-guard.yml))"
-    " is the floor: it checks every pull request's changed files and reads no"
-    " local receipts, so a local allow never passes a pull request."
+    " is the backstop, narrower than the local hook: the shipped workflow checks"
+    " one rule/root pair, `no-alias-sort-keys.yml` with `root_75025`, on every"
+    " pull request's changed `.py` files. The CI check reads no local receipts,"
+    " so a local exception cannot satisfy it."
 )
 
 
@@ -354,8 +368,9 @@ EVASIONS_LIMIT = (
     " `python -c \"from knack.cli import main; main(['resolve', …])\"`,"
     " `echo … | base64 -d | sh` and `bash ./approve.sh`, and an agent can set"
     ' `KNACK_HUMAN=1` and `--by` itself. Quoted words (`knack "resolve"`,'
-    " `knack re''solve`) are now denied. A local allow still never passes a pull"
-    " request: the CI guard reads no local receipts."
+    " `knack re''solve`) are now denied. The CI check reads no local receipts, so a"
+    " local exception cannot satisfy it; it runs one rule/root pair"
+    " (`no-alias-sort-keys.yml`, `root_75025`)."
 )
 
 
@@ -388,3 +403,10 @@ HONESTY_SURFACES = [
 def test_no_surface_claims_an_agent_cannot_allow_or_confirm(surface: Path) -> None:
     text = " ".join(surface.read_text(encoding="utf-8").split())
     assert [claim for claim in OVERCLAIMS if claim in text] == []
+
+
+def test_env_example_holds_placeholders_only() -> None:
+    text = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
+    keys = ("MODEL_API_KEY", "BASETEN_API_KEY", "GITHUB_TOKEN")
+    assert all(f"{k}=" in text for k in keys)
+    assert all(re.search(rf"^{k}=(<.*>)?$", text, re.M) for k in keys)

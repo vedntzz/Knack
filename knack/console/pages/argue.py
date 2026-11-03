@@ -225,7 +225,7 @@ def held_href(found: ArguePage) -> str:
 def answered(ruling: RulingRecord, block: VerdictPage) -> str:
     # Every model the ruling names, in the order asked; the block itself ran none.
     rows = "".join(model_row(m.model, m.host, ruling.timed_out) for m in ruling.models)
-    ran = f"The block itself ran no model: {block.view.latency_ms:.1f} ms to decide."
+    ran = f"The block ran no model: {block.view.latency_ms:.1f} ms rule evaluation."
     return partial(
         "answered.html", models=rows or f"<li>{gap('Models')}</li>", block=ran
     )

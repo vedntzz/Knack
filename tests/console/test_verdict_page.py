@@ -118,8 +118,11 @@ def test_the_75025_page_shows_the_proof_figures_from_the_rules_record(
 ) -> None:
     text = visible(console.page())
     assert "8/8 checks passed" in text
-    assert "0 false alarms on Airflow’s default branch and release 3.3.2" in text
-    assert "17.3 ms to decide, no AI model in the check" in text
+    assert (
+        "0 matches outside the PR’s files on Airflow’s default branch and release 3.3.2"
+        in text
+    )
+    assert "17.3 ms rule evaluation, no AI model in the check" in text
 
 
 def test_the_verify_row_names_the_receipt_rule_and_command_in_plain_words(
@@ -201,7 +204,7 @@ def test_a_missing_proof_is_a_labelled_gap(console: Console) -> None:
     console.write_registry(without_proof)
     text = visible(console.page())
     assert "Checks not recorded" in text
-    assert "False alarms not recorded" in text
+    assert "Matches outside the PR’s files not recorded" in text
     assert "8/8" not in text
 
 

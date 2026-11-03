@@ -115,7 +115,7 @@ def test_the_argue_page_names_exactly_the_models_on_the_hold_ruling(
     answered = section(story.get(f"/verdict/{BLOCK}/argue"), "by")
     assert f"{SPARK[0]} at {SPARK[1]}" in answered
     assert SPARK_OPEN[0] not in answered and SPARK_OPEN[1] not in answered
-    assert "The block itself ran no model: 17.3 ms to decide." in answered
+    assert "The block ran no model: 17.3 ms rule evaluation." in answered
 
 
 def test_the_held_page_shows_the_escalation_both_models_and_spark_opens_answer(

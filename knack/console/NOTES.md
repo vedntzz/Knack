@@ -116,7 +116,7 @@ open http://127.0.0.1:7655/verdict/0e7ab608386631d65da47ec1bd194f45a335f49a0a875
 | Argue: "muse-spark-1.3 ruled hold, citing #75025" and the cited slip | the latest `hold` ruling's `model`, `decision` and `cited_quotes`. Its `reply` equals the cited quote word for word, so it is read once, on the slip. |
 | Argue: Hold, then "Lines 135–136 stay blocked." | the ruling's decision and the matched lines |
 | "Answered by" | exactly the ruling's `models[]`, with each `host`, in the order asked: Spark alone on the hold, Spark then Spark Open on the escalate |
-| "The block itself ran no model: 17.3 ms to decide." | the deny receipt's `latency_ms` |
+| "The block ran no model: 17.3 ms rule evaluation." | the deny receipt's `latency_ms` |
 | Argue: the fix card | the block page's fix, without the argue command |
 | Held: the escalation | the latest `escalate` ruling |
 | Held: Spark Open's answer | its verbatim `reply` in the latest argue self-check that names the receipt. The registry's `self_checks.jsonl`; kept receipts keep it at `traces/self_checks.jsonl`, as `one_story.py` froze it. A missing check reads "<model>'s answer not recorded". |
