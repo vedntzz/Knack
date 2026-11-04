@@ -317,6 +317,15 @@ One step always waits for a person. When an agent disputes a deny with `knack ar
 - Deleting the last line of a receipts file still verifies as `chain intact`. Receipts are tamper-evident for edits and middle deletions, not for truncation ([`spikes/final_audit.md`](../spikes/final_audit.md), LATER 4).
 - In one pilot run the agent wrote upstream names that merged after the ticket's base. That looks like training-data recall.
 
+## Limits
+
+- The person-only gate is not a sandbox: a determined agent running as you can set `KNACK_HUMAN=1` and hide `knack resolve` in a variable, a script or `python -c`. The CI guard is the backstop.
+- Changing one byte of a Confirmed rule turns its block into a silent allow: the pin no longer matches and nothing is logged.
+- Receipts are tamper-evident for edits and middle deletions, not for truncation.
+- Two live rule gaps: #15937 still misses a `**` splat and a media-type constant; #16062's broad branch can trip on unrelated constants.
+- Small bench: 2 repos, 9 tickets, 24 runs per arm; the intervals overlap, so no difference between arms is claimed.
+- Token confidence is not exposed by the hosted endpoint; corroboration is the brake. [spike/kn-73-open-weights](../spikes/open_weights.md)
+
 ## Retractions
 
 Earlier claims we no longer stand behind:

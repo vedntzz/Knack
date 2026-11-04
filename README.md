@@ -45,6 +45,22 @@ Then open:
 
 `bash scripts/e2e_console.sh` runs the whole story live against a running console and ends `E2E: PASS`.
 
+## Try it live with your own Meta key
+
+`knack init` also needs a read-only `GITHUB_TOKEN`.
+
+```sh
+export MODEL_API_KEY="<your Meta Model API key>"
+export GITHUB_TOKEN="<a read-only GitHub token>"
+knack init --repo fastapi/fastapi --prs 5 --out /tmp/knack-try/fastapi
+```
+
+To see an argue live, watch the demo video. The same flow, block to argue to a person's ruling, is recorded in mockups/fixtures/one_story/ (receipts and rulings); `knack receipts verify --path mockups/fixtures/one_story/receipts.jsonl` checks the chain, and reproduce.sh replays the same flow with fake models.
+
+Knack is built around two independent models: Spark proposes, Spark Open on Baseten attacks. Add BASETEN_API_KEY for the full two-model check. Results from single-model mode are not corroborated. The committed two-model runs are verified by reproduce.sh with no keys at all.
+
+GitHub is read only with a token: `knack init` stops with `GITHUB_TOKEN is not set` (exit 2) without one.
+
 ## How it works
 
 ![Knack architecture: models propose and argue, plain code proves and blocks, a person holds the keys](docs/knack-architecture.svg)
@@ -59,6 +75,8 @@ Full loop, labels and argue flow: [docs/details.md](docs/details.md).
 ## Where we tested it
 
 Airflow and FastAPI are the committed runs: 17 of the 101 PRs yield 31 rejected alternatives, all verbatim.
+
+These decisions predate Knack: Airflow merged #75025 on Oct 19, 2026. Knack read them from history during the event.
 
 | Repo | PRs read | Verbatim rejections | Rules proven | Held-out | Confirmed / blocking |
 |---|---|---|---|---|---|
@@ -78,6 +96,8 @@ Pydantic detail: [spikes/pydantic_blind.md](spikes/pydantic_blind.md). PyTorch: 
 | Muse Spark Open (`meta-models/muse-spark-open-1026`) | Baseten (`inference.baseten.co`) | corroborates, writes held-out variants, gives the second opinion | A second model checks the first; neither is in the verdict path. |
 
 The block path and `reproduce.sh` call no model.
+
+Token confidence is not exposed by the hosted endpoint; corroboration is the brake. [spike/kn-73-open-weights](spikes/open_weights.md)
 
 ## Proof: reproduce.sh runs in 80 s
 
@@ -106,14 +126,23 @@ RejectBench-Fresh, tickets past the agent's training cutoff, is pre-registered i
 
 Each repo gets one home registry under `~/.knack` (or `KNACK_HOME`, as `$KNACK_HOME`); `knack init` writes it, the hooks read it. Live runs need `MODEL_API_KEY`, `BASETEN_API_KEY` and a read-only `GITHUB_TOKEN`. Watch fires after a local merge; the batch hook does not fire on a GitHub merge event. Detail: [docs/setup.md](docs/setup.md).
 
-## What it doesn't do
+## How it was built
 
-- The person-only gate is not a sandbox: a determined agent running as you can set `KNACK_HUMAN=1` and hide `knack resolve` in a variable, a script or `python -c`. The CI guard is the backstop.
-- Changing one byte of a Confirmed rule turns its block into a silent allow: the pin no longer matches and nothing is logged.
-- Receipts are tamper-evident for edits and middle deletions, not for truncation.
-- Two live rule gaps: #15937 still misses a `**` splat and a media-type constant; #16062's broad branch can trip on unrelated constants.
-- Small bench: 2 repos, 9 tickets, 24 runs per arm; the intervals overlap, so no difference between arms is claimed.
-- Token confidence is not exposed by the hosted endpoint; corroboration is the brake. [spike/kn-73-open-weights](spikes/open_weights.md)
+- **Solo, Oct 26 – Nov 4, 2026.** Repo created on day one; every commit is in the history.
+- **Tests first.** Each change started as a failing test. ~1,900 tests, pyright clean, CI installs from `uv.lock`.
+- **Parallel lanes.** Three git worktrees ran separate tasks at once, each with its own branch and checks.
+- **Agents write, a person commits.** AI coding agents drafted code; every commit and merge was made by the author.
+- **Every claim has a command.** `spikes/claims.md` lists each number in this README with the command that reproduces it.
+- **We red-teamed it.** `spikes/final_audit.md` attacks our own guard.
+- **Final runs and the demo were done in Muse Code, guarded by Knack itself.**
+
+## What's next
+
+- **Autonomous repair.** Today the repair loop runs on a person's trigger; next, the post-merge self-check starts it, and a person still confirms.
+- **Sandboxed enforcement.** Today the hook stops direct and quoted commands and CI is the floor; next, an OS-level sandbox for the agent.
+- **More repos, more confirmed decisions.** A blind run on pydantic found 13 verbatim rejections in 30 PRs; next, a confirm queue that makes reviewing them a two-minute job.
+- **Tamper-proof receipts.** Today they're tamper-evident for edits; next, signed checkpoints that catch truncation too.
+Full limits: [docs/details.md](docs/details.md).
 
 ## Hackathon
 
