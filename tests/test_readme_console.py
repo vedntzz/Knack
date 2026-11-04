@@ -15,6 +15,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).parents[1]
 README = REPO_ROOT / "README.md"
+DETAILS = REPO_ROOT / "docs" / "details.md"
 VENV_BIN = REPO_ROOT / ".venv" / "bin"
 CONSOLE_HEADING = "## See it in the console"
 SETUP_HEADING = "## Get it running"
@@ -168,13 +169,12 @@ def upheld_by() -> str:
     return uphold["by"]
 
 
-def test_the_console_section_links_the_block_argue_held_recovery_and_home() -> None:
-    pages = {BLOCK_PAGE, ARGUE_PAGE, HELD_PAGE, RECOVERY_PAGE, CONSOLE + "/"}
-    assert sorted(set(console_links())) == sorted(pages)
+def test_the_console_section_links_the_block_and_held_pages() -> None:
+    assert sorted(set(console_links())) == sorted({BLOCK_PAGE, HELD_PAGE})
 
 
-def test_the_deny_examples_console_link_is_a_page_the_section_serves() -> None:
-    [denied] = re.findall(r"^Console: (\S+)", README.read_text(encoding="utf-8"), re.M)
+def test_the_details_denys_console_link_is_a_page_the_section_serves() -> None:
+    [denied] = re.findall(r"^Console: (\S+)", DETAILS.read_text(encoding="utf-8"), re.M)
     assert denied in console_links()
 
 

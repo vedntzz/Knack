@@ -1,5 +1,7 @@
 # Claims audit
 
+Note: README line numbers below refer to `README.md` at `f9b0505`, before the Nov 2026 rewrite. The rewrite moved the long-form content verbatim to `docs/details.md` and setup detail to `docs/setup.md`; the short README keeps every number.
+
 Every factual claim a judge can read in `README.md`, `docs/card.md`, `site/index.html` and the console's fixed copy (`knack/console/templates`, plus the figure labels in `knack/console/pages/verdict.py`, which the templates render), with the command that reproduces it.
 
 Rechecked on `chore/final-polish` at `f9b0505` (= `main` = `origin/main`), 2026-11-03, Apple M5 Pro, venv active, no other knack or pytest process running. `R` = `bash scripts/reproduce.sh` (`PROOF: PASS`; 70.3 s wall in a fresh clone installed with `uv sync --frozen --extra dev --python 3.11`, as CI and the README install; 78.4 s in an older Python 3.12 venv); `R[x]` = its section `x`. README line numbers are the README on this branch. First run on `chore/claims-audit` at `9bf4802`, 2026-11-02 (70.3 s wall).

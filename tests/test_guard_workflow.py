@@ -6,14 +6,14 @@ FIXTURES = [
     "tests/guard/fixtures/violating.py",
     "tests/fixtures/model_output.py",
     "tests/hooks/fixtures/edit.py",
+    "tests/test_fixtures.py",
+    "tests/guard/test_replay.py",
+    "tests/foo_fixtures/x.py",
 ]
 REAL_CODE = [
     "knack/guard/check.py",
     "knack/fixtures/loader.py",
     "scripts/e2e_fakes.py",
-    "tests/test_fixtures.py",
-    "tests/guard/test_replay.py",
-    "tests/foo_fixtures/x.py",
     "src/tests/fixtures/x.py",
 ]
 

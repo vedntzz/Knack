@@ -2,10 +2,10 @@
   "repo": "https://github.com/vedntzz/Knack.git",
   "install": "git clone https://github.com/vedntzz/Knack.git\ncd Knack\nuv sync --frozen --extra dev --python 3.11\nsource .venv/bin/activate\nbash scripts/reproduce.sh",
   "lines": {
-    "repo": 27,
+    "repo": 20,
     "install": [
-      27,
-      31
+      20,
+      24
     ]
   }
 }
