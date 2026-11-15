@@ -1,0 +1,25 @@
+id: pytest-14670
+language: python
+severity: error
+message: Timing dedup keyed on report object identity; the team decided to keep nodeid tracking and handle subtest reports explicitly (#14670).
+rule:
+  kind: call
+  all:
+    - pattern: id($R)
+    - inside:
+        kind: class_definition
+        stopBy: end
+        has:
+          field: name
+          regex: ^TerminalReporter$
+    - inside:
+        stopBy: end
+        any:
+          - pattern: $X in self.$SEEN
+          - pattern: $X not in self.$SEEN
+          - kind: call
+            has:
+              field: function
+              kind: attribute
+              regex: "^self\\.\\w+\\.(add|update|append)$"
+          - pattern: self.$SEEN[$K] = $V

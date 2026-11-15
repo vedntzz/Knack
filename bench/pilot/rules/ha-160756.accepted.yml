@@ -1,0 +1,10 @@
+id: ha-160756.accepted
+language: python
+severity: error
+message: Transient failure raised as UpdateFailed with a retry_after.
+rule:
+  pattern: UpdateFailed($$$)
+  has:
+    kind: keyword_argument
+    regex: ^retry_after\s*=
+    stopBy: end

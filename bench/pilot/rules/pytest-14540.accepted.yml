@@ -1,0 +1,25 @@
+id: pytest-14540-accepted
+language: python
+severity: error
+message: parsefactories scans every holder it is given, with no seen-holder guard before the scan.
+rule:
+  kind: function_definition
+  all:
+    - has:
+        field: name
+        regex: ^parsefactories$
+    - has:
+        stopBy: end
+        pattern: "for $NAME in dir($HOLDER): $$$BODY"
+    - not:
+        has:
+          stopBy: end
+          kind: if_statement
+          all:
+            - has:
+                field: condition
+                pattern: $K in self.$SEEN
+            - has:
+                field: consequence
+                stopBy: end
+                kind: return_statement

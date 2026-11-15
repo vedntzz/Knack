@@ -1,0 +1,6 @@
+id: ha-142296
+language: python
+severity: error
+message: Do not change ALPN on the shared cached client SSL context; it changes every user of it. Build a dedicated context instead (bdraco, home-assistant/core#142296).
+rule:
+  pattern: $CTX.set_alpn_protocols($$$)

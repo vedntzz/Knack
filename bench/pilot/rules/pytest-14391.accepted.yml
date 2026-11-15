@@ -1,0 +1,10 @@
+id: pytest-14391.accepted
+language: python
+severity: error
+message: Match-failure AssertionError raised from None in __exit__.
+rule:
+  pattern: raise AssertionError($$$) from None
+  inside:
+    kind: function_definition
+    regex: ^def\s+__exit__
+    stopBy: end

@@ -1,0 +1,6 @@
+id: pilot-sleep
+language: python
+severity: error
+message: Do not block the event loop with time.sleep.
+rule:
+  pattern: time.sleep($X)

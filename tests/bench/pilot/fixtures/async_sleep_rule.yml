@@ -1,0 +1,6 @@
+id: pilot-async-sleep
+language: python
+severity: error
+message: The accepted fix awaits asyncio.sleep.
+rule:
+  pattern: await asyncio.sleep($X)

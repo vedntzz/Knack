@@ -1,0 +1,19 @@
+id: airflow-61281
+language: python
+severity: error
+message: Swapping the event loop for PYTHONASYNCIODEBUG was tested and still segfaults; the decision was a warning only.
+rule:
+  any:
+    - pattern: asyncio.set_event_loop_policy($$$)
+    - pattern: asyncio.set_event_loop($$$)
+    - pattern: uvloop.install($$$)
+    # uvicorn loop override as kwarg, dict entry, or subscript assignment
+    - kind: keyword_argument
+      has:
+        field: name
+        regex: '^loop$'
+    - kind: pair
+      has:
+        field: key
+        regex: '^["'']loop["'']$'
+    - pattern: $D["loop"] = $V

@@ -1,0 +1,6 @@
+id: ha-142296.accepted
+language: python
+severity: error
+message: Dedicated SSL context created for SMTP.
+rule:
+  pattern: create_client_context($$$)

@@ -1,0 +1,14 @@
+id: pydantic-11251
+language: python
+severity: error
+message: Do not copy __doc__ onto the wrapper by hand; decorate it with functools.wraps so every function attribute is kept (Viicos, pydantic#11251).
+rule:
+  any:
+    - pattern: $F.__doc__ = $V
+    - pattern: setattr($F, $S, $V)
+  inside:
+    kind: function_definition
+    stopBy: end
+constraints:
+  S:
+    regex: ^['"]__doc__['"]$

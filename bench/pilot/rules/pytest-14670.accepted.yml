@@ -1,0 +1,12 @@
+id: pytest-14670-accepted
+language: python
+severity: error
+message: Subtest reports are told apart by type in the terminal's times output.
+rule:
+  pattern: isinstance($X, SubtestReport)
+  inside:
+    kind: class_definition
+    stopBy: end
+    has:
+      field: name
+      regex: ^TerminalReporter$

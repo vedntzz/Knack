@@ -1,0 +1,9 @@
+id: fastapi-9425-accepted
+language: python
+severity: error
+message: Accepted fix returns None when the evaluated annotation is NoneType.
+rule:
+  any:
+    - pattern: $A is type(None)
+    - pattern: $A is NoneType
+    - pattern: $A is types.NoneType

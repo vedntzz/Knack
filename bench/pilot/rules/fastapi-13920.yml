@@ -1,0 +1,12 @@
+id: fastapi-13920
+language: python
+severity: error
+message: Hand-rolled TypeAliasType check; use typing_inspection's is_typealiastype (isinstance misses typing_extensions aliases and GenericAlias cases).
+rule:
+  any:
+    - pattern: isinstance($A, TypeAliasType)
+    - pattern: isinstance($A, $M.TypeAliasType)
+    - pattern: type($A) is TypeAliasType
+    - pattern: type($A) is $M.TypeAliasType
+    - pattern: type($A) == TypeAliasType
+    - pattern: type($A) == $M.TypeAliasType

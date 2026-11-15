@@ -1,0 +1,11 @@
+id: ha-160756
+language: python
+severity: error
+message: Do not sleep and retry inside the Teslemetry coordinator; raise UpdateFailed with retry_after so the coordinator reschedules (erwindouna, home-assistant/core#160756).
+rule:
+  any:
+    - pattern: asyncio.sleep($$$)
+    - pattern: sleep($$$)
+  inside:
+    kind: class_definition
+    stopBy: end

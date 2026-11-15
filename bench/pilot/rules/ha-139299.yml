@@ -1,0 +1,9 @@
+id: ha-139299
+language: python
+severity: error
+message: Use hass.async_add_executor_job so the job is tracked, not loop.run_in_executor or asyncio.to_thread (bdraco, home-assistant/core#139299).
+rule:
+  any:
+    - pattern: $LOOP.run_in_executor($$$)
+    - pattern: asyncio.to_thread($$$)
+    - pattern: to_thread($$$)

@@ -1,0 +1,16 @@
+id: pytest-14391
+language: python
+severity: error
+message: Do not chain the match-failure AssertionError to the raised exception; the exception is expected, only its message is wrong, so raise it from None (bluetech/The-Compiler, pytest#14389).
+rule:
+  any:
+    - pattern: raise $X from $E
+    - pattern: $A.__cause__ = $E
+  inside:
+    kind: function_definition
+    regex: ^def\s+__exit__
+    stopBy: end
+constraints:
+  E:
+    not:
+      regex: ^None$
