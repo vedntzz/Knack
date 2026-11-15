@@ -31,6 +31,14 @@ from knack.dispute.second import Second, second_opinion, spark_escalated
 from knack.guard.check import check_file, fail_open
 from knack.guard.pr_comment import comment_on_block
 from knack.home import user_home
+from knack.hooks.install import (
+    default_settings,
+    EVENT,
+    HookInstallError,
+    install_hook,
+    MATCHERS,
+    PRETOOL_MODULE,
+)
 from knack.index.build import build_index
 from knack.miss.cases import CaseKind
 from knack.miss.loop import (
@@ -171,6 +179,7 @@ def _command_adders() -> dict[str, Callable[[argparse.ArgumentParser], None]]:
     adders |= {"miss": _add_miss_arguments, "false-block": _add_false_block_arguments}
     adders |= {"backfill-merged": _add_backfill_arguments, "day": _add_day_arguments}
     return adders | {
+        "hooks": _add_hooks_arguments,
         "receipts": _add_receipts_arguments,
         "resolve": _add_resolve_arguments,
         "reprove": _add_reprove_arguments,
@@ -282,6 +291,29 @@ def _watch_command(args: argparse.Namespace) -> int:
 def _install_watch(args: argparse.Namespace) -> list[str]:
     second = (args.corroborate, not args.no_corroborate)
     return install_watch(Path.cwd(), args.registry, args.muse_settings, *second)
+
+
+def _add_hooks_arguments(hooks: argparse.ArgumentParser) -> None:
+    install = hooks.add_subparsers(dest="action", required=True).add_parser("install")
+    install.add_argument("--agent", choices=list(MATCHERS), required=True)
+    help = "defaults to the project's .claude/settings.json, or Muse's user settings"
+    install.add_argument("--settings", type=Path, help=help)
+
+
+def _hooks_command(args: argparse.Namespace) -> int:
+    # Someone else's hook or an unreadable settings file exits 2 with a reason.
+    settings = args.settings or default_settings(args.agent, Path.cwd())
+    try:
+        added = install_hook(args.agent, settings, sys.executable)
+    except HookInstallError as error:
+        return _loop_refused("hooks", str(error), 2)
+    print(_hook_installed_line(args.agent, settings, added))
+    return 0
+
+
+def _hook_installed_line(agent: str, settings: Path, added: bool) -> str:
+    done = "installed" if added else "already installed"
+    return f"knack hooks: {done}: {EVENT} {MATCHERS[agent]} -> {PRETOOL_MODULE} in {settings}"
 
 
 def _add_correct_arguments(correct: argparse.ArgumentParser) -> None:
@@ -856,6 +888,7 @@ def _handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
     handlers |= {"miss": _miss_command, "false-block": _false_block_command}
     handlers |= {"backfill-merged": _backfill_command, "reprove": _reprove_command}
     return handlers | {
+        "hooks": _hooks_command,
         "receipts": _receipts_command,
         "resolve": _resolve_command,
         "day": _day_command,

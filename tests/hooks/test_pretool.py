@@ -223,7 +223,7 @@ def test_broken_registry_entry_is_logged(tmp_path: Path) -> None:
 def test_malformed_event_is_logged(tmp_path: Path) -> None:
     event = {"tool_name": "write_file", "cwd": str(tmp_path)}
     assert decide(event, make_registry(tmp_path), tmp_path / "log") is None
-    assert "KeyError" in (tmp_path / "log").read_text()
+    assert "MalformedPayload" in (tmp_path / "log").read_text()
 
 
 def test_edit_never_writes_target_file(tmp_path: Path) -> None:
