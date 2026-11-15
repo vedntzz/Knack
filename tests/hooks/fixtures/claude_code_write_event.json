@@ -1,0 +1,1 @@
+{"session_id":"5d1c2b7e-0f3a-4c55-9b1e-2a7c9e4d8f10","transcript_path":"/tmp/claude/transcript.jsonl","cwd":"/Users/vedant/Documents/knack","permission_mode":"default","hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"/Users/vedant/Documents/knack/scratch.py","content":"y = 1\n"},"tool_use_id":"toolu_01ABCDEFGHJKLMNPQRSTUVWX"}

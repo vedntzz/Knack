@@ -18,6 +18,14 @@ from knack.guard.check import (
     guard_error_verdict,
     log_error_quietly,
 )
+from knack.hooks.adapters import (
+    count_malformed_quietly,
+    edit_target,
+    MalformedPayload,
+    proposed_edit,
+    ProposedEdit,
+    UnknownTool,
+)
 from knack.hooks.scope import event_cwd, home_error_log, scoped_quietly
 from knack.receipts.chain import (
     append_receipt,
@@ -35,8 +43,6 @@ from knack.walk.registry import Registry
 JsonDict = dict[str, Any]
 RuleAndRoot = tuple[Path, Root | None]
 Scan = Callable[[Path, Path | None], Any]
-WRITE_TOOL = "write_file"
-EDIT_TOOL = "edit_file"
 DISPUTE_LINE = 'To dispute: knack argue "<your reason>"'
 # The console link only loads while knack console serves it.
 OPEN_CONSOLE = "(open with: knack console)"
@@ -110,9 +116,24 @@ def decide(
     try:
         return _decide_inner(event, registry, log_path, receipts, root)
     except Exception as error:
-        log_error_quietly(log_path, error)
-        _crash_receipt_quietly(event, registry, receipts, log_path, error)
+        _failed_open(event, registry, log_path, receipts, error)
         return None
+
+
+def _failed_open(
+    event: JsonDict,
+    registry: Registry,
+    log: Path,
+    receipts: Path | None,
+    error: Exception,
+) -> None:
+    # An unknown tool is only logged; a malformed payload is also counted.
+    log_error_quietly(log, error)
+    if isinstance(error, UnknownTool):
+        return
+    if isinstance(error, MalformedPayload):
+        count_malformed_quietly(log.parent)
+    _crash_receipt_quietly(event, registry, receipts, log, error)
 
 
 def _crash_receipt_quietly(
@@ -142,7 +163,7 @@ def _crash_fields(event: JsonDict, repo: str, error: Exception) -> JsonDict:
 def _target_or_unknown(event: JsonDict) -> str:
     # The crash may be the payload itself, so a target that cannot be read is not guessed.
     try:
-        return _target(event, event_cwd(event))
+        return str(edit_target(event, event_cwd(event)) or NOT_RECORDED)
     except Exception:
         return NOT_RECORDED
 
@@ -155,12 +176,22 @@ def _decide_inner(
     root: Path | None,
 ) -> JsonDict | None:
     base = event_cwd(event)
-    content = _proposed_content(event, base) if _in_root(event, base, root) else None
-    if content is None:
+    edit = _guarded_edit(event, base, root)
+    if edit is None:
         return None
-    trail = _trail(event, base, registry.repo, log_path, receipts)
-    content, current, trail = _snapshotted(content, trail)
+    trail = _trail(event, base, str(edit.path), registry.repo, log_path, receipts)
+    content, current, trail = _snapshotted(edit.new_content, trail)
     return _scan_proposal(content, current, _rules_with_roots(registry), trail)
+
+
+def _guarded_edit(
+    event: JsonDict, base: Path, root: Path | None
+) -> ProposedEdit | None:
+    # Python files under the clone's git root only; one outside is never read.
+    target = edit_target(event, base)
+    if target is None or target.suffix != ".py" or not _in_root(target, root):
+        return None
+    return proposed_edit(event, target)
 
 
 def _with_snapshot(trail: Trail, after: str, before: str | None) -> Trail:
@@ -173,10 +204,14 @@ def _with_snapshot(trail: Trail, after: str, before: str | None) -> Trail:
 
 
 def _trail(
-    event: JsonDict, base: Path, repo: str, log: Path, receipts: Path | None
+    event: JsonDict,
+    base: Path,
+    target: str,
+    repo: str,
+    log: Path,
+    receipts: Path | None,
 ) -> Trail:
     # Branch and session are only worth a git call when a receipt will hold them.
-    target = _target(event, base)
     if receipts is None:
         return Trail(log, receipts, repo, target)
     session, agent = _named(event, "session_id"), _named(event, AGENT_KEY)
@@ -188,23 +223,15 @@ def _named(event: JsonDict, key: str) -> str | None:
     return str(event[key]) if event.get(key) else None
 
 
-def _in_root(event: JsonDict, base: Path, root: Path | None) -> bool:
-    # Only files under the clone's git root are guarded; a write elsewhere (e.g.
-    # /tmp) is not the repo's, so it is neither checked nor receipted. None is
-    # for callers that scoped already. Other tools may carry no path at all.
-    if root is None or event["tool_name"] not in (WRITE_TOOL, EDIT_TOOL):
-        return True
-    target = _resolve(base, str(event["tool_input"]["path"])).resolve()
-    return target.is_relative_to(root.resolve())
+def _in_root(target: Path, root: Path | None) -> bool:
+    # A write elsewhere (e.g. /tmp) is not the repo's: neither checked nor receipted.
+    # None is for callers that scoped already.
+    return root is None or target.resolve().is_relative_to(root.resolve())
 
 
 def _current_content(target: Path) -> str | None:
     # The file before this call; a new file has none, so all its matches are new.
     return target.read_text(encoding="utf-8") if target.is_file() else None
-
-
-def _target(event: JsonDict, base: Path) -> str:
-    return str(_resolve(base, str(event["tool_input"]["path"])))
 
 
 def _rules_with_roots(registry: Registry) -> list[RuleAndRoot]:
@@ -218,38 +245,6 @@ def _speaking_root(root_ids: list[str], by_id: dict[str, Root]) -> Root | None:
     known = [by_id[root_id] for root_id in root_ids if root_id in by_id]
     confirmed = [root for root in known if root.status == "Confirmed"]
     return next(iter(confirmed + known), None)
-
-
-def _proposed_content(event: JsonDict, base: Path) -> str | None:
-    tool_input = event["tool_input"]
-    if event["tool_name"] == WRITE_TOOL:
-        return _write_content(tool_input)
-    if event["tool_name"] == EDIT_TOOL:
-        return _edit_content(tool_input, base)
-    return None
-
-
-def _write_content(tool_input: JsonDict) -> str | None:
-    # New files are checked too; only the suffix decides.
-    if not str(tool_input["path"]).endswith(".py"):
-        return None
-    return str(tool_input["content"])
-
-
-def _edit_content(tool_input: JsonDict, base: Path) -> str | None:
-    # Applies find -> replace once in memory; the target file is only read.
-    if not str(tool_input["path"]).endswith(".py"):
-        return None
-    current = _resolve(base, str(tool_input["path"])).read_text(encoding="utf-8")
-    return current.replace(str(tool_input["find"]), str(tool_input["replace"]), 1)
-
-
-def _resolve(base: Path, value: str) -> Path:
-    # Absolute paths pass through; relative ones join the given base.
-    candidate = Path(value)
-    if candidate.is_absolute():
-        return candidate
-    return base / candidate
 
 
 def _scan_proposal(
