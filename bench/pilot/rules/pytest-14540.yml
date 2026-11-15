@@ -1,0 +1,33 @@
+id: pytest-14540
+language: python
+severity: error
+message: parsefactories keeps a seen-holder guard with a widened composite key; the team decided to drop the guard entirely (#14540).
+rule:
+  kind: if_statement
+  all:
+    - has:
+        field: condition
+        pattern: $K in self.$SEEN
+    - has:
+        field: consequence
+        stopBy: end
+        kind: return_statement
+    - inside:
+        kind: function_definition
+        stopBy: end
+        has:
+          field: name
+          regex: ^parsefactories$
+    - any:
+        - has:
+            field: condition
+            pattern: ($A, $$$REST) in self.$SEEN
+        - inside:
+            kind: function_definition
+            stopBy: end
+            has:
+              stopBy: end
+              kind: assignment
+              all:
+                - has: {field: left, pattern: $K}
+                - has: {field: right, kind: tuple}

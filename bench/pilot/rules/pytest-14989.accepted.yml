@@ -1,0 +1,12 @@
+id: pytest-14989-accepted
+language: python
+severity: error
+message: The loaded pyc's code object gets its co_filename corrected in memory.
+rule:
+  any:
+    - pattern: $CO.replace($$$, co_filename=$F, $$$)
+    - all:
+        - kind: call
+        - has:
+            field: function
+            regex: "fix_co_filename$"

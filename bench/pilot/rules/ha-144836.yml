@@ -1,0 +1,13 @@
+id: ha-144836
+language: python
+severity: error
+message: Do not force or schedule an extra state refresh after a wmspro action; HA already polls after a service call (joostlek, home-assistant/core#144836).
+rule:
+  any:
+    - pattern: $X.async_create_task($$$)
+    - pattern: $X.async_update_ha_state($$$)
+    - pattern: $X.async_schedule_update_ha_state($$$)
+    - pattern: async_call_later($$$)
+  inside:
+    kind: class_definition
+    stopBy: end

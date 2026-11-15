@@ -1,0 +1,13 @@
+id: fastapi-15588
+language: python
+severity: error
+message: Silently stripping CR/LF from SSE fields; reject such values with a validator instead.
+rule:
+  any:
+    - pattern: $X.replace($NL, $$$R)
+    - pattern: re.sub($NL, $$$R)
+    - pattern: $S.join($X.splitlines())
+    - pattern: $X.translate($$$R)
+constraints:
+  NL:
+    regex: \\[rn]

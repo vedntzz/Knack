@@ -1,0 +1,13 @@
+id: fastapi-13786
+language: python
+severity: error
+message: Inline 401 raise in a security class; build the error in an overridable method so users can restore the old status.
+rule:
+  pattern: raise HTTPException($$$ARGS)
+  has:
+    stopBy: end
+    any:
+      - pattern: HTTP_401_UNAUTHORIZED
+      - pattern: $M.HTTP_401_UNAUTHORIZED
+      - kind: integer
+        regex: ^401$

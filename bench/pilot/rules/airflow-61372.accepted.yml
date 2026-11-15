@@ -1,0 +1,6 @@
+id: airflow-61372-accepted
+language: python
+severity: error
+message: One joined select over Deadline and DeadlineAlert.
+rule:
+  pattern: select($A, $B).join($$$)

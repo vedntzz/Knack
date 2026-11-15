@@ -1,0 +1,15 @@
+id: pydantic-12740.accepted
+language: python
+severity: error
+message: ModuleNotFoundError handler re-raises the original error with a bare raise and no masking ImportError.
+rule:
+  kind: except_clause
+  regex: '^except\s+ModuleNotFoundError\s*:'
+  has:
+    kind: raise_statement
+    regex: ^raise$
+    stopBy: end
+  not:
+    has:
+      pattern: raise ImportError($$$) from $X
+      stopBy: end

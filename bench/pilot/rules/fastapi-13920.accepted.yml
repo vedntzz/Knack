@@ -1,0 +1,6 @@
+id: fastapi-13920-accepted
+language: python
+severity: error
+message: Accepted fix unwraps PEP 695 aliases via typing_inspection is_typealiastype.
+rule:
+  pattern: is_typealiastype($A)

@@ -1,0 +1,37 @@
+diff --git a/src/_pytest/raises.py b/src/_pytest/raises.py
+index d8bf85e..a0a2c02 100644
+--- a/src/_pytest/raises.py
++++ b/src/_pytest/raises.py
+@@ -20,6 +20,7 @@ from typing import (
+ 
+ from _pytest._code import ExceptionInfo
+ from _pytest._code.code import stringify_exception
++from _pytest.outcomes import Failed
+ from _pytest.outcomes import fail
+ from _pytest.warning_types import PytestWarning
+ 
+@@ -694,7 +695,10 @@ class RaisesExc(AbstractRaises[BaseExcT_co_default]):
+         if not self.matches(exc_val):
+             if self._just_propagate:
+                 return False
+-            raise AssertionError(self._fail_reason)
++            # Chain explicitly so the report says the raised exception was the
++            # direct cause, rather than implying a second error occurred
++            # "during handling" of it.
++            raise AssertionError(self._fail_reason) from exc_val
+ 
+         # Cast to narrow the exception type now that it's verified....
+         # even though the TypeGuard in self.matches should be narrowing
+@@ -1407,7 +1411,11 @@ class RaisesGroup(AbstractRaises[BaseExceptionGroup[BaseExcT_co]]):
+         )
+ 
+         if not self.matches(exc_val):
+-            fail(f"Raised exception {group_str} did not match: {self._fail_reason}")
++            # Chain explicitly so the report doesn't suggest that a second error
++            # occurred "during handling" of the raised exception group.
++            raise Failed(
++                f"Raised exception {group_str} did not match: {self._fail_reason}"
++            ) from exc_val
+ 
+         # Cast to narrow the exception type now that it's verified....
+         # even though the TypeGuard in self.matches should be narrowing

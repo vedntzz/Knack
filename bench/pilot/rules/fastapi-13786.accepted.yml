@@ -1,0 +1,9 @@
+id: fastapi-13786-accepted
+language: python
+severity: error
+message: Accepted fix builds the not-authenticated HTTPException in a method that returns it.
+rule:
+  kind: function_definition
+  has:
+    stopBy: end
+    pattern: return HTTPException($$$ARGS)

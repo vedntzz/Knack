@@ -1,0 +1,16 @@
+id: fastapi-15588-accepted
+language: python
+severity: error
+message: Accepted fix raises when a CR/LF is present in the value.
+rule:
+  kind: if_statement
+  all:
+    - has:
+        stopBy: end
+        pattern: $NL in $V
+    - has:
+        stopBy: end
+        kind: raise_statement
+constraints:
+  NL:
+    regex: \\[rn]

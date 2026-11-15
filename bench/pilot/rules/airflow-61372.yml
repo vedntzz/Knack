@@ -1,0 +1,22 @@
+id: airflow-61372
+language: python
+severity: error
+message: Per-deadline alert lookup inside a loop (N+1) was rejected; join Deadline and DeadlineAlert in one query.
+rule:
+  inside:
+    kind: for_statement
+    stopBy: end
+  any:
+    # lazy-load of the alert relationship per row
+    - kind: attribute
+      has:
+        field: attribute
+        regex: '^deadline_alert$'
+    # alert id passed to a per-row lookup / query
+    - kind: attribute
+      has:
+        field: attribute
+        regex: '^deadline_alert_id$'
+      inside:
+        kind: argument_list
+        stopBy: end

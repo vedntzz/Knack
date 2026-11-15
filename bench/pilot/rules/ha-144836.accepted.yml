@@ -1,0 +1,9 @@
+id: ha-144836.accepted
+language: python
+severity: error
+message: Action waits briefly so the built-in post-service poll sees the new state.
+rule:
+  pattern: await asyncio.sleep($$$)
+  inside:
+    kind: function_definition
+    stopBy: end

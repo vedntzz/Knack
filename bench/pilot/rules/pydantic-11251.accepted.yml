@@ -1,0 +1,7 @@
+id: pydantic-11251.accepted
+language: python
+severity: error
+message: Wrapper function decorated with functools.wraps.
+rule:
+  kind: decorator
+  regex: ^@\s*(functools\.)?wraps\(

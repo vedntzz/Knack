@@ -1,0 +1,12 @@
+id: ha-167721.accepted
+language: python
+severity: error
+message: BackupAgentError message carries the underlying error text.
+rule:
+  pattern: raise BackupAgentError($MSG) from $E
+  has:
+    kind: string
+    has:
+      kind: interpolation
+      stopBy: end
+    stopBy: end

@@ -1,0 +1,28 @@
+id: pytest-14989
+language: python
+severity: error
+message: A moved test's cached pyc is discarded on a co_filename mismatch; the team decided to fix co_filename in memory instead (#14989).
+utils:
+  filename-mismatch:
+    all:
+      - pattern: $L != $R
+      - has:
+          kind: attribute
+          regex: "\\.co_filename$"
+          stopBy: end
+rule:
+  kind: if_statement
+  all:
+    - has:
+        field: condition
+        any:
+          - matches: filename-mismatch
+          - has:
+              matches: filename-mismatch
+              stopBy: end
+    - has:
+        field: consequence
+        stopBy: end
+        any:
+          - pattern: return None
+          - pattern: _rewrite_test($$$)

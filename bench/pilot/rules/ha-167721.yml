@@ -1,0 +1,16 @@
+id: ha-167721
+language: python
+severity: error
+message: Do not log right before raising BackupAgentError from the B2 error; raise ... from err already records it (erwindouna, home-assistant/core#167721).
+rule:
+  kind: except_clause
+  all:
+    - has:
+        pattern: raise BackupAgentError($$$) from $E
+        stopBy: end
+    - has:
+        pattern: $LOG.$LVL($$$)
+        stopBy: end
+constraints:
+  LVL:
+    regex: ^(debug|info|warning|warn|error|exception|critical)$

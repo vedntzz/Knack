@@ -1,0 +1,16 @@
+id: pydantic-12740
+language: python
+severity: error
+message: Do not special-case the caught ModuleNotFoundError's missing-module name to decide whether to mask it; drop the masking ImportError and re-raise the original error (davidhewitt, pydantic#12740).
+rule:
+  any:
+    - pattern: $E.name
+    - pattern: getattr($E, $N)
+    - pattern: getattr($E, $N, $D)
+  inside:
+    kind: except_clause
+    regex: ^except\s*\(?\s*(ModuleNotFoundError|ImportError)
+    stopBy: end
+constraints:
+  N:
+    regex: ^['"]name['"]$

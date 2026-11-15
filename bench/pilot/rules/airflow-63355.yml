@@ -1,0 +1,24 @@
+id: airflow-63355
+language: python
+severity: error
+message: Swallowing the 409 duplicate-state conflict in the task runner was rejected; make the execution API state update idempotent instead.
+rule:
+  any:
+    # except AirflowRuntimeError around a SUPERVISOR_COMMS.send call
+    - kind: except_clause
+      regex: '^except\s*\(?[^:]*\bAirflowRuntimeError\b'
+      inside:
+        kind: try_statement
+        stopBy: end
+        has:
+          pattern: SUPERVISOR_COMMS.send($$$)
+          stopBy: end
+    # client-side parsing of the 409 / invalid_state conflict payload
+    - kind: comparison_operator
+      has:
+        stopBy: end
+        any:
+          - kind: integer
+            regex: '^409$'
+          - kind: string
+            regex: 'invalid_state'

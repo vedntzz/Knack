@@ -1,0 +1,6 @@
+id: ha-139299.accepted
+language: python
+severity: error
+message: Blocking client construction moved to a tracked executor job.
+rule:
+  pattern: $H.async_add_executor_job($$$)

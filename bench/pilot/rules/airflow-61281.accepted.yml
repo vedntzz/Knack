@@ -1,0 +1,14 @@
+id: airflow-61281-accepted
+language: python
+severity: error
+message: Warn-only guard for PYTHONASYNCIODEBUG / PYTHONDEVMODE.
+rule:
+  kind: if_statement
+  all:
+    - has:
+        field: condition
+        stopBy: end
+        regex: 'PYTHONDEVMODE'
+    - has:
+        stopBy: end
+        pattern: warnings.warn($$$)

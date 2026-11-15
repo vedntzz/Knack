@@ -1,0 +1,10 @@
+id: fastapi-9425
+language: python
+severity: error
+message: Annotation compared to the literal string "None"; handle the evaluated NoneType instead.
+rule:
+  kind: comparison_operator
+  has:
+    stopBy: end
+    kind: string
+    regex: ^[rbuRBU]?["']{1,3}None["']{1,3}$

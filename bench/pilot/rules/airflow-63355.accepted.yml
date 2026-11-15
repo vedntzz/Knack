@@ -1,0 +1,13 @@
+id: airflow-63355-accepted
+language: python
+severity: error
+message: State update returns 200 when the TI is already in the requested state.
+rule:
+  kind: if_statement
+  has:
+    field: condition
+    pattern: $REQ == previous_state
+  all:
+    - has:
+        stopBy: end
+        pattern: return Response(status_code=status.HTTP_200_OK)
